@@ -266,6 +266,27 @@ def init_auth(app):
         flash("Signed out.", "success")
         return redirect(url_for("dashboard"))
 
+    @app.route("/settings/password", methods=["POST"])
+    @login_required
+    def change_password():
+        u = current_user()
+        current = request.form.get("current_password") or ""
+        new = request.form.get("new_password") or ""
+        if not check_password_hash(u["password_hash"], current):
+            flash("Current password is incorrect.", "error")
+        elif len(new) < 8:
+            flash("New password must be at least 8 characters.", "error")
+        elif new == current:
+            flash("New password must be different from the current one.", "error")
+        else:
+            conn = get_connection(DB_PATH)
+            conn.execute("UPDATE users SET password_hash=? WHERE id=?",
+                         (generate_password_hash(new), u["id"]))
+            conn.commit()
+            conn.close()
+            flash("Password updated.", "success")
+        return redirect(url_for("settings"))
+
     # ── Password reset ────────────────────────────────────────────────────────
     @app.route("/forgot", methods=["GET", "POST"])
     def forgot_password():

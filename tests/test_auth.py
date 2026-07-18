@@ -145,6 +145,25 @@ def test_password_reset_flow():
     assert good.status_code == 302, "new password should sign in"
 
 
+def test_change_password():
+    _reset()
+    c = app.test_client()
+    _register(c, "changer@x.com", pw="oldpass123")
+    # wrong current password is rejected
+    r = c.post("/settings/password", data={"_csrf": _csrf(c), "current_password": "nope",
+                                            "new_password": "newpass456"}, follow_redirects=True)
+    assert "incorrect" in r.get_data(as_text=True)
+    # correct change works
+    c.post("/settings/password", data={"_csrf": _csrf(c), "current_password": "oldpass123",
+                                        "new_password": "newpass456"})
+    c.post("/logout", data={"_csrf": _csrf(c)})
+    lc = app.test_client()
+    bad = lc.post("/login", data={"_csrf": _csrf(lc), "email": "changer@x.com", "password": "oldpass123"})
+    assert "Wrong email or password" in bad.get_data(as_text=True)
+    good = lc.post("/login", data={"_csrf": _csrf(lc), "email": "changer@x.com", "password": "newpass456"})
+    assert good.status_code == 302
+
+
 if __name__ == "__main__":
     fns = [(n, f) for n, f in sorted(globals().items())
            if n.startswith("test_") and callable(f)]
