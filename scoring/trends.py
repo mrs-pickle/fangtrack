@@ -95,13 +95,13 @@ def compute_price_trends(db_path: Path = DB_PATH,
             {size_case} AS size_bucket,
             AVG(price_usd)     AS avg_price,
             MIN(price_usd)     AS min_price,
-            observed_at
+            MAX(observed_at)   AS observed_at
         FROM price_history
         WHERE price_usd > 0
           AND observed_at >= datetime('now', '-{days_back} days')
         GROUP BY scientific_name_key, sex, size_bucket,
                  DATE(observed_at)   -- one data point per day
-        ORDER BY observed_at ASC
+        ORDER BY MAX(observed_at) ASC
     """)
 
     rows = cur.fetchall()

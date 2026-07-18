@@ -159,7 +159,7 @@ def compute_all_rarity(db_path: Path = DB_PATH,
     cur.execute("""
         SELECT
             ph.scientific_name_key,
-            ph.scientific_name,
+            MAX(ph.scientific_name)        AS scientific_name,
             COUNT(DISTINCT ph.vendor_key)  AS vendor_count,
             COUNT(*)                       AS obs_count,
             MIN(ph.price_usd)              AS min_price,

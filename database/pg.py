@@ -89,6 +89,14 @@ def translate(sql: str) -> str:
     # datetime('now') — both as a column DEFAULT and inline in queries. Kept as TEXT to
     # match code that string-slices timestamps (row["observed_at"][:10]).
     s = re.sub(r"DEFAULT\s*\(\s*datetime\(\s*'now'\s*\)\s*\)", f"DEFAULT {_NOW_TEXT}", s, flags=re.I)
+    # datetime('now', '-N days'/'+N hours'/…) → Postgres interval arithmetic (text),
+    # matching SQLite's 'YYYY-MM-DD HH:MM:SS' output. Must run before the plain
+    # datetime('now') rule below (that one only matches the no-argument form).
+    s = re.sub(
+        r"datetime\(\s*'now'\s*,\s*'([+-]?\d+)\s+(day|days|hour|hours|minute|minutes|month|months|year|years)'\s*\)",
+        lambda m: ("to_char((now() AT TIME ZONE 'UTC') + interval "
+                   f"'{m.group(1)} {m.group(2)}','YYYY-MM-DD HH24:MI:SS')"),
+        s, flags=re.I)
     s = re.sub(r"datetime\(\s*'now'\s*\)", _NOW_TEXT, s, flags=re.I)
     # SQLite date(x) → Postgres (no date(text) function exists there).
     s = _translate_date_calls(s)
