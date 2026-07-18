@@ -46,6 +46,16 @@ def _init_schema():
 
 _init_schema()
 
+# Fully initialize the modules that get_snapshot()/the dashboard import lazily,
+# HERE on the main thread, before the background warm thread or the first request
+# can race a concurrent first-time import of them. Skipping this let the warm
+# thread and an incoming request both first-import `vendors` at once, yielding a
+# "partially initialized module" ImportError that 500'd the homepage.
+import vendors                                    # noqa: F401  (REGISTRY)
+import analytics.market                           # noqa: F401
+import normalize.source_type                      # noqa: F401
+import normalize.common_names                     # noqa: F401
+
 # Warm the heavy dashboard caches off the request path so the first real visitor
 # gets an instant page instead of the ~10s+ cold build. Daemon thread → never
 # blocks boot or the health check; runs once per worker (incl. after a recycle).
