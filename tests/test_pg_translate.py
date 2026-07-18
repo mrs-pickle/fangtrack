@@ -88,23 +88,6 @@ def test_rewrite_non_pragma_passthrough():
     assert sql == "SELECT 1" and extra is ...
 
 
-if __name__ == "__main__":
-    fns = [(n, f) for n, f in sorted(globals().items())
-           if n.startswith("test_") and callable(f)]
-    passed = 0
-    for name, fn in fns:
-        try:
-            fn()
-            print(f"  ok   {name}")
-            passed += 1
-        except AssertionError as e:
-            print(f"  FAIL {name}: {e}")
-        except Exception as e:
-            print(f"  ERR  {name}: {e!r}")
-    print(f"{passed}/{len(fns)} passed")
-    sys.exit(0 if passed == len(fns) else 1)
-
-
 def test_pragma_table_info_shape():
     """PRAGMA table_info must translate to a row where the column name is BOTH at
     index 1 (SQLite shape: cid,name,type,...) and aliased 'name' — db.py uses r[1],
@@ -130,3 +113,20 @@ def test_date_function_translation():
     # no bare date( function call left behind
     out = translate("SELECT DATE(observed_at) AS d FROM price_history")
     assert "date(" not in out.lower()
+
+
+if __name__ == "__main__":
+    fns = [(n, f) for n, f in sorted(globals().items())
+           if n.startswith("test_") and callable(f)]
+    passed = 0
+    for name, fn in fns:
+        try:
+            fn()
+            print(f"  ok   {name}")
+            passed += 1
+        except AssertionError as e:
+            print(f"  FAIL {name}: {e}")
+        except Exception as e:
+            print(f"  ERR  {name}: {e!r}")
+    print(f"{passed}/{len(fns)} passed")
+    sys.exit(0 if passed == len(fns) else 1)
