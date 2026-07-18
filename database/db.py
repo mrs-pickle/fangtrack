@@ -135,6 +135,25 @@ def init_db(db_path: Path = DB_PATH) -> None:
     CREATE INDEX IF NOT EXISTS idx_ph_key ON price_history(scientific_name_key, sex, vendor_key);
     CREATE INDEX IF NOT EXISTS idx_ph_observed ON price_history(observed_at);
     CREATE INDEX IF NOT EXISTS idx_ph_vendor ON price_history(vendor_key);
+
+    -- Created at boot (were previously created lazily inside routes, so a fresh
+    -- Postgres deploy lacked them → /submit and the source-policy admin 500'd).
+    CREATE TABLE IF NOT EXISTS submissions (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind         TEXT NOT NULL,
+        vendor_name  TEXT,
+        vendor_url   TEXT,
+        message      TEXT NOT NULL,
+        contact      TEXT,
+        status       TEXT DEFAULT 'new',
+        created_at   TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS vendor_source_policy (
+        vendor_key TEXT PRIMARY KEY,
+        policy     TEXT,
+        note       TEXT,
+        updated_at TEXT
+    );
     """)
 
     # Additive migrations for existing DBs (new columns added over time).

@@ -60,6 +60,22 @@ def main():
             print(f"  (collection.{col}: {e})")
     tgt.commit()
 
+    # ── 1b. Drop FK constraints ─────────────────────────────────────────────────
+    # SQLite doesn't enforce foreign keys by default, so the source has orphaned
+    # rows (e.g. crawl_runs for retired vendors). Postgres DOES enforce them, which
+    # blocks the bulk copy. Drop the FKs (they're advisory here) so every row loads.
+    try:
+        fks = tgt.execute(
+            "SELECT conrelid::regclass::text AS tbl, conname FROM pg_constraint "
+            "WHERE contype = 'f'").fetchall()
+        for fk in fks:
+            tgt.execute(f'ALTER TABLE {fk["tbl"]} DROP CONSTRAINT IF EXISTS "{fk["conname"]}"')
+        tgt.commit()
+        print(f"Dropped {len(fks)} foreign-key constraint(s) for bulk load.")
+    except Exception as e:
+        print(f"  (dropping FKs: {e})")
+        tgt.commit()
+
     # ── 2. Copy every table, preserving ids ─────────────────────────────────────
     src = sqlite3.connect(src_path)
     src.row_factory = sqlite3.Row
@@ -67,6 +83,14 @@ def main():
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
     total = 0
     for t in tables:
+        # Skip any source table the target schema doesn't have (keeps one missing
+        # table from aborting the whole copy).
+        exists = tgt.execute(
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_name = ? AND table_schema = current_schema()", (t,)).fetchone()
+        if not exists:
+            print(f"  {t}: SKIPPED (no such table on target)")
+            continue
         rows = src.execute(f"SELECT * FROM {t}").fetchall()
         if not rows:
             print(f"  {t}: 0 rows")
@@ -75,9 +99,14 @@ def main():
         collist = ",".join(cols)
         ph = ",".join(["?"] * len(cols))
         cur = tgt.cursor()
-        for r in rows:
-            cur.execute(f"INSERT OR IGNORE INTO {t} ({collist}) VALUES ({ph})",
-                        tuple(r[c] for c in cols))
+        sql = f"INSERT OR IGNORE INTO {t} ({collist}) VALUES ({ph})"
+        # Batch with executemany (psycopg pipelines it) instead of a network
+        # round-trip per row — turns a ~40-min price_history copy into ~1 min.
+        CHUNK = 1000
+        for i in range(0, len(rows), CHUNK):
+            cur.executemany(sql, [tuple(r[c] for c in cols) for r in rows[i:i + CHUNK]])
+            if len(rows) > CHUNK:
+                print(f"    {t}: {min(i + CHUNK, len(rows))}/{len(rows)}", end="\r")
         tgt.commit()
         if "id" in cols:
             # advance the BIGSERIAL sequence past the copied ids
