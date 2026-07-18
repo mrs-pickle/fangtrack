@@ -116,9 +116,16 @@ def rewrite_pragma(sql: str):
     m = _PRAGMA_TABLE_INFO.search(sql)
     if m:
         table = m.group(1)
-        # Return rows with a `name` column, matching `PRAGMA table_info` consumers.
-        return ("SELECT column_name AS name FROM information_schema.columns "
-                "WHERE table_name = %s ORDER BY ordinal_position"), (table,)
+        # Mirror SQLite's PRAGMA table_info row shape: (cid, name, type, notnull,
+        # dflt_value, pk). Callers access the column name BOTH by index 1 (r[1])
+        # and by key (r["name"]), so the name must sit at position 1 AND be aliased.
+        return ("SELECT (ordinal_position - 1) AS cid, column_name AS name, "
+                "data_type AS type, "
+                "CASE WHEN is_nullable = 'NO' THEN 1 ELSE 0 END AS notnull, "
+                "column_default AS dflt_value, 0 AS pk "
+                "FROM information_schema.columns "
+                "WHERE table_name = %s AND table_schema = current_schema() "
+                "ORDER BY ordinal_position"), (table,)
     if re.match(r"\s*PRAGMA\b", sql, flags=re.I):
         return None, None
     return sql, ...   # ... sentinel: not a pragma

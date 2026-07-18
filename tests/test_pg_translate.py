@@ -103,3 +103,17 @@ if __name__ == "__main__":
             print(f"  ERR  {name}: {e!r}")
     print(f"{passed}/{len(fns)} passed")
     sys.exit(0 if passed == len(fns) else 1)
+
+
+def test_pragma_table_info_shape():
+    """PRAGMA table_info must translate to a row where the column name is BOTH at
+    index 1 (SQLite shape: cid,name,type,...) and aliased 'name' — db.py uses r[1],
+    watchlist/auth use r['name']. Regression for the Postgres first-boot crash."""
+    from database.pg import rewrite_pragma
+    sql, params = rewrite_pragma("PRAGMA table_info(price_history)")
+    assert params == ("price_history",)
+    assert "column_name AS name" in sql
+    assert sql.strip().startswith("SELECT (ordinal_position - 1) AS cid, column_name AS name")
+    # no-op pragmas still no-op
+    assert rewrite_pragma("PRAGMA journal_mode=WAL") == (None, None)
+    assert rewrite_pragma("PRAGMA foreign_keys=ON") == (None, None)
