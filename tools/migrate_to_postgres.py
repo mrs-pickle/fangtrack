@@ -120,6 +120,14 @@ def main():
         total += len(rows)
         print(f"  {t}: {len(rows)} rows")
     src.close()
+    # Update planner statistics after the bulk load — without this Postgres uses
+    # stale stats and picks slow sequential scans, which times the dashboard out.
+    try:
+        tgt.execute("ANALYZE")
+        tgt.commit()
+        print("Ran ANALYZE (planner statistics refreshed).")
+    except Exception as e:
+        print(f"  (ANALYZE: {e})")
     tgt.close()
     print(f"Done. Copied {total} rows across {len(tables)} tables.")
     print("Verify: point the app at DATABASE_URL and load /deals + /collection.")
