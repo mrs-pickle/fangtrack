@@ -8,9 +8,8 @@ Runs the one-time table initialization that app.py's __main__ block does for loc
 so the schema exists before the first request when served under gunicorn/waitress.
 """
 import os
-import threading
 
-from app import app, warm_caches
+from app import app
 from database.db import get_connection, init_db, init_discount_tables, DB_PATH
 from scoring.watchlist import init_watchlist_tables
 
@@ -46,20 +45,12 @@ def _init_schema():
 
 _init_schema()
 
-# Fully initialize the modules that get_snapshot()/the dashboard import lazily,
-# HERE on the main thread, before the background warm thread or the first request
-# can race a concurrent first-time import of them. Skipping this let the warm
-# thread and an incoming request both first-import `vendors` at once, yielding a
-# "partially initialized module" ImportError that 500'd the homepage.
-import vendors                                    # noqa: F401  (REGISTRY)
-import analytics.market                           # noqa: F401
-import normalize.source_type                      # noqa: F401
-import normalize.common_names                     # noqa: F401
-
-# Warm the heavy dashboard caches off the request path so the first real visitor
-# gets an instant page instead of the ~10s+ cold build. Daemon thread → never
-# blocks boot or the health check; runs once per worker (incl. after a recycle).
-threading.Thread(target=warm_caches, daemon=True, name="cache-warm").start()
+# NOTE: we deliberately do NOT warm the caches in a background thread at boot.
+# On Render's 0.5-CPU box that build saturates the CPU during startup, so Render's
+# port-open detection and health check time out and the instance restart-loops.
+# Instead the first request after a boot/crawl builds the cache (one slow load,
+# ~30-60s, which the instance survives because boot is already complete), and the
+# 1h TTL keeps every subsequent load instant. See warm_caches() in app.py.
 
 if __name__ == "__main__":
     # Fallback: waitress if invoked directly (e.g. on Windows without gunicorn).
