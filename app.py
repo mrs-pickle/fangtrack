@@ -266,7 +266,14 @@ _crawl_state = _load_crawl_state()
 
 # ── Snapshot cache (rebuilt after each crawl) ─────────────────────────────────
 _snapshot_cache = {"data": None, "ts": 0}
-_CACHE_TTL = 60  # seconds
+# The snapshot is expensive to build (rarity + trends + fire-deals over ~75k rows)
+# and only changes on the daily crawl, so we cache it for a long time. The crawl
+# force-refreshes via get_snapshot(force=True); between crawls nothing changes, so
+# serving up-to-an-hour-stale data is fine and keeps the free tier responsive.
+_CACHE_TTL = 3600  # seconds (1 hour)
+# Serialize the (expensive) recompute so a cold cache hit by N gunicorn threads at
+# once triggers ONE build, not N simultaneous ones that thrash the free tier.
+_snapshot_lock = threading.Lock()
 
 def get_owned_keys(db_path=DB_PATH, user_id=None) -> set:
     """Species_keys owned. `user_id=None` = global (background crawl/digest); pass a
@@ -298,6 +305,16 @@ def get_snapshot(force=False) -> list:
     if not force and _snapshot_cache["data"] and (now - _snapshot_cache["ts"]) < _CACHE_TTL:
         return _snapshot_cache["data"]
 
+    # Only one thread builds the snapshot at a time. Whoever loses the race waits
+    # here, then finds the fresh cache on the re-check below instead of rebuilding.
+    with _snapshot_lock:
+        now = time.time()
+        if not force and _snapshot_cache["data"] and (now - _snapshot_cache["ts"]) < _CACHE_TTL:
+            return _snapshot_cache["data"]
+        return _build_snapshot(now)
+
+
+def _build_snapshot(now: float) -> list:
     conn = get_connection(DB_PATH)
     cur = conn.cursor()
     # Pick, per vendor, the newest run that ISN'T truncated. A truncated run
