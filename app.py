@@ -123,6 +123,76 @@ def get_market_stats(force=False) -> dict:
     return data
 
 
+# Dashboard analytics that only change on a crawl. Recomputing them on every
+# homepage load (heavy DB queries + Python) is what made the live site crawl on
+# Render's 0.5-CPU box, so they're cached like the snapshot and invalidated by the
+# crawl. `snap` is the (already-cached) REGISTRY-filtered snapshot.
+_movers_cache = {"data": None, "ts": 0}
+_intel_cache = {"data": None, "ts": 0}
+_summary_cache = {"data": None, "ts": 0}
+
+
+def _cached_movers(snap, force=False) -> dict:
+    now = time.time()
+    if not force and _movers_cache["data"] is not None and (now - _movers_cache["ts"]) < _CACHE_TTL:
+        return _movers_cache["data"]
+    try:
+        from analytics.market import market_movers
+        movers = market_movers(snap, DB_PATH, limit=25)
+        for _col in ("fire", "drops", "back_in_stock"):
+            _attach_clean_names(movers.get(_col, []))
+    except Exception as e:
+        logger.warning(f"movers failed: {e}")
+        movers = {"fire": [], "drops": [], "back_in_stock": [], "heating": [], "cooling": [], "stats": {}}
+    _movers_cache["data"] = movers
+    _movers_cache["ts"] = now
+    return movers
+
+
+def _cached_intel(snap, force=False) -> dict:
+    now = time.time()
+    if not force and _intel_cache["data"] is not None and (now - _intel_cache["ts"]) < _CACHE_TTL:
+        return _intel_cache["data"]
+    try:
+        from analytics.market import market_intelligence
+        intel = market_intelligence(DB_PATH, snap, get_owned_keys(DB_PATH))
+    except Exception as e:
+        logger.warning(f"market_intelligence failed: {e}")
+        intel = {}
+    if not isinstance(intel, dict):        # never let a fresh/empty DB 500 the homepage
+        intel = {"price_action": {}, "coverage": {}, "standouts": [], "new_this_crawl": 0}
+    _intel_cache["data"] = intel
+    _intel_cache["ts"] = now
+    return intel
+
+
+def _cached_crawl_summary(force=False) -> list:
+    now = time.time()
+    if not force and _summary_cache["data"] is not None and (now - _summary_cache["ts"]) < _CACHE_TTL:
+        return _summary_cache["data"]
+    full = get_crawl_summary(DB_PATH) or []
+    _summary_cache["data"] = full
+    _summary_cache["ts"] = now
+    return full
+
+
+def warm_caches():
+    """Build the expensive dashboard caches once at startup so the first visitor
+    doesn't pay the ~10s+ cold build (which on a small box can trip the health
+    check). Meant to run in a background daemon thread from wsgi; every piece
+    already guards its own errors, so a failure here just leaves a cold cache."""
+    try:
+        from vendors import REGISTRY
+        snap = [l for l in get_snapshot() if l.get("vendor_key") in REGISTRY]
+        _cached_movers(snap)
+        _cached_intel(snap)
+        _cached_crawl_summary()
+        get_market_stats()
+        logger.info("cache warm complete")
+    except Exception as e:
+        logger.warning(f"cache warm failed: {e}")
+
+
 def spark_svg(series: list, w: int = 108, h: int = 26, color: str = "#1a73e8") -> str:
     """Tiny inline sparkline SVG from a [[ymd, price], ...] series (cheapest per
     day). One point renders as a flat dashed hint; empty renders as a dash."""
@@ -740,6 +810,9 @@ def run_crawl_thread(vendor_keys: list[str]):
         _market_cache["data"] = None
         _species_cache["data"] = None
         _browse_cache["data"] = None
+        _movers_cache["data"] = None
+        _intel_cache["data"] = None
+        _summary_cache["data"] = None
         snap = get_snapshot(force=True)
         get_market_stats(force=True)
         init_watchlist_tables(DB_PATH)
@@ -945,32 +1018,14 @@ def dashboard():
     female = [l for l in snap if l.get("sex") == "F"]
     top_deals = sorted(fire + gem2, key=lambda l: l.get("price_usd", 9999))[:12]
     _attach_clean_names(top_deals)
-    summary = get_crawl_summary(DB_PATH)[-10:] if get_crawl_summary(DB_PATH) else []
+    summary = _cached_crawl_summary()[-10:]
     hits = _crawl_state.get("last_hits", [])
     wl_targets = list_targets(DB_PATH, user_id=current_user_id()) if current_user_id() else []
 
-    # ── Market movers (StockX front-page energy) ────────────────────────────
-    try:
-        from analytics.market import market_movers
-        movers = market_movers(snap, DB_PATH, limit=25)
-        # Clean, standardized species names in every mover column (same format
-        # as the Deals list).
-        for _col in ("fire", "drops", "back_in_stock"):
-            _attach_clean_names(movers.get(_col, []))
-    except Exception as e:
-        logger.warning(f"movers failed: {e}")
-        movers = {"fire": [], "drops": [], "back_in_stock": [], "heating": [], "cooling": [], "stats": {}}
+    # ── Market movers + intelligence (only change on a crawl → cached) ───────
+    movers = _cached_movers(snap)
     stats = get_market_stats()
-
-    # ── Market Intelligence dossier (grouped: price action / coverage / standouts) ─
-    try:
-        from analytics.market import market_intelligence
-        intel = market_intelligence(DB_PATH, snap, get_owned_keys(DB_PATH))
-    except Exception as e:
-        logger.warning(f"market_intelligence failed: {e}")
-        intel = {}
-    if not isinstance(intel, dict):        # never let a fresh/empty DB 500 the homepage
-        intel = {"price_action": {}, "coverage": {}, "standouts": [], "new_this_crawl": 0}
+    intel = _cached_intel(snap)
 
     # ── Header meta + crawl-history depth (drives the mover empty-state counters) ─
     head = _dashboard_header_meta()

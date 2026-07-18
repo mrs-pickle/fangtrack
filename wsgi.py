@@ -8,8 +8,9 @@ Runs the one-time table initialization that app.py's __main__ block does for loc
 so the schema exists before the first request when served under gunicorn/waitress.
 """
 import os
+import threading
 
-from app import app
+from app import app, warm_caches
 from database.db import get_connection, init_db, init_discount_tables, DB_PATH
 from scoring.watchlist import init_watchlist_tables
 
@@ -44,6 +45,11 @@ def _init_schema():
 
 
 _init_schema()
+
+# Warm the heavy dashboard caches off the request path so the first real visitor
+# gets an instant page instead of the ~10s+ cold build. Daemon thread → never
+# blocks boot or the health check; runs once per worker (incl. after a recycle).
+threading.Thread(target=warm_caches, daemon=True, name="cache-warm").start()
 
 if __name__ == "__main__":
     # Fallback: waitress if invoked directly (e.g. on Windows without gunicorn).
