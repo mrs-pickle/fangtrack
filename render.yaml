@@ -27,6 +27,23 @@ services:
         fromDatabase:
           name: fangtrack-db
           property: connectionString
+      - key: FANGTRACK_BASE_URL         # absolute URLs in password-reset emails
+        value: "https://fangtrack.com"
+      - key: FANGTRACK_PROXY_HOPS       # Render sits behind 1 proxy → real client IP
+        value: "1"
+      # SMTP for password-reset + watchlist/digest email. Render will PROMPT for
+      # these at blueprint creation (sync:false = not stored in the repo). Leave
+      # blank to launch without email — reset links then just log server-side.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: NOTIFY_EMAIL
+        sync: false
 
   # Daily crawl as its own worker, sharing the Postgres DB. Set the schedule you want.
   - type: cron
@@ -40,6 +57,17 @@ services:
         fromDatabase:
           name: fangtrack-db
           property: connectionString
+      # SMTP so the nightly crawl can email the watchlist digest (optional).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: NOTIFY_EMAIL
+        sync: false
 
 # ── SQLite-on-a-disk alternative (simpler, no Postgres) ──────────────────────
 # Remove the `databases:` block, the DATABASE_URL env vars, and the cron service above,
