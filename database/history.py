@@ -384,7 +384,8 @@ def get_crawl_summary(db_path: Path = DB_PATH) -> list[dict]:
         FROM crawl_runs cr
         LEFT JOIN vendors v ON v.vendor_key = cr.vendor_key
         LEFT JOIN price_history ph ON ph.crawl_run_id = cr.id
-        GROUP BY cr.id
+        GROUP BY cr.id, cr.vendor_key, v.vendor_name, v.platform, cr.status,
+                 cr.variants_found, cr.started_at, cr.finished_at, cr.notes
         ORDER BY cr.id DESC
     """)
     rows = [dict(r) for r in cur.fetchall()]
