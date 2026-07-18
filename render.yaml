@@ -14,7 +14,11 @@ services:
     runtime: python
     plan: starter
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn wsgi:app --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT"
+    # 512MB (starter) fits ONE worker: the snapshot build transiently loads ~75k rows
+    # for rarity/trends, and two workers doing that at once OOM'd the instance. One
+    # worker + threads also means a single SHARED snapshot cache (no per-worker dupes).
+    # --max-requests recycles the worker periodically to release accumulated memory.
+    startCommand: "gunicorn wsgi:app --workers 1 --threads 4 --timeout 120 --max-requests 500 --max-requests-jitter 50 --bind 0.0.0.0:$PORT"
     healthCheckPath: /healthz
     envVars:
       - key: FANGTRACK_SECRET_KEY
