@@ -130,6 +130,7 @@ def get_market_stats(force=False) -> dict:
 _movers_cache = {"data": None, "ts": 0}
 _intel_cache = {"data": None, "ts": 0}
 _summary_cache = {"data": None, "ts": 0}
+_rarity_legend_cache = {"data": None, "ts": 0}
 
 
 def _cached_movers(snap, force=False) -> dict:
@@ -174,6 +175,24 @@ def _cached_crawl_summary(force=False) -> list:
     _summary_cache["data"] = full
     _summary_cache["ts"] = now
     return full
+
+
+def _cached_rarity_legend(force=False) -> list:
+    """The Species page's rarity-tier legend — a full-catalog rarity computation
+    (~1s locally, ~10s on the Postgres/0.5-CPU box) that was run uncached on every
+    /species load. Only changes on a crawl, so cache it like the rest."""
+    now = time.time()
+    if not force and _rarity_legend_cache["data"] is not None and (now - _rarity_legend_cache["ts"]) < _CACHE_TTL:
+        return _rarity_legend_cache["data"]
+    try:
+        from analytics.market import rarity_tier_legend
+        legend = rarity_tier_legend(DB_PATH)
+    except Exception as e:
+        logger.warning(f"rarity_tier_legend failed: {e}")
+        legend = []
+    _rarity_legend_cache["data"] = legend
+    _rarity_legend_cache["ts"] = now
+    return legend
 
 
 def warm_caches():
@@ -813,6 +832,7 @@ def run_crawl_thread(vendor_keys: list[str]):
         _movers_cache["data"] = None
         _intel_cache["data"] = None
         _summary_cache["data"] = None
+        _rarity_legend_cache["data"] = None
         snap = get_snapshot(force=True)
         get_market_stats(force=True)
         init_watchlist_tables(DB_PATH)
@@ -2061,11 +2081,7 @@ def species_search():
               "hem": f_hem, "habitat": f_hab, "tsize": f_tsize, "temp": f_temp,
               "exp": f_exp, "climate": f_clim,
               "sort": sort_by, "dir": direction, "q": query}
-    try:
-        from analytics.market import rarity_tier_legend
-        rarity_legend = rarity_tier_legend(DB_PATH)
-    except Exception:
-        rarity_legend = []
+    rarity_legend = _cached_rarity_legend()
     return render_template("species.html", tiles=tiles, query=query,
                            page=page, pages=pages, total=total, page_base=_page_base(),
                            facets=facets, active=active, rarity_legend=rarity_legend)
