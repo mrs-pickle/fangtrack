@@ -117,3 +117,16 @@ def test_pragma_table_info_shape():
     # no-op pragmas still no-op
     assert rewrite_pragma("PRAGMA journal_mode=WAL") == (None, None)
     assert rewrite_pragma("PRAGMA foreign_keys=ON") == (None, None)
+
+
+def test_date_function_translation():
+    """SQLite date(x) has no Postgres equivalent → crashed the live dashboard.
+    date(col/expr) → substr(...,1,10); date('now') → today text; nested parens survive."""
+    from database.pg import translate
+    assert "substr(started_at,1,10)" in translate("COUNT(DISTINCT DATE(started_at))")
+    assert "substr(COALESCE(finished_at, started_at),1,10)" in \
+        translate("SELECT DATE(COALESCE(finished_at, started_at)) d FROM x")
+    assert "to_char" in translate("expires >= date('now')")
+    # no bare date( function call left behind
+    out = translate("SELECT DATE(observed_at) AS d FROM price_history")
+    assert "date(" not in out.lower()

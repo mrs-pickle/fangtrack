@@ -51,6 +51,34 @@ def qmark_to_pct(sql: str) -> str:
 _NOW_TEXT = "(to_char(now() AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS'))"
 
 
+def _translate_date_calls(s: str) -> str:
+    """SQLite `date(x)` has no Postgres equivalent. Our timestamps are stored as ISO
+    text ('YYYY-MM-DD HH:MM:SS'), so `date(col)` == the first 10 chars → substr(col,1,10),
+    which matches SQLite's output and works in COUNT(DISTINCT …)/GROUP BY/MAX. `date('now')`
+    → today's date as text. Scans with balanced parens so nested calls (COALESCE) survive."""
+    res, i, n = [], 0, len(s)
+    while i < n:
+        if (s[i:i + 5].lower() == "date(" and
+                (i == 0 or not (s[i - 1].isalnum() or s[i - 1] == "_"))):
+            depth, j = 1, i + 5
+            while j < n and depth:
+                if s[j] == "(":
+                    depth += 1
+                elif s[j] == ")":
+                    depth -= 1
+                j += 1
+            inner = s[i + 5:j - 1]
+            if inner.strip().lower() == "'now'":
+                res.append("to_char((now() AT TIME ZONE 'UTC'),'YYYY-MM-DD')")
+            else:
+                res.append(f"substr({inner},1,10)")
+            i = j
+        else:
+            res.append(s[i])
+            i += 1
+    return "".join(res)
+
+
 def translate(sql: str) -> str:
     """SQLite → Postgres translation for the constructs FangTrack actually uses.
     Applied to DML and DDL. `?`→`%s` is handled separately (after this)."""
@@ -62,6 +90,8 @@ def translate(sql: str) -> str:
     # match code that string-slices timestamps (row["observed_at"][:10]).
     s = re.sub(r"DEFAULT\s*\(\s*datetime\(\s*'now'\s*\)\s*\)", f"DEFAULT {_NOW_TEXT}", s, flags=re.I)
     s = re.sub(r"datetime\(\s*'now'\s*\)", _NOW_TEXT, s, flags=re.I)
+    # SQLite date(x) → Postgres (no date(text) function exists there).
+    s = _translate_date_calls(s)
     # INSERT OR IGNORE → INSERT ... ON CONFLICT DO NOTHING.
     if re.search(r"\bINSERT\s+OR\s+IGNORE\b", s, flags=re.I):
         s = re.sub(r"\bINSERT\s+OR\s+IGNORE\b", "INSERT", s, flags=re.I)
