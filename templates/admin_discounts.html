@@ -1,0 +1,76 @@
+{% extends "base.html" %}{% block title %}Discount Codes (Admin) — FangTrack Pro{% endblock %}
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:10px;">
+  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">🏷 Discount Codes — Admin</h1>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <span style="color:#888; font-size:13px;">{{ codes|length }} codes across {{ grouped|length }} vendors</span>
+    <form action="/admin/discounts/action" method="post" style="display:inline;" onsubmit="return confirm('Delete all 0% / no-effect scraped codes? Sitewide/Holiday/BOGO flags are kept.')">
+      <input type="hidden" name="action" value="purge_zero">
+      <button class="btn btn-danger" style="padding:5px 12px; font-size:12px;">🧹 Purge 0% codes</button>
+    </form>
+  </div>
+</div>
+<p style="color:#888; font-size:12px; margin:0 0 16px;">Admin-only. Codes here feed the Deals page: a listing shows its vendor's best <em>active</em> code and the "with code" price. Verify the good ones, delete the noise.</p>
+
+<!-- Pointer to the full explanation (now lives in the FAQ) -->
+<div class="card" style="margin-bottom:16px; padding:12px 16px; font-size:12.5px; color:#999;">
+  Scraped codes start <span style="color:#fbbf24;">unverified</span> — verify the ones that work, delete the noise (or hit <strong>Purge 0% codes</strong>). Sitewide/holiday/BOGO show as <span style="color:#fbbf24;">🎉 sale flags</span>, not per-item prices.
+  <a href="/transparency#faq" style="color:#1a73e8; text-decoration:none;">Full explanation in the FAQ →</a>
+</div>
+
+<!-- Add a code -->
+<div class="card" style="margin-bottom:18px;">
+  <div style="font-size:11px; color:#1a73e8; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:10px;">Add a verified code</div>
+  <form action="/admin/discounts/action" method="post" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <input type="hidden" name="action" value="add">
+    <div><label style="font-size:10px;color:#1a73e8;letter-spacing:.1em;display:block;margin-bottom:4px;">VENDOR</label>
+      <select name="vendor_key" required style="width:170px;"><option value="">Select…</option>{% for v in vendors %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select></div>
+    <div><label style="font-size:10px;color:#1a73e8;letter-spacing:.1em;display:block;margin-bottom:4px;">CODE</label>
+      <input name="code" required placeholder="TTC10" style="width:130px;"></div>
+    <div><label style="font-size:10px;color:#1a73e8;letter-spacing:.1em;display:block;margin-bottom:4px;">TYPE</label>
+      <select name="discount_type" style="width:90px;"><option value="pct">% off</option><option value="flat">$ off</option></select></div>
+    <div><label style="font-size:10px;color:#1a73e8;letter-spacing:.1em;display:block;margin-bottom:4px;">VALUE</label>
+      <input name="discount_value" type="number" step="0.5" required placeholder="10" style="width:80px;"></div>
+    <button class="btn btn-primary">Add verified code</button>
+  </form>
+</div>
+
+<!-- Codes grouped per vendor -->
+{% for vendor, vcodes in grouped %}
+<div class="card" style="margin-bottom:12px; padding:0;">
+  <div style="display:flex; align-items:baseline; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #262626;">
+    <span style="font-weight:800; color:#e8e8e8; font-size:14px;">{{ vendor }}</span>
+    <span style="font-size:11px; color:#777;">{{ vcodes|length }} code{{ 's' if vcodes|length != 1 else '' }} ·
+      {{ vcodes|selectattr('is_verified')|list|length }} verified</span>
+  </div>
+  <table>
+    <thead><tr><th>Code</th><th>Discount</th><th>Status</th><th>Source</th><th data-nosort>Actions</th></tr></thead>
+    <tbody>
+    {% for c in vcodes %}
+    <tr style="{% if not c.is_active %}opacity:.5;{% endif %}">
+      <td><span style="background:#064e3b;color:#6ee7b7;padding:2px 7px;border-radius:4px;font-weight:700;font-size:12px;">{{ c.code }}</span>{% if c.code == 'SITEWIDE SALE' %} <span style="font-size:10px;color:#fbbf24;">auto</span>{% endif %}</td>
+      <td data-sort="{{ c.discount_value }}">
+        {% if c.discount_type=='info' or c.code in ('BOGO','HOLIDAY SALE') %}
+          <span style="color:#fbbf24;">🎉 sale flag (see banner)</span>
+        {% elif c.discount_value and c.discount_value > 0 %}
+          {% if c.discount_type=='pct' %}{{ "%.0f"|format(c.discount_value) }}% off{% else %}${{ "%.0f"|format(c.discount_value) }} off{% endif %}
+        {% else %}<span style="color:#555;">0% — no effect</span>{% endif %}
+      </td>
+      <td data-sort="{{ c.is_verified }}">{% if c.is_verified %}<span style="color:#34d399;font-weight:700;">✓ Verified</span>{% else %}<span style="color:#fbbf24;">unverified</span>{% endif %}</td>
+      <td style="font-size:11px;color:#666;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ c.source_context }}">{{ c.source_context or '' }}</td>
+      <td style="white-space:nowrap;">
+        <form action="/admin/discounts/action" method="post" style="display:inline;">
+          <input type="hidden" name="id" value="{{ c.id }}">
+          {% if not c.is_verified %}<button name="action" value="verify" class="btn btn-ghost" style="padding:2px 8px;font-size:11px;">Verify</button>{% else %}<button name="action" value="unverify" class="btn btn-ghost" style="padding:2px 8px;font-size:11px;">Unverify</button>{% endif %}
+          <button name="action" value="delete" class="btn btn-danger" style="padding:2px 8px;font-size:11px;" onclick="return confirm('Delete this code?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center; color:#555; padding:40px;">No discount codes yet. Run the discount scan or add one above.</div>
+{% endfor %}
+{% endblock %}

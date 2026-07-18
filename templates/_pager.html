@@ -1,0 +1,32 @@
+{# Reusable smart pager. Usage:
+     {% from "_pager.html" import smart_pager %}
+     {{ smart_pager(page, pages, page_base, label) }}
+   `base` is a URL prefix ending so that base ~ 'page=N' is a valid link
+   (compute with app._page_base()). `label` is the optional right-hand count. #}
+{% macro smart_pager(page, pages, base, label='') %}
+{% if pages > 1 %}
+<div class="pgr">
+  {% set lo = [page - 2, 1]|max %}{% set hi = [page + 2, pages]|min %}
+  <a href="{{ base }}page=1" class="pgr-b{% if page == 1 %} pgr-off{% endif %}" title="First page">«</a>
+  <a href="{{ base }}page={{ [page-1,1]|max }}" class="pgr-b{% if page == 1 %} pgr-off{% endif %}">‹ Prev</a>
+
+  {% if lo > 1 %}<a href="{{ base }}page=1" class="pgr-n">1</a>{% if lo > 2 %}<span class="pgr-gap">…</span>{% endif %}{% endif %}
+  {% for p in range(lo, hi + 1) %}
+    {% if p == page %}<span class="pgr-n pgr-cur">{{ p }}</span>{% else %}<a href="{{ base }}page={{ p }}" class="pgr-n">{{ p }}</a>{% endif %}
+  {% endfor %}
+  {% if hi < pages %}{% if hi < pages - 1 %}<span class="pgr-gap">…</span>{% endif %}<a href="{{ base }}page={{ pages }}" class="pgr-n">{{ pages }}</a>{% endif %}
+
+  <a href="{{ base }}page={{ [page+1,pages]|min }}" class="pgr-b{% if page == pages %} pgr-off{% endif %}">Next ›</a>
+  <a href="{{ base }}page={{ pages }}" class="pgr-b{% if page == pages %} pgr-off{% endif %}" title="Last page">»</a>
+
+  <span class="pgr-jump">Jump to
+    <input type="number" min="1" max="{{ pages }}" value="{{ page }}"
+           aria-label="Jump to page"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+           onchange="var v=Math.max(1,Math.min({{ pages }},parseInt(this.value)||1));location='{{ base }}page='+v;">
+    of {{ pages }}
+  </span>
+  {% if label %}<span class="pgr-lbl">{{ label }}</span>{% endif %}
+</div>
+{% endif %}
+{% endmacro %}

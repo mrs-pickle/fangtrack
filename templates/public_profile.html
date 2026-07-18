@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% block title %}{{ owner.display_name or owner.handle }} — FangTrack{% endblock %}
+{% block content %}
+<div style="margin-bottom:6px;"><a href="/leaderboard" style="color:#1a73e8; font-size:12px; text-decoration:none;">← Leaderboard</a></div>
+<h1 style="font-size:24px; font-weight:900; letter-spacing:-.02em; margin:0 0 4px;">🕷 {{ owner.display_name or owner.handle }}</h1>
+<div style="color:#666; font-size:12px; margin-bottom:20px;">/u/{{ owner.handle }} · public collection</div>
+
+<!-- Flex stats (no purchase prices — those stay private to the owner) -->
+<div class="kpi-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:10px; margin-bottom:22px;">
+  <div class="stat-card"><div style="font-size:10px; color:#1a73e8; text-transform:uppercase; letter-spacing:.08em;">Market value</div><div style="font-size:24px; font-weight:800;">${{ "{:,.0f}".format(portfolio.total_value or 0) }}</div></div>
+  <div class="stat-card"><div style="font-size:10px; color:#1a73e8; text-transform:uppercase; letter-spacing:.08em;">Animals</div><div style="font-size:24px; font-weight:800;">{{ stats.animals }}</div></div>
+  <div class="stat-card"><div style="font-size:10px; color:#1a73e8; text-transform:uppercase; letter-spacing:.08em;">Species</div><div style="font-size:24px; font-weight:800;">{{ stats.species }}</div></div>
+  <div class="stat-card"><div style="font-size:10px; color:var(--rarity-mythic-bg); text-transform:uppercase; letter-spacing:.08em;">Mythic</div><div style="font-size:24px; font-weight:800;">{{ stats.mythic }}</div></div>
+  <div class="stat-card"><div style="font-size:10px; color:var(--rarity-legendary-bg); text-transform:uppercase; letter-spacing:.08em;">Legendary</div><div style="font-size:24px; font-weight:800;">{{ stats.legendary }}</div></div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+<table>
+  <thead><tr><th>Species</th><th>Common</th><th>Sex</th><th>Qty</th><th>Size</th><th>Market</th></tr></thead>
+  <tbody>
+  {% for it in items %}
+  <tr>
+    <td><a href="/species/{{ it.species_key|urlencode }}" class="species-name" style="text-decoration:none;">{{ it.species_display }}</a></td>
+    <td style="color:#888; font-size:12px;">{{ it.common or '—' }}</td>
+    <td>{{ it.sex or '?' }}</td>
+    <td>{{ it.quantity or 1 }}</td>
+    <td style="color:#888; font-size:12px;">{{ it.size_notes or '—' }}</td>
+    <td style="color:#888; font-variant-numeric:tabular-nums;">{% if it.market_value %}${{ "%.0f"|format(it.market_value) }}{% else %}—{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" style="text-align:center; color:#555; padding:30px;">This collection is empty.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p style="color:#555; font-size:11px; margin-top:12px;">Market values are today's trimmed-median asking prices across tracked vendors. Purchase prices are private to the owner.</p>
+{% endblock %}

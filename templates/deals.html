@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Deals — FangTrack Pro{% endblock %}
+{% block content %}
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">
+    Deals <span style="color:#888; font-weight:400; font-size:14px; margin-left:8px;">{{ matched_count }} listings{% if pages > 1 %} · page {{ page }}/{{ pages }}{% endif %}</span>
+  </h1>
+  <a href="/deals" class="btn-ghost btn" style="font-size:12px; padding:5px 12px;">Reset</a>
+</div>
+
+<!-- Filters -->
+<form method="get" style="background:#141414; border:1px solid #2a2a2a; border-radius:8px; padding:14px 16px; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">DEAL</div>
+    <select name="deal" style="width:130px;">
+      <option value="">All deals</option>
+      <option value="fire" {% if filters.get('deal')=='fire' %}selected{% endif %}>🔥 Fire only</option>
+      <option value="gem2" {% if filters.get('deal')=='gem2' %}selected{% endif %}>💎💎 Exceptional</option>
+      <option value="gem"  {% if filters.get('deal')=='gem' %}selected{% endif %}>💎+ Any gem</option>
+    </select>
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SEX</div>
+    <select name="sex" style="width:100px;">
+      <option value="">Any</option>
+      <option value="F" {% if filters.get('sex')=='F' %}selected{% endif %}>♀ Female</option>
+      <option value="M" {% if filters.get('sex')=='M' %}selected{% endif %}>♂ Male</option>
+      <option value="U" {% if filters.get('sex')=='U' %}selected{% endif %}>? Unsexed</option>
+    </select>
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">VENDOR</div>
+    <select name="vendor" style="width:170px;">
+      <option value="">All vendors</option>
+      {% for v in vendors %}<option value="{{ v }}" {% if filters.get('vendor')==v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SOURCE</div>
+    <select name="source" style="width:110px;">
+      <option value="">CB + WC</option>
+      <option value="CB" {% if filters.get('source')=='CB' %}selected{% endif %}>CB only</option>
+      <option value="WC" {% if filters.get('source')=='WC' %}selected{% endif %}>WC only</option>
+    </select>
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SELLERS</div>
+    <select name="private" style="width:150px;">
+      <option value="all">Websites + private</option>
+      <option value="web"     {% if filters.get('private')=='web' %}selected{% endif %}>Websites only</option>
+      <option value="private" {% if filters.get('private')=='private' %}selected{% endif %}>👤 Private only</option>
+    </select>
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">DEAL CODE</div>
+    <select name="code" style="width:130px;">
+      <option value="">Any</option>
+      <option value="1" {% if filters.get('code')=='1' %}selected{% endif %}>🏷 Has code</option>
+    </select>
+  </div>
+  {% if filters.get('species') %}<input type="hidden" name="species" value="{{ filters.get('species') }}">{% endif %}
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">MIN RARITY</div>
+    <select name="min_rarity" style="width:100px;">
+      <option value="0">Any</option>
+      <option value="5" {% if filters.get('min_rarity','0')=='5' %}selected{% endif %}>5+ Uncommon</option>
+      <option value="7" {% if filters.get('min_rarity','0')=='7' %}selected{% endif %}>7+ Rare</option>
+      <option value="9" {% if filters.get('min_rarity','0')=='9' %}selected{% endif %}>9+ Very Rare</option>
+    </select>
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">MIN PRICE</div>
+    <input name="min_price" type="number" min="0" placeholder="$0" value="{{ filters.get('min_price','') }}" style="width:80px;">
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">MAX PRICE</div>
+    <input name="max_price" type="number" min="0" placeholder="Any" value="{{ filters.get('max_price','') }}" style="width:80px;">
+  </div>
+  <div>
+    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SORT</div>
+    <select name="sort" style="width:110px;">
+      <option value="deal"   {% if filters.get('sort','deal')=='deal' %}selected{% endif %}>Best deal</option>
+      <option value="price"  {% if filters.get('sort')=='price' %}selected{% endif %}>Lowest price</option>
+      <option value="rarity" {% if filters.get('sort')=='rarity' %}selected{% endif %}>Rarity</option>
+    </select>
+  </div>
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<!-- Pagination (top) + scroll hint -->
+{% from "_pager.html" import smart_pager %}
+{% macro pager() %}{{ smart_pager(page, pages, page_base, matched_count ~ ' listings') }}{% endmacro %}
+{{ pager() }}
+
+<!-- Table — full-bleed & liquid: the wrapper breaks out of the page's centered
+     column to span the whole viewport, and the table itself is width:100% so it
+     fills a wide monitor (nothing clipped) and only scrolls sideways on a screen
+     narrower than its min-width. Ready to drop straight onto the public web. -->
+<div class="deals-fullbleed">
+<div class="deals-scroll">
+<table class="deals-table">
+  <thead><tr>
+    <th style="width:28px;" data-nosort></th>
+    <th>Deal</th>
+    <th>Rarity</th>
+    <th>Species (common name)</th>
+    <th>Life Stage</th>
+    <th>Sex</th>
+    <th>Ask</th>
+    <th>Market</th>
+    <th data-nosort>90-Day</th>
+    <th>+Ship</th>
+    <th>Landed</th>
+    <th data-nosort>Free Ship</th>
+    <th>Trend</th>
+    <th title="Captive-bred / wild-caught / unstated. Shown for information — it carries no weight in the deal score; all sources compete together.">Source</th>
+    <th>Hist Low</th>
+    <th>Qty</th>
+    <th data-nosort>Discount</th>
+    <th>Vendor</th>
+    <th data-nosort>Buy</th>
+    <th data-nosort>Research</th>
+  </tr></thead>
+  <tbody>
+  {% for l in listings %}
+  {% set mk = mstats.get(l.scientific_name_key) or {} %}
+  {% set rs = l.size_class_rarity_score or l.rarity_score or 0 %}
+  <tr {% if l.owned %}style="border-left:2px solid #1a73e8;"{% endif %}>
+    <!-- Owned -->
+    <td style="text-align:center; padding:4px;">
+      {% if l.owned %}<span class="owned-badge" title="In your collection">✓</span>{% endif %}
+    </td>
+    <!-- Deal badge -->
+    <td data-sort="{{ 5 if l.is_fire_deal else 4 if l.deal_rating=='💎💎' else 3 if l.deal_rating=='💎' else 2 if l.deal_rating=='👍' else 1 }}" style="white-space:nowrap;">
+      {% if l.is_fire_deal %}<span class="d-fire" style="padding:3px 8px; border-radius:4px; font-size:11px; font-weight:800;">🔥</span>
+      {% elif l.deal_rating=='💎💎' %}<span class="d-gem2" style="padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700;">💎💎</span>
+      {% elif l.deal_rating=='💎' %}<span class="d-gem1" style="padding:3px 8px; border-radius:4px; font-size:11px;">💎</span>
+      {% elif l.deal_rating=='👍' %}<span class="d-fair" style="padding:3px 8px; border-radius:4px; font-size:11px;">👍</span>
+      {% else %}<span class="d-above" style="padding:3px 8px; border-radius:4px; font-size:11px;">👎</span>{% endif %}
+    </td>
+    <!-- Rarity -->
+    <td>{% if rs %}<span class="score-{{ rs }}" style="padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; display:inline-block;">{{ rs }}/10</span>
+      {% if l.new_to_system %}<span style="font-size:10px; color:#fde047; margin-left:3px;">🆕</span>{% endif %}
+    {% endif %}</td>
+    <!-- Species (common name) — standardized canonical format -->
+    <td data-sort="{{ l.sci_display }}" style="min-width:210px;">
+      <a href="/species/{{ l.scientific_name_key }}" class="species-name" style="text-decoration:none; font-size:13px; font-style:italic;">{{ l.sci_display }}</a>{% if l.common_clean %} <span style="color:#8a8a8a; font-size:12px;">({{ l.common_clean }})</span>{% endif %}{% if l.sale_label %} <span title="Vendor has an active {{ l.sale_label|lower }} — applies at checkout" style="background:#ff6b00; color:#fff; font-size:10px; padding:1px 6px; border-radius:3px; font-weight:800; letter-spacing:.03em;">🎉 {{ l.sale_label }}{% if l.sale_pct %} {{ l.sale_pct }}%{% endif %}</span>{% endif %}{% if l.notes and 'Pack of' in l.notes %} <span title="{{ l.notes }}" style="background:#3a2a10; color:#fbbf24; font-size:10px; padding:1px 5px; border-radius:3px; font-weight:700;">📦 {{ l.notes.split('Pack of ')[1].split(' ')[0].rstrip('.') }}</span>{% endif %}</td>
+    <!-- Life stage -->
+    <td style="color:#555; font-size:11px;">{{ l.size_bucket_label or l.size_text or '?' }}</td>
+    <!-- Sex -->
+    <td data-sort="{{ {'F':0,'PF':1,'M':2,'MM':3}.get(l.sex, 4) }}" style="text-align:center;">
+      {% if l.sex=='F' %}<span style="color:#f9a8d4; font-weight:700;">♀</span>
+      {% elif l.sex=='M' %}<span style="color:#93c5fd; font-weight:700;">♂</span>
+      {% else %}<span style="color:#444;">?</span>{% endif %}
+    </td>
+    <!-- Ask (this listing's asking price) -->
+    <td data-sort="{{ l.price_usd }}" style="font-weight:800; color:#1a73e8; font-size:15px;">${{ "%.0f"|format(l.price_usd) }}</td>
+    <!-- Market Price (trimmed median of recent asks) + vs-market delta -->
+    <td data-sort="{{ mk.market_price or 999999 }}" style="font-size:12px; white-space:nowrap;">
+      {% if mk.market_price %}<span style="color:#bbb;">${{ "%.0f"|format(mk.market_price) }}</span>
+        {% set delta = ((l.price_usd - mk.market_price) / mk.market_price * 100) if mk.market_price else 0 %}
+        {% if delta <= -10 %}<span style="color:#22c55e; font-size:11px;"> {{ delta|round|int }}%</span>
+        {% elif delta >= 10 %}<span style="color:#ef4444; font-size:11px;"> +{{ delta|round|int }}%</span>{% endif %}
+      {% else %}<span style="color:#444;">—</span>{% endif %}
+    </td>
+    <!-- 90-day sparkline -->
+    <td data-nosort><span class="spark">{{ spark_svg(mk.spark, 72, 22)|safe }}</span></td>
+    <!-- Shipping -->
+    <td class="ship-info">
+      {% if l.shipping_share %}+${{ "%.0f"|format(l.shipping_share) }}{% else %}<span style="color:#444;">?</span>{% endif %}
+    </td>
+    <!-- Landed -->
+    <td style="font-weight:600; color:#e0e0e0; white-space:nowrap;">
+      {% if l.landed_cost %}<span style="font-size:13px;">${{ "%.0f"|format(l.landed_cost) }}</span>{% else %}—{% endif %}
+    </td>
+    <!-- Free shipping threshold -->
+    <td class="ship-info" data-sort="{{ l.free_ship_threshold or 999999 }}">
+      {% if l.free_ship_threshold %}
+        {% if l.price_usd >= l.free_ship_threshold %}<span class="ship-free" title="Qualifies for free shipping">FREE ✓</span>
+        {% else %}<span style="color:#888;" title="Free shipping at ${{ '%.0f'|format(l.free_ship_threshold) }}">${{ "%.0f"|format(l.free_ship_threshold) }}+</span>{% endif %}
+      {% else %}<span style="color:#444;">—</span>{% endif %}
+    </td>
+    <!-- Trend (species-level, span-guarded: only shows once real history exists) -->
+    <td data-sort="{{ mk.trend_pct if mk.trend_pct is not none else -999 }}" style="text-align:center;">
+      {% if mk.trend=='heating' %}<span class="mtag heat" title="Median rising {{ mk.trend_pct }}%/mo">▲</span>
+      {% elif mk.trend=='cooling' %}<span class="mtag cool" title="Median falling {{ mk.trend_pct }}%/mo">▼</span>
+      {% elif mk.trend=='steady' %}<span style="color:#555;">→</span>
+      {% else %}<span style="color:#333;" title="Building history">·</span>{% endif %}
+    </td>
+    <!-- CB/WC -->
+    <td data-sort="{{ l.source_type or 'zz' }}" style="font-size:11px; font-weight:700;">
+      {% set p = l.source_provenance %}
+      {% set tip = 'Stated on this listing' if p=='stated'
+                  else ('Seller confirmed this policy to us — not stated on this listing' if p=='vendor-confirmed'
+                  else ("This seller's own site states captive-bred only — not stated on this listing" if p=='vendor-policy'
+                  else ('Inferred: far below this species adult size, so it is a captive-bred juvenile' if p=='inferred-juvenile'
+                  else 'Seller did not state a source'))) %}
+      {% set dim = p not in ('stated', '') %}
+      {% if l.source_type=='CB' %}<span style="color:{{ '#166534' if dim else '#22c55e' }};" title="{{ tip }}">CB{% if dim %}<span style="color:#666; font-weight:400;">°</span>{% endif %}</span>
+      {% elif l.source_type=='WC' %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:#666; font-weight:400;">°</span>{% endif %}</span>
+      {% elif l.source_type=='LTC' %}<span style="color:#fbbf24;" title="{{ tip }}">LTC</span>
+      {% else %}<span style="color:#333;" title="{{ tip }}">?</span>{% endif %}
+    </td>
+    <!-- Hist low -->
+    <td style="font-size:12px; color:#555;">{% if l.historical_low %}${{ "%.0f"|format(l.historical_low) }}{% else %}—{% endif %}</td>
+    <!-- Qty -->
+    <td style="text-align:center; font-size:12px;">
+      {% if l.quantity == 1 %}<span style="color:#ef4444; font-weight:700;" title="Only 1!">1</span>
+      {% elif l.quantity %}<span style="color:#888;">{{ l.quantity }}</span>{% else %}—{% endif %}
+    </td>
+    <!-- Discount code -->
+    <td data-sort="{{ l.discount_value or 0 }}" style="font-size:11px; white-space:nowrap;">
+      {% if l.discount_code %}
+        <span title="{% if l.discount_verified %}Verified code{% else %}Unverified — confirm at checkout{% endif %}"
+              style="background:#064e3b; color:#6ee7b7; padding:2px 6px; border-radius:4px; font-weight:700; letter-spacing:.02em;">
+          {{ l.discount_code }}{% if l.discount_type=='pct' %} −{{ "%.0f"|format(l.discount_value) }}%{% else %} −${{ "%.0f"|format(l.discount_value) }}{% endif %}
+        </span>
+        {% if l.price_with_code %}<div style="color:#34d399; font-size:11px; margin-top:2px;">→ ${{ "%.0f"|format(l.price_with_code) }}</div>{% endif %}
+      {% else %}<span style="color:#444;">—</span>{% endif %}
+    </td>
+    <!-- Vendor -->
+    <td data-sort="{{ l.vendor_key }}" style="font-size:11px;">
+      {% if l.is_private %}<span title="Private seller" style="color:#a855f7;">👤</span> {% endif %}
+      {% if l.vendor_homepage %}
+        <a href="{{ l.vendor_homepage }}" target="_blank" style="color:#888; text-decoration:none;" title="{{ l.vendor_key }}">{{ l.vendor_key[:16] }}</a>
+      {% else %}
+        <span style="color:#555;">{{ l.vendor_key[:16] }}</span>
+      {% endif %}
+    </td>
+    <!-- Buy link -->
+    <td>
+      {% if l.product_url %}
+        <a href="{{ l.product_url }}" target="_blank" class="btn btn-primary" style="padding:3px 10px; font-size:11px; white-space:nowrap;">Buy →</a>
+      {% elif l.vendor_homepage %}
+        <a href="{{ l.vendor_homepage }}" target="_blank" class="btn-ghost btn" style="padding:3px 10px; font-size:11px; white-space:nowrap;">Shop →</a>
+      {% endif %}
+    </td>
+    <!-- Research / Wikipedia -->
+    <td style="text-align:center;">
+      <a href="{{ l.wiki_url }}" target="_blank" style="color:#1a73e8; text-decoration:none; font-size:14px;" title="Wikipedia: {{ l.sci_display }}">🔬</a>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="20" style="text-align:center; color:#555; padding:40px;">No listings match your filters.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{{ pager() }}
+<div style="font-size:11px; color:#666; margin-top:8px;">The table fills the browser width — widen the window to see more at once · it scrolls sideways only on narrow screens · click any column header to sort.</div>
+
+<style>
+  /* Break the wide table out of the page's centered 1600px column so it can use
+     the full viewport, then keep 20px gutters. Liquid: table is width:100% and
+     fills the screen; it only scrolls horizontally below its min-width. */
+  .deals-fullbleed {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 0 20px;
+    box-sizing: border-box;
+  }
+  .deals-scroll {
+    background:#141414; border:1px solid #2a2a2a; border-radius:8px;
+    overflow:auto; max-height:80vh;
+  }
+  .deals-table { width:100%; min-width:1180px; }
+  .deals-table th { position:sticky; top:0; background:#141414; z-index:2; }
+  @media (max-width: 640px) {
+    .deals-fullbleed { padding:0 8px; }
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% block title %}Terms of Service — FangTrack Pro{% endblock %}
+{% block content %}
+<div style="max-width:820px; margin:0 auto;">
+  <h1 style="font-size:26px; font-weight:900; letter-spacing:-.03em; margin-bottom:6px;">FangTrack Terms of Service</h1>
+  <p style="color:#888; font-size:13px; margin:0 0 4px;">Beta Program · Effective date: July 12, 2026</p>
+  <div style="display:inline-block; background:#3a2a10; color:#fbbf24; font-size:11px; font-weight:700; padding:3px 10px; border-radius:4px; margin-bottom:20px;">ATTORNEY REVIEW DRAFT · Not legal advice</div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <p style="color:#ccc; line-height:1.8; margin:0;">These Terms of Service (the “Terms”) are an agreement between you and FangTrack, LLC, an Arkansas limited liability company (“FangTrack,” “we,” “us”), governing your use of the FangTrack or FangTrack Pro website and services (the “Service”). By creating an account or using the Service you agree to these Terms.</p>
+  </div>
+
+  {% set sections = [
+    ("1. Free beta", "The Service is a free beta. Features may change, break, or be removed without notice; data may be reset; uptime is not guaranteed; and access may be limited or revoked at our discretion. Feedback you provide may be used by us without restriction."),
+    ("2. What the Service is (and is not)", "FangTrack is a market intelligence tool. It aggregates publicly listed prices, availability, and rarity signals for exotic invertebrates and presents historical and comparative market data. The Service is informational only. It is not an appraisal service, not a marketplace, and not financial, veterinary, or purchasing advice. Any purchase you make happens directly between you and a third-party vendor, under that vendor's terms; we are not a party to those transactions and have no responsibility for the animals, shipping, pricing, or conduct of any vendor.<br><br>Deal scores, rarity ratings, trend indicators, and price histories are automated estimates. They can be wrong, stale, or incomplete. You are solely responsible for your purchasing decisions."),
+    ("3. Accounts", "You must be at least 18 years old to create an account. You are responsible for your credentials and for activity under your account. Notify us of any unauthorized use."),
+    ("4. Acceptable use", "You agree not to: (a) scrape, harvest, or bulk-export data from the Service; (b) resell, republish, or redistribute the Service's data, scores, or price histories; (c) circumvent any technical limitation or access control; (d) share account access; or (e) use the Service unlawfully or to interfere with its operation. The market data, price histories, and scoring outputs are the proprietary property and trade secrets of FangTrack, and unauthorized extraction is a material breach that may entitle us to injunctive relief."),
+    ("5. Your content", "The Service lets you store collection records, watchlists, and price lists you import from wholesalers or private sellers (“Your Content”). You own Your Content. You grant us a non-exclusive, royalty-free license to host and process it to operate and improve the Service, including folding pricing from imported lists into aggregated, anonymized market statistics. Imported lists are never published as listings, never made purchasable, and never attributed to you or the seller."),
+    ("6. Intellectual property", "The Service, its software, design, branding, scoring models, and databases are owned by FangTrack, LLC. You receive a limited, personal, revocable license to use the Service as intended. FangTrack and the spider mark are trademarks of FangTrack, LLC."),
+    ("7. Termination", "You may delete your account at any time. We may suspend or terminate access at any time, including for breach of these Terms. Sections 4, 5, 6, 8, and 9 survive termination."),
+    ("8. Disclaimers and limitation of liability", "THE SERVICE IS PROVIDED “AS IS” WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING ACCURACY, MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE. TO THE MAXIMUM EXTENT PERMITTED BY LAW, FANGTRACK, LLC WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM THE SERVICE, INCLUDING PURCHASING DECISIONS MADE IN RELIANCE ON ITS DATA. OUR TOTAL LIABILITY FOR ALL CLAIMS WILL NOT EXCEED $100."),
+    ("9. Governing law", "These Terms are governed by Arkansas law. Disputes will be resolved in the state or federal courts located in Benton, Arkansas."),
+    ("10. Changes and contact", "We may update these Terms; material changes will be announced by email or in-product notice before taking effect.")
+  ] %}
+  {% for title, body in sections %}
+  <div class="card" style="margin-bottom:14px;">
+    <h2 style="font-size:15px; font-weight:700; color:#1a73e8; margin:0 0 8px;">{{ title }}</h2>
+    <p style="color:#bbb; line-height:1.8; margin:0; font-size:13px;">{{ body|safe }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

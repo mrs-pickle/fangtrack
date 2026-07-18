@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% block title %}{{ name }} — Vendor QA — FangTrack Pro{% endblock %}
+{% block content %}
+<div class="flex items-center gap-4 mb-2" style="flex-wrap:wrap;">
+  <a href="/vendors" style="color:#555; font-size:13px;">← All vendors</a>
+  <h1 style="font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0;">{{ name }}</h1>
+  <span style="font-size:11px; color:#888;">{{ platform }}</span>
+  {% if homepage %}<a href="{{ homepage }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:5px 12px; font-size:12px;">Open live site ↗</a>{% endif %}
+</div>
+<p style="color:#888; font-size:13px; margin:0 0 18px;">
+  {{ listings|length }} listings in system · {{ instock }} in stock · last crawl {{ run_when or '—' }}.
+  Compare the <strong>vendor's own title</strong> (what their site says) against <strong>our parsed species / size / sex</strong> to spot mismatches.
+</p>
+
+{% if listings %}
+<div class="card" style="padding:0; overflow-x:auto;">
+<table>
+  <thead><tr>
+    <th>Vendor's title (raw)</th><th>Our species</th><th>Common</th><th>Size</th><th>Sex</th><th>Price</th><th>Stock</th><th data-nosort>Open</th>
+  </tr></thead>
+  <tbody>
+  {% for l in listings %}
+  <tr style="{% if l.availability=='out_of_stock' %}opacity:.5;{% endif %}">
+    <td style="font-size:12px; color:#ccc; max-width:340px;">{{ l.raw_title or l.scientific_name }}</td>
+    <td><a href="/species/{{ l.scientific_name_key|urlencode }}" class="species-name" style="text-decoration:none; font-size:12px;">{{ l.sci_display }}</a></td>
+    <td style="color:#888; font-size:12px;">{{ l.common_clean or '' }}</td>
+    <td style="color:#888;">{{ l.size_text or '—' }}</td>
+    <td style="text-align:center;">{% if l.sex=='F' %}<span style="color:#f9a8d4;">♀</span>{% elif l.sex=='MM' %}<span style="color:#93c5fd;" title="Mature male">♂ⁿ</span>{% elif l.sex=='M' %}<span style="color:#93c5fd;">♂</span>{% else %}<span style="color:#555;">?</span>{% endif %}</td>
+    <td style="font-weight:700; color:#1a73e8;">${{ "%.2f"|format(l.price_usd) }}</td>
+    <td>{% if l.availability=='out_of_stock' %}<span style="color:#f87171; font-size:11px;">out</span>{% else %}<span style="color:#34d399; font-size:11px;">in</span>{% endif %}</td>
+    <td>{% if l.product_url %}<a href="{{ l.product_url }}" target="_blank" rel="noopener" style="color:#1a73e8; font-size:12px;">↗</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div style="font-size:11px; color:#666; margin-top:8px;">↕ Click any header to sort. Rows dimmed = out of stock in the last crawl.</div>
+{% else %}
+<div class="card" style="text-align:center; padding:40px; color:#555;">No listings recorded for this vendor yet.</div>
+{% endif %}
+{% endblock %}

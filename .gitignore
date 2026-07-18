@@ -1,0 +1,36 @@
+# Secrets — never commit
+.env
+tracker_settings.json          # holds SMTP app-password if set
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Runtime / generated
+logs/
+output/
+*.log
+crawl.lock
+backups/                       # top-level pre-crawl snapshots
+database/backups/              # large DB snapshots
+*.sqlite.bak_*
+database/market_history.sqlite.bak_*
+
+# SQLite databases — NEVER commit. Production uses Postgres; the local DB holds
+# real user rows + credentials. A fresh admin registers on the live site.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+database/*.sqlite
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local Claude Code settings (user-specific)
+.claude/settings.local.json

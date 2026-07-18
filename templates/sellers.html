@@ -1,0 +1,96 @@
+{% extends "base.html" %}{% block title %}Vendors — FangTrack Pro{% endblock %}
+{% block content %}
+<h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin-bottom:20px;">🕸 Vendors & Sellers</h1>
+<div class="grid gap-6" style="grid-template-columns:1fr 1fr;">
+
+  <!-- Website vendors -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em;">Website Vendors</div>
+    <div style="font-size:12px; color:#666; margin-bottom:14px;">Crawls run automatically on a timer. Admins can trigger a manual crawl from the <a href="/history" style="color:#a855f7;">Crawler</a> tab.</div>
+
+    <!-- Vendor status list (click a vendor to see its animals in the system) -->
+    <div style="font-size:10px; color:#555; margin-top:20px; margin-bottom:6px;">WEBSITE VENDORS — click to view listings</div>
+    <div style="max-height:340px; overflow-y:auto;">
+    {% for v in vendors %}
+    {% set lc = last_crawl.get(v) %}
+    <a href="/deals?vendor={{ v }}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid #2a2a2a; text-decoration:none;" onmouseover="this.style.background='#1e1e1e'" onmouseout="this.style.background=''">
+      <span style="font-size:13px; color:#1a73e8;">{{ v }} →</span>
+      {% if lc %}
+      <span style="font-size:11px; color:#555;">{{ lc.ph_rows or 0 }} listings · {{ (lc.started_at or '')[:10] }}</span>
+      {% else %}
+      <span style="font-size:11px; color:#444;">Never crawled</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+    </div>
+
+    {% if private_sellers %}
+    <div style="font-size:10px; color:#555; margin-top:20px; margin-bottom:6px;">👤 PRIVATE SELLERS — click to view listings</div>
+    <div style="max-height:220px; overflow-y:auto;">
+    {% for s in private_sellers %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid #2a2a2a;" onmouseover="this.style.background='#1e1e1e'" onmouseout="this.style.background=''">
+      <a href="/deals?vendor={{ s.vendor_key }}&private=all" style="font-size:13px; color:#a855f7; text-decoration:none; flex:1;">👤 {{ s.vendor_name }} →</a>
+      {% if s.contact %}<span style="font-size:11px; color:#555; margin-right:10px;">{{ s.contact }}</span>{% endif %}
+      <form action="/sellers/delete/{{ s.vendor_key }}" method="post" onsubmit="return confirm('Delete imported list &quot;{{ s.vendor_name }}&quot;? This removes its listings and history.');" style="margin:0;">
+        <button class="btn btn-danger" style="padding:2px 8px; font-size:11px;">Delete</button>
+      </form>
+    </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Private seller import -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">Import Private Seller List</div>
+    <form action="/sellers/import" method="post" class="flex flex-col gap-3">
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">SELLER NAME</label>
+        <input name="seller_name" required placeholder='e.g. "Eric Madrid" or "FB Seller July 26"' style="width:100%; box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">CONTACT INFO <span style="color:#555;">(email / phone / FB — shown to buyers)</span></label>
+        <input name="contact" placeholder="e.g. eric@email.com · @ericmadrid_Ts · (555) 123-4567" style="width:100%; box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">PASTE PRICE LIST</label>
+        <textarea name="raw_text" rows="12" required
+          placeholder="Paste any format: tables, dashes, plain text, Facebook copy-paste...&#10;&#10;2x 1/4&quot; Grammostola pulchripes $35&#10;1x 3&quot; Cyriopagopus lividus female $120&#10;10/$100 Lasiodora parahybana slings"
+          style="width:100%; box-sizing:border-box; resize:vertical; font-family:monospace; font-size:12px;"></textarea>
+      </div>
+      <div style="padding:10px 12px; background:#141414; border-radius:8px; font-size:12px; color:#888; border:1px solid #2a2a2a;">
+        💡 If this is an updated list from the same seller, it will be imported as a new version — the old prices are preserved in history for trend tracking.
+      </div>
+      <button class="btn btn-primary" style="justify-content:center;">Import List</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── Vendor QA (does our data match the vendor's live site?) ────────────── -->
+<div style="margin-top:32px;">
+  <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
+    <h2 style="font-size:16px; font-weight:900; letter-spacing:-.02em; margin:0;">🏬 Vendor QA <span style="font-size:11px; font-weight:700; color:#a855f7; background:#2a1a3a; padding:2px 8px; border-radius:4px; vertical-align:middle;">ADMIN</span></h2>
+    <span style="color:#888; font-size:13px;">{{ vendors_qa|length }} crawled vendors</span>
+  </div>
+  <p style="color:#888; font-size:13px; margin:0 0 14px;">Open <strong>Inspect</strong> to see every listing we hold for a vendor next to a link to their live site — a quick way to confirm our data matches theirs.</p>
+  <div class="card" style="padding:0; overflow-x:auto;">
+  <table>
+    <thead><tr><th>Vendor</th><th>Platform</th><th>Listings</th><th>In stock</th><th>Last crawl</th><th>Status</th><th data-nosort>Site</th><th data-nosort></th></tr></thead>
+    <tbody>
+    {% for v in vendors_qa %}
+    <tr>
+      <td><a href="/vendors/{{ v.key }}" style="color:#1a73e8; text-decoration:none; font-weight:700;">{{ v.name }}</a><div style="font-size:11px; color:#555;">{{ v.key }}</div></td>
+      <td style="color:#888; font-size:12px;">{{ v.platform or '—' }}</td>
+      <td style="font-weight:700;">{{ v.listings }}</td>
+      <td style="color:#34d399;">{{ v.instock }}</td>
+      <td style="color:#888; font-size:12px;">{{ v.last or '—' }}</td>
+      <td><span style="font-size:11px; padding:2px 8px; border-radius:4px; {% if v.status=='complete' %}background:#064e3b; color:#a7f3d0;{% elif v.status=='partial' %}background:#78350f; color:#fed7aa;{% else %}background:#374151; color:#9ca3af;{% endif %}">{{ v.status }}</span></td>
+      <td>{% if v.homepage %}<a href="{{ v.homepage }}" target="_blank" rel="noopener" style="color:#888; font-size:12px;">open ↗</a>{% endif %}</td>
+      <td><a href="/vendors/{{ v.key }}" class="btn btn-ghost" style="padding:3px 10px; font-size:11px;">Inspect →</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

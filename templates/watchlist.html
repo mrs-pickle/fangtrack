@@ -1,0 +1,122 @@
+{% extends "base.html" %}{% block title %}Watchlist — FangTrack Pro{% endblock %}
+{% block content %}
+<h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0 0 20px;">Watchlist</h1>
+<div class="grid gap-6" style="grid-template-columns:1fr 380px;">
+  <!-- Targets -->
+  <div>
+    {% if targets %}
+    {% for t in targets %}
+    <div class="card mb-3" style="padding:16px;">
+      <div class="flex justify-between items-start">
+        <div>
+          <a href="/deals?species={{ t.species_display|urlencode }}"
+             style="font-weight:700; font-style:italic; color:#1a73e8; font-size:15px; text-decoration:none;"
+             title="View all current listings for {{ t.species_display }}">{{ t.species_display }} →</a>
+          <div style="font-size:12px; color:#555; margin-top:4px; display:flex; gap:16px;">
+            {% if t.sex %}<span>Sex: <strong style="color:#e0e0e0;">{{ t.sex }}</strong></span>{% endif %}
+            {% if t.min_size or t.max_size %}<span>Size: <strong style="color:#e0e0e0;">{{ t.min_size or '?' }}"–{{ t.max_size or '∞' }}"</strong></span>{% endif %}
+            {% if t.max_price %}<span>Max: <strong style="color:#1a73e8;">${{ "%.0f"|format(t.max_price) }}</strong></span>{% endif %}
+            {% if t.max_landed %}<span>Max shipped: <strong style="color:#1a73e8;">${{ "%.0f"|format(t.max_landed) }}</strong></span>{% endif %}
+          </div>
+          {% if t.notes %}<div style="font-size:12px; color:#888; margin-top:4px;">{{ t.notes }}</div>{% endif %}
+          <a href="/deals?species={{ t.species_display|urlencode }}" style="font-size:11px; color:#666; margin-top:6px; display:inline-block; text-decoration:none;">{{ t.hit_count }} hits total{% if t.last_hit %} · last: {{ t.last_hit[:10] }}{% endif %} · view listings →</a>
+        </div>
+        <form action="/watchlist/remove/{{ t.id }}" method="post">
+          <button class="btn btn-danger" style="padding:5px 12px; font-size:12px;">Remove</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card" style="text-align:center; padding:40px; color:#555;">
+      No watchlist targets yet. Add one to get alerted when a species appears at your target price.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Add form -->
+  <div>
+    <div class="card" style="position:sticky; top:80px;">
+      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">Add Target</div>
+      <form action="/watchlist/add" method="post" class="flex flex-col gap-3">
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">SPECIES (scientific name)</label>
+          <select name="species" id="wl-species" required style="width:100%; box-sizing:border-box;">
+            <option value="" disabled selected>Select a species… ({{ species_options|length }})</option>
+            {% for s in species_options %}
+            <option value="{{ s.value }}" data-common="{{ s.common }}">{{ s.value }}{% if s.common %} — {{ s.common }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <div style="font-size:10px; color:#555; margin-top:3px;">Type to jump to a species. Only species already in the system can be watched.</div>
+        </div>
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">COMMON NAME</label>
+          <input id="wl-common" readonly tabindex="-1" placeholder="—"
+                 style="width:100%; box-sizing:border-box; background:#141414; color:#888; cursor:default;">
+        </div>
+        <div class="grid gap-3" style="grid-template-columns:1fr 1fr;">
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">SEX</label>
+            <select name="sex" style="width:100%;">
+              <option value="">Any</option>
+              <option value="F">♀ Female</option>
+              <option value="M">♂ Male</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">MAX PRICE ($)</label>
+            <input name="max_price" type="number" step="0.01" placeholder="any" style="width:100%; box-sizing:border-box;">
+          </div>
+        </div>
+        <div class="grid gap-3" style="grid-template-columns:1fr 1fr;">
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">MIN SIZE (inches)</label>
+            <input name="min_size" type="number" step="0.25" placeholder="0" style="width:100%; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">MAX SIZE (inches)</label>
+            <input name="max_size" type="number" step="0.25" placeholder="any" style="width:100%; box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">MAX SHIPPED ($) — price + shipping</label>
+          <input name="max_landed" type="number" step="0.01" placeholder="optional" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">NOTES</label>
+          <input name="notes" placeholder="e.g. 4+ inches only, CB preferred" style="width:100%; box-sizing:border-box;">
+        </div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;">Add Target</button>
+      </form>
+    </div>
+
+    {% if recent_hits %}
+    <div class="card" style="margin-top:16px;">
+      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px;">Last Crawl Hits</div>
+      {% for h in recent_hits %}
+      <div style="border-bottom:1px solid #2a2a2a; padding:10px 0; font-size:13px;">
+        <div style="font-weight:700; margin-bottom:3px;">{{ h.target }}</div>
+        <div style="color:#888; font-size:12px;">{{ h.name }} · ${{ "%.0f"|format(h.price) }} @{{ h.vendor }}
+          {% if h.fire %}🔥{% endif %} {% if h.rating == '💎💎' %}💎💎{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const sel = document.getElementById('wl-species');
+  const common = document.getElementById('wl-common');
+  if(!sel || !common) return;
+  sel.addEventListener('change', () => {
+    const opt = sel.options[sel.selectedIndex];
+    common.value = (opt && opt.dataset.common) ? opt.dataset.common : '';
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>Collection Labels — FangTrack Pro</title>
+<style>
+  :root{
+    --cols: {{ tmpl.cols }};
+    --lw: {{ tmpl.w }}in;   --lh: {{ tmpl.h }}in;
+    --mt: {{ tmpl.mt }}in;  --ml: {{ tmpl.ml }}in;
+    --gx: {{ tmpl.gx }}in;  --gy: {{ tmpl.gy }}in;
+  }
+  * { box-sizing: border-box; }
+  body { background:#e9e9e9; color:#111; font-family:system-ui,-apple-system,sans-serif; margin:0; padding:16px; }
+  .toolbar { max-width:8.5in; margin:0 auto 14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .toolbar select { font-size:13px; padding:7px 10px; border:1px solid #999; border-radius:6px; background:#fff; color:#111; }
+  .toolbar button { font-size:13px; padding:8px 16px; border:1px solid #111; background:#111; color:#fff; border-radius:6px; cursor:pointer; }
+  .hint { font-size:12px; color:#555; }
+
+  /* The printable sheet — real inches so it lines up with the label stock. */
+  .sheet {
+    width:8.5in; min-height:11in; background:#fff; margin:0 auto;
+    padding:var(--mt) 0 0 var(--ml);
+    box-shadow:0 1px 6px rgba(0,0,0,.25);
+  }
+  .grid {
+    display:grid;
+    grid-template-columns: repeat(var(--cols), var(--lw));
+    column-gap:var(--gx); row-gap:var(--gy);
+  }
+  .label {
+    width:var(--lw); height:var(--lh); overflow:hidden;
+    padding:0.06in 0.1in; display:flex; flex-direction:column; justify-content:center;
+    border:1px dashed #ccc;   /* guide only; hidden when printing */
+  }
+  .sci { font-style:italic; font-weight:800; line-height:1.05; }
+  .com { color:#333; margin-top:1px; }
+  .meta { color:#222; margin-top:2px; }
+  .brand { color:#999; letter-spacing:.08em; text-transform:uppercase; margin-top:2px; }
+
+  /* Font scales with label height so text fits small stock. */
+  .label { font-size: calc(var(--lh) * 0.11); }
+  .sci { font-size: calc(var(--lh) * 0.15); }
+  .brand { font-size: calc(var(--lh) * 0.085); }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background:#fff; padding:0; }
+    .toolbar { display:none; }
+    .sheet { box-shadow:none; margin:0; page-break-after:always; }
+    .label { border:none; }
+  }
+</style>
+</head><body>
+<div class="toolbar">
+  <label style="font-size:12px; color:#333; font-weight:600;">Label stock:</label>
+  <select onchange="location.href='/collection/labels?template=' + this.value">
+    {% for k, t in templates.items() %}
+    <option value="{{ k }}" {% if k==tkey %}selected{% endif %}>{{ t.name }}</option>
+    {% endfor %}
+  </select>
+  <button onclick="window.print()">🖨 Print</button>
+  <span class="hint">{{ items|length }} labels · {{ per_sheet }} per sheet · print at 100% scale (no "fit to page")</span>
+</div>
+
+{% if items %}
+  {% for start in range(0, items|length, per_sheet) %}
+  <div class="sheet">
+    <div class="grid">
+      {% for it in items[start:start+per_sheet] %}
+      <div class="label">
+        <div class="sci">{{ it.species_display }}</div>
+        {% if it.common %}<div class="com">{{ it.common }}</div>{% endif %}
+        <div class="meta">{% if it.sex=='F' %}♀{% elif it.sex=='M' %}♂{% else %}U{% endif %}{% if it.quantity and it.quantity>1 %} ×{{ it.quantity }}{% endif %}{% if it.size_notes %} · {{ it.size_notes }}{% endif %}</div>
+        {% if it.source or it.acquired_date %}<div class="meta">{{ it.source or '' }}{% if it.acquired_date %} · {{ it.acquired_date }}{% endif %}</div>{% endif %}
+        <div class="brand">FangTrack Pro</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="sheet"><p style="padding:20px; color:#555;">No species in your collection yet.</p></div>
+{% endif %}
+</body></html>

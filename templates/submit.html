@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Submit — FangTrack Pro{% endblock %}
+{% block content %}
+<div style="max-width:760px; margin:0 auto;">
+  <h1 style="font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0 0 6px;">Submit</h1>
+  <p style="color:#888; margin-bottom:24px; font-size:14px;">Recommend a vendor, report a bug, or share an idea. We read everything.</p>
+
+  <div class="card" style="margin-bottom:24px;">
+    <form action="/submit/save" method="post" class="flex flex-col gap-4">
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:6px;">WHAT ARE YOU SUBMITTING?</label>
+        <select name="kind" id="submit-kind" style="width:100%;">
+          <option value="vendor">🕷 Recommend a vendor to add</option>
+          <option value="bug">🐛 Report an error / bug</option>
+          <option value="idea">💡 Suggest an improvement</option>
+        </select>
+      </div>
+
+      <!-- Vendor fields (shown for vendor suggestions) -->
+      <div id="vendor-fields" class="flex flex-col gap-3">
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">VENDOR NAME</label>
+          <input name="vendor_name" placeholder="e.g. Paladin Exotics" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">VENDOR WEBSITE</label>
+          <input name="vendor_url" placeholder="https://…" style="width:100%; box-sizing:border-box;">
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;"><span id="message-label">DETAILS</span> <span style="color:#555;">(optional for vendor suggestions)</span></label>
+        <textarea name="message" rows="6" placeholder="Tell us what's up — the more detail, the better. For bugs: what page, what you clicked, what happened."
+          style="width:100%; box-sizing:border-box; resize:vertical;"></textarea>
+      </div>
+
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">YOUR EMAIL <span style="color:#555;">(optional — if you'd like a reply)</span></label>
+        <input name="contact" type="email" placeholder="you@email.com" style="width:100%; box-sizing:border-box;">
+      </div>
+
+      <button class="btn btn-primary" style="justify-content:center;">Submit</button>
+    </form>
+  </div>
+
+  {% if recent %}
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Recent submissions</div>
+    <table>
+      <thead><tr><th>Type</th><th>Detail</th><th>When</th></tr></thead>
+      <tbody>
+      {% for s in recent %}
+      <tr>
+        <td style="white-space:nowrap;">{% if s.kind=='vendor' %}🕷 Vendor{% elif s.kind=='bug' %}🐛 Bug{% else %}💡 Idea{% endif %}</td>
+        <td style="color:#bbb; font-size:12px;">{{ (s.vendor_name ~ ' — ' if s.vendor_name else '') }}{{ (s.message or '')[:80] }}</td>
+        <td style="color:#555; font-size:12px; white-space:nowrap;">{{ (s.created_at or '')[:16] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function(){
+  var kind = document.getElementById('submit-kind');
+  var vf = document.getElementById('vendor-fields');
+  var ml = document.getElementById('message-label');
+  function sync(){
+    var isVendor = kind.value === 'vendor';
+    vf.style.display = isVendor ? 'flex' : 'none';
+    ml.textContent = isVendor ? 'ANYTHING ELSE' : (kind.value === 'bug' ? 'WHAT WENT WRONG' : 'YOUR IDEA');
+  }
+  kind.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

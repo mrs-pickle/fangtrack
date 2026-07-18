@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% block title %}Sign in — FangTrack{% endblock %}
+{% block content %}
+<div style="max-width:400px; margin:50px auto;">
+  <h1 style="font-size:24px; font-weight:900; letter-spacing:-.02em; margin:0 0 6px; text-align:center;">Join <span style="color:#1a73e8;">FangTrack Pro</span></h1>
+  <p style="color:#888; font-size:13px; text-align:center; margin:0 0 18px;">New here? Create your free account first — it takes a few seconds.</p>
+  <a href="/register" class="btn btn-primary" style="width:100%; box-sizing:border-box; justify-content:center; margin-bottom:26px;">Create my account →</a>
+
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+    <div style="flex:1; height:1px; background:#2a2a2a;"></div>
+    <span style="color:#666; font-size:11px; letter-spacing:.06em;">ALREADY HAVE ONE?</span>
+    <div style="flex:1; height:1px; background:#2a2a2a;"></div>
+  </div>
+
+  <div class="card">
+    <form method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="next" value="{{ request.args.get('next','') }}">
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">EMAIL</label>
+        <input name="email" type="email" required autofocus placeholder="you@email.com"
+               style="width:100%; box-sizing:border-box; font-size:15px; padding:11px 14px;">
+      </div>
+      <div>
+        <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">PASSWORD</label>
+        <input name="password" type="password" required placeholder="••••••••"
+               style="width:100%; box-sizing:border-box; font-size:15px; padding:11px 14px;">
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:4px;">Sign in</button>
+    </form>
+    <p style="text-align:center; margin:12px 0 0;">
+      <a href="/forgot" style="color:#888; font-size:12px;">Forgot your password?</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

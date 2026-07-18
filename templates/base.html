@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}FangTrack Pro{% endblock %}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/fangtrack_icon_128.png') }}">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: { colors: {
+    ft: {
+      base:    '#0a0a0a',
+      surface: '#141414',
+      card:    '#1e1e1e',
+      border:  '#2a2a2a',
+      text:    '#f0f0f0',
+      muted:   '#888888',
+      teal:    '#1a73e8',
+      fire:    '#ff6b00',
+      gem:     '#a855f7',
+      up:      '#ef4444',
+      down:    '#22c55e',
+    }
+  }}}
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { background:#0a0a0a; color:#f0f0f0; font-family:system-ui,-apple-system,sans-serif; font-size:14px; margin:0; }
+
+/* ── FangTrack Pro color system ── */
+:root {
+  --base:#0a0a0a; --surface:#141414; --card:#1e1e1e; --border:#2a2a2a;
+  --text:#f0f0f0; --muted:#888; --accent-blue:#1a73e8;
+  --fire:#ff6b00; --gem:#a855f7; --down:#22c55e; --up:#ef4444;
+}
+
+/* ── Rarity — GENERATED from theme.py. Do NOT hard-code a rarity hex here. ──
+   Six distinct Tailwind pairs, escalating:
+   slate -> green -> sky -> indigo -> fuchsia -> orange (classic TCG rarity ramp).
+   Emits --rarity-*-bg/--rarity-*-text, .r-* tier classes, .score-1..10, and
+   the .rangebar gradient. Change colours in theme.py, nowhere else.
+   NB: violet-600 #7c3aed is NOT a rarity colour — it belongs to the
+   Exceptional 💎💎 deal badge below. */
+{{ rarity_css()|safe }}
+.rtier { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:.02em; }
+
+/* Momentum tags (StockX heating/cooling) */
+.heat  { background:#7f1d1d; color:#fecaca; }
+.cool  { background:#064e3b; color:#a7f3d0; }
+.steady{ background:#1f2937; color:#9ca3af; }
+.mtag  { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.04em; }
+
+/* Sparkline cell */
+.spark { display:inline-block; vertical-align:middle; line-height:0; }
+
+/* Smart pager (shared, see templates/_pager.html) */
+.pgr { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px; margin:14px 0; }
+.pgr-b, .pgr-n { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; padding:0 8px; border-radius:6px; font-size:13px; color:#1a73e8; text-decoration:none; border:1px solid #2a2a2a; background:#141414; }
+.pgr-b:hover, .pgr-n:hover { border-color:#1a73e8; }
+.pgr-cur { background:#1a73e8; color:#0a0a0a; border-color:#1a73e8; font-weight:700; }
+.pgr-off { opacity:.35; pointer-events:none; }
+.pgr-gap { color:#555; padding:0 2px; }
+.pgr-jump { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#888; margin-left:8px; }
+.pgr-jump input { width:58px; padding:5px 8px; text-align:center; }
+.pgr-lbl { font-size:12px; color:#666; margin-left:8px; }
+
+/* Badge helpers reused on dashboard/cards */
+.badge-fire { background:#ff6b00; color:#fff; }
+.badge-gem2 { background:#7c3aed; color:#f0f0f0; }
+.badge-gem1 { background:#1d4ed8; color:#bfdbfe; }
+
+/* 52-week style range bar — the .rangebar track gradient is GENERATED from
+   theme.py (it is the rarity ladder); only its markers are styled here. */
+.rangebar .you { position:absolute; top:-3px; width:3px; height:14px; border-radius:2px; background:#fff; box-shadow:0 0 4px #000; }
+.rangebar .atl { position:absolute; top:-2px; width:2px; height:12px; background:#34d399; }
+
+/* Deal badges */
+.d-fire  { background:#ff6b00; color:#fff; }
+.d-gem2  { background:#7c3aed; color:#f0f0f0; }
+.d-gem1  { background:#1d4ed8; color:#bfdbfe; }
+.d-fair  { background:#065f46; color:#a7f3d0; }
+.d-above { background:#374151; color:#9ca3af; }
+
+/* Table */
+table { border-collapse:collapse; width:100%; }
+th {
+  background:#141414; color:#1a73e8; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; padding:10px 12px; text-align:left;
+  position:sticky; top:0; z-index:10; border-bottom:1px solid #2a2a2a;
+}
+td { padding:8px 12px; border-bottom:1px solid #1e1e1e; font-size:13px; vertical-align:middle; }
+tr:hover td { background:#141414; }
+.species-name { font-style:italic; color:#1a73e8; }
+
+/* Controls */
+input, select, textarea {
+  background:#1e1e1e; border:1px solid #2a2a2a; color:#f0f0f0;
+  border-radius:6px; padding:8px 12px; font-size:13px; outline:none;
+}
+input:focus, select:focus { border-color:#1a73e8; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; border:none; letter-spacing:.02em; transition:all .12s; }
+.btn-primary { background:#1a73e8; color:#0a0a0a; }
+.btn-primary:hover { background:#1558c0; }
+.btn-ghost { background:transparent; color:#1a73e8; border:1px solid #1a73e8; }
+.btn-ghost:hover { background:#1a73e820; }
+.btn-danger { background:transparent; color:#ef4444; border:1px solid #ef4444; }
+.btn-danger:hover { background:#ef444415; }
+
+/* Cards */
+.card { background:#1e1e1e; border-radius:10px; padding:20px; border:1px solid #2a2a2a; }
+.stat-card { background:#141414; border-radius:10px; padding:16px 20px; border:1px solid #2a2a2a; }
+
+/* Nav */
+.crawl-btn.is-disabled, .crawl-btn[disabled] { opacity:.45 !important; cursor:not-allowed !important; pointer-events:none; filter:grayscale(.6) !important; }
+.nav-link { color:#888; padding:6px 14px; border-radius:5px; font-size:13px; font-weight:500; letter-spacing:.02em; transition:all .12s; text-decoration:none; display:inline-block; }
+.nav-link:hover { color:#f0f0f0; background:#1e1e1e; }
+.nav-link.active { color:#1a73e8; background:#1e1e1e; }
+
+/* Flash */
+.flash-ok  { background:#064e3b; border:1px solid #059669; color:#d1fae5; padding:10px 16px; border-radius:6px; margin-bottom:14px; }
+.flash-err { background:#450a0a; border:1px solid #b91c1c; color:#fecaca; padding:10px 16px; border-radius:6px; margin-bottom:14px; }
+
+/* Owned badge */
+.owned-badge { color:#1a73e8; font-weight:800; font-size:15px; }
+
+/* Shipping info */
+.ship-info { font-size:11px; color:#888; line-height:1.5; }
+.ship-free { color:#22c55e; font-weight:700; }
+
+/* Dark scrollbars that blend with the background */
+* { scrollbar-color: #242424 #0d0d0d; scrollbar-width: thin; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:#0d0d0d; }
+::-webkit-scrollbar-thumb { background:#242424; border-radius:5px; border:2px solid #0d0d0d; }
+::-webkit-scrollbar-thumb:hover { background:#333; }
+
+/* ── Mobile / responsive ─────────────────────────────────────────────────────
+   The app is inline-style heavy, so these override common inline layouts with
+   !important where needed. Phones are the primary social-recruited audience. */
+@media (max-width:768px){
+  .navwrap { overflow-x:auto; gap:2px !important; padding:0 10px !important; -webkit-overflow-scrolling:touch; }
+  .navwrap::-webkit-scrollbar { height:0; }         /* hide the nav scrollbar */
+  .nav-link { padding:6px 9px; font-size:12px; white-space:nowrap; }
+  .wrap { padding:16px 12px !important; }
+  /* Wide tables scroll horizontally instead of breaking the layout. */
+  table { display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
+  th, td { padding:7px 9px; }
+  /* Collapse multi-column grids to a single column on phones. */
+  .grid, .kpi-strip { grid-template-columns:1fr !important; }
+  .card { padding:14px; }
+  h1 { font-size:18px !important; }
+}
+@media (max-width:560px){
+  /* Keep the KPI tiles two-up (their own rule handles this; reassert over .grid). */
+  .kpi-strip { grid-template-columns:repeat(2,1fr) !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ────────────────────────────────────────────────────────────────── -->
+<nav style="background:#0d0d0d; border-bottom:1px solid #1e1e1e; position:sticky; top:0; z-index:50;">
+  <div class="navwrap" style="max-width:1600px; margin:0 auto; padding:0 20px; height:52px; display:flex; align-items:center; gap:4px;">
+
+    <!-- Logo mark + wordmark -->
+    <a href="/" style="display:flex; align-items:center; gap:10px; margin-right:20px; text-decoration:none;">
+      <img src="data:image/png;base64,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"
+           alt="FangTrack Pro" height="38"
+           style="width:auto; image-rendering:auto;">
+      <div>
+        <div style="font-size:16px; font-weight:900; letter-spacing:-.02em; line-height:1;">
+          <span style="color:#ffffff;">FANG</span><span style="color:#1a73e8;">TRACK</span>
+        </div>
+        {% if current_user %}
+        <div style="background:#1a73e8; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">PRO</div>
+        {% else %}
+        <div style="background:#a855f7; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">BETA</div>
+        {% endif %}
+      </div>
+    </a>
+
+    <!-- Nav links -->
+    <a href="/"          class="nav-link {% if request.path=='/' %}active{% endif %}">Dashboard</a>
+    <a href="/deals"     class="nav-link {% if request.path.startswith('/deals') %}active{% endif %}">Deals</a>
+    <a href="/species"   class="nav-link {% if request.path.startswith('/species') %}active{% endif %}">Species</a>
+    <a href="/watchlist" class="nav-link {% if request.path.startswith('/watchlist') %}active{% endif %}"{% if not current_user %} style="color:#a855f7;"{% endif %}>Watchlist</a>
+    <a href="/alerts" class="nav-link {% if request.path.startswith('/alerts') %}active{% endif %}" style="position:relative;{% if not current_user %} color:#a855f7;{% endif %}">Alerts<span id="alert-badge" style="display:none; position:absolute; top:-2px; right:-4px; background:#ff6b00; color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; line-height:15px; text-align:center; border-radius:8px; padding:0 3px;"></span></a>
+    <a href="/collection"class="nav-link {% if request.path.startswith('/collection') %}active{% endif %}">Collection</a>
+    <a href="/sellers"   class="nav-link {% if request.path.startswith('/sellers') or request.path.startswith('/vendors') %}active{% endif %}">Vendors</a>
+    {% if current_user and current_user.is_admin %}<a href="/history" class="nav-link {% if request.path.startswith('/history') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Crawler</a>{% endif %}
+    <a href="/submit"    class="nav-link {% if request.path.startswith('/submit') %}active{% endif %}">Submit</a>
+
+    <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+      <span id="crawl-badge" style="display:none; background:#1a73e8; color:#0a0a0a; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; letter-spacing:.04em;">↻ CRAWLING...</span>
+      <a href="/leaderboard" class="nav-link {% if request.path.startswith('/leaderboard') or request.path.startswith('/u/') %}active{% endif %}">🏆 Leaderboard</a>
+      <a href="/transparency" class="nav-link {% if request.path.startswith('/transparency') %}active{% endif %}" style="color:#ff6b00; font-weight:700;">What is FangTrack?</a>
+      {% if current_user %}
+        <a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}">⚙</a>
+        <form method="post" action="/logout" style="display:inline; margin:0;">
+          <button type="submit" class="nav-link" title="{{ current_user.email }}" style="background:none; border:none; padding:0; font:inherit; cursor:pointer; color:inherit;">{{ current_user.display_name or 'Account' }} · Sign out</button>
+        </form>
+      {% else %}
+        <a href="/login" class="nav-link {% if request.path.startswith('/login') %}active{% endif %}">Sign in</a>
+        <a href="/register" class="nav-link btn btn-primary" style="padding:5px 12px; color:#0a0a0a;">Sign up</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<!-- ── CONTENT ─────────────────────────────────────────────────────────────── -->
+<div class="wrap" style="max-width:1600px; margin:0 auto; padding:24px 20px;">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-{{ 'ok' if cat=='success' else 'err' }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Shared species list for autocomplete anywhere a species is entered -->
+<datalist id="species-datalist">
+  {% for s in all_species %}<option value="{{ s }}">{% endfor %}
+</datalist>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer style="border-top:1px solid #1e1e1e; padding:16px 20px; text-align:center; color:#444; font-size:12px; margin-top:40px;">
+  FangTrack — private market intelligence tool<br>
+  <div style="display:flex; gap:16px; justify-content:center; align-items:center; margin:12px 0;">
+    <a href="https://instagram.com/fangtrack" target="_blank" rel="noopener noreferrer"
+       title="@fangtrack on Instagram" aria-label="Instagram @fangtrack" style="color:#888;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 1.62c-3.15 0-3.5.01-4.74.07-1.14.05-1.76.24-2.17.4-.55.21-.94.47-1.35.88-.41.41-.67.8-.88 1.35-.16.41-.35 1.03-.4 2.17-.06 1.24-.07 1.59-.07 4.74s.01 3.5.07 4.74c.05 1.14.24 1.76.4 2.17.21.55.47.94.88 1.35.41.41.8.67 1.35.88.41.16 1.03.35 2.17.4 1.24.06 1.59.07 4.74.07s3.5-.01 4.74-.07c1.14-.05 1.76-.24 2.17-.4.55-.21.94-.47 1.35-.88.41-.41.67-.8.88-1.35.16-.41.35-1.03.4-2.17.06-1.24.07-1.59.07-4.74s-.01-3.5-.07-4.74c-.05-1.14-.24-1.76-.4-2.17a3.6 3.6 0 0 0-.88-1.35 3.6 3.6 0 0 0-1.35-.88c-.41-.16-1.03-.35-2.17-.4-1.24-.06-1.59-.07-4.74-.07zm0 2.76a5.46 5.46 0 1 1 0 10.92 5.46 5.46 0 0 1 0-10.92zm0 9a3.54 3.54 0 1 0 0-7.08 3.54 3.54 0 0 0 0 7.08zm6.95-9.22a1.27 1.27 0 1 1-2.55 0 1.27 1.27 0 0 1 2.55 0z"/></svg>
+    </a>
+    <a href="https://tiktok.com/@fangtrack" target="_blank" rel="noopener noreferrer"
+       title="@fangtrack on TikTok" aria-label="TikTok @fangtrack" style="color:#888;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 5.82a4.28 4.28 0 0 1-1.05-2.82h-3.2v12.7a2.6 2.6 0 0 1-2.6 2.5 2.6 2.6 0 0 1-2.6-2.6 2.6 2.6 0 0 1 3.4-2.48V7.36a5.8 5.8 0 0 0-.8-.06A5.82 5.82 0 0 0 4.13 13.1a5.82 5.82 0 0 0 5.82 5.82 5.82 5.82 0 0 0 5.82-5.82V9.01a7.5 7.5 0 0 0 4.35 1.39V7.2a4.28 4.28 0 0 1-3.52-1.38z"/></svg>
+    </a>
+    <a href="https://youtube.com/@fangtrack" target="_blank" rel="noopener noreferrer"
+       title="@fangtrack on YouTube" aria-label="YouTube @fangtrack" style="color:#888;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14A31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg>
+    </a>
+  </div>
+  <a href="/privacy" style="color:#666; text-decoration:none;">Privacy Policy</a> ·
+  <a href="/terms" style="color:#666; text-decoration:none;">Terms of Service</a><br>
+  © FangTrack 2026
+</footer>
+
+<!-- ── First-run feature tour ────────────────────────────────────────────────
+     Fires once per browser (localStorage). Replay via ?tour=1 or startTour().
+     TODO(auth): when accounts land, gate on a per-user `tour_seen` flag instead
+     of localStorage so the tour follows the user, not the device. -->
+<style>
+  #ft-tour-ovl{position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px;}
+  #ft-tour-ovl.show{display:flex;}
+  .ft-tour-card{background:#161616; border:1px solid #2a2a2a; border-radius:14px; max-width:440px; width:100%; padding:28px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative;}
+  .ft-tour-emoji{font-size:34px; line-height:1; margin-bottom:12px;}
+  .ft-tour-title{font-size:19px; font-weight:900; letter-spacing:-.02em; color:#f0f0f0; margin:0 0 8px;}
+  .ft-tour-body{font-size:14px; line-height:1.65; color:#bbb; margin:0 0 8px; min-height:66px;}
+  .ft-tour-badges{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;}
+  .ft-tour-badges span{font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px;}
+  .ft-tour-foot{display:flex; align-items:center; justify-content:space-between; margin-top:18px;}
+  .ft-tour-dots{display:flex; gap:6px;}
+  .ft-tour-dots i{width:7px; height:7px; border-radius:50%; background:#333; transition:background .15s;}
+  .ft-tour-dots i.on{background:#1a73e8;}
+  .ft-tour-btns{display:flex; gap:8px;}
+  .ft-tour-skip{position:absolute; top:14px; right:16px; color:#666; font-size:12px; background:none; border:none; cursor:pointer;}
+  .ft-tour-skip:hover{color:#aaa;}
+  @media (max-width:480px){ .ft-tour-card{padding:22px 18px 16px;} .ft-tour-title{font-size:17px;} }
+</style>
+<div id="ft-tour-ovl" role="dialog" aria-modal="true" aria-label="FangTrack tour">
+  <div class="ft-tour-card">
+    <button class="ft-tour-skip" onclick="ftTour.end()">Skip ✕</button>
+    <div class="ft-tour-emoji" id="ft-tour-emoji"></div>
+    <h2 class="ft-tour-title" id="ft-tour-title"></h2>
+    <div class="ft-tour-body" id="ft-tour-body"></div>
+    <div class="ft-tour-foot">
+      <div class="ft-tour-dots" id="ft-tour-dots"></div>
+      <div class="ft-tour-btns">
+        <button class="btn btn-ghost" id="ft-tour-back" style="padding:5px 12px; font-size:13px;" onclick="ftTour.prev()">Back</button>
+        <button class="btn btn-primary" id="ft-tour-next" style="padding:5px 16px; font-size:13px;" onclick="ftTour.next()">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CSRF: stamp every POST form + expose token for fetch() ─────────────────
+window.CSRF = "{{ csrf_token }}";
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('form').forEach(function(f){
+    if((f.getAttribute('method')||'').toLowerCase()==='post' && !f.querySelector('input[name="_csrf"]')){
+      var i=document.createElement('input'); i.type='hidden'; i.name='_csrf'; i.value=window.CSRF; f.appendChild(i);
+    }
+  });
+});
+
+function checkCrawlStatus(){
+  fetch('/api/crawl-status').then(r=>r.json()).then(d=>{
+    const b=document.getElementById('crawl-badge');
+    if(b){
+      if(d.running){ b.style.display='inline-flex'; b.textContent='↻ ' + (d.total ? (d.done||0)+'/'+d.total+' ' : '') + (d.vendor||'')+'...'; }
+      else { b.style.display='none'; if(d.just_finished) location.reload(); }
+    }
+    // Global button lock: any crawl running, no matter where it started, greys the button.
+    document.querySelectorAll('.crawl-btn').forEach(function(el){
+      if(d.active){
+        el.setAttribute('disabled','disabled');
+        el.classList.add('is-disabled');
+        el.style.opacity='0.45'; el.style.filter='grayscale(0.6)'; el.style.cursor='not-allowed'; el.style.pointerEvents='none';
+        el.dataset.origLabel = el.dataset.origLabel || el.textContent;
+        el.textContent = '↻ Crawling' + (d.origin ? ' ('+d.origin+')' : '') + '…';
+      } else {
+        el.removeAttribute('disabled');
+        el.classList.remove('is-disabled');
+        el.style.opacity=''; el.style.filter=''; el.style.cursor=''; el.style.pointerEvents='';
+        if(el.dataset.origLabel) el.textContent = el.dataset.origLabel;
+      }
+    });
+  }).catch(()=>{});
+}
+setInterval(checkCrawlStatus,3000);
+checkCrawlStatus();
+
+function checkAlerts(){
+  fetch('/api/alerts-unread').then(r=>r.json()).then(d=>{
+    const b=document.getElementById('alert-badge');
+    if(!b) return;
+    if(d.unread>0){ b.style.display='inline-block'; b.textContent = d.unread>99?'99+':d.unread; }
+    else { b.style.display='none'; }
+  }).catch(()=>{});
+}
+setInterval(checkAlerts,15000);
+checkAlerts();
+
+function toggleHidePrivate(on){
+  document.cookie = 'ft_hide_private=' + (on ? '1' : '0') + ';path=/;max-age=' + (60*60*24*365);
+  location.reload();
+}
+
+// ── First-run feature tour ────────────────────────────────────────────────
+var ftTour = (function(){
+  var STEPS = [
+    {e:'🕷️', t:'Welcome to FangTrack', b:'Market intelligence for the exotic-invertebrate hobby — Keepa-style price history, StockX-style deal scoring, and TCG-style rarity, for tarantulas, scorpions, isopods and myriapods. Quick tour?'},
+    {e:'📊', t:'Dashboard', b:'Your at-a-glance snapshot: total live listings, deal counts, market movers, and Market Intelligence. Every tile is clickable and filters the Deals page.'},
+    {e:'🔥', t:'Deals & badges', b:'Every in-stock listing, scored like-for-like against the market and its own history.',
+      badges:[['🔥 Fire','#ff6b00','#fff'],['💎💎 Exceptional','#7c3aed','#f0f0f0'],['💎 Strong','#1d4ed8','#bfdbfe'],['👍 Fair','#065f46','#a7f3d0']]},
+    {e:'💎', t:'Rarity tiers', b:'Every species is percentile-ranked across the whole market by how few sellers carry it — rarest at the top.',
+      badges:[{% for n in TIER_ORDER %}['{{ n }}','{{ RARITY_TIERS[n].bg }}','{{ RARITY_TIERS[n].text }}']{% if not loop.last %},{% endif %}{% endfor %}]},
+    {e:'🔍', t:'Species catalog', b:'Look up any species by scientific OR common name. Each gets a spider card: price history, market stats, rarity, and every live listing across vendors.'},
+    {e:'👁️', t:'Watchlist & Alerts', b:'Add species you\'re hunting with an optional target price. FangTrack flags matches and drops them into your Alerts inbox after every crawl.'},
+    {e:'🎒', t:'Your Collection', b:'Log what you own with what you paid — see today\'s market value and your gain/loss. Already have a spreadsheet? Upload a .csv/.xlsx and the columns fill automatically.'},
+    {e:'🚀', t:'You\'re set', b:'Data refreshes automatically on a schedule — nothing to run. Dive into Deals, or start building your Watchlist. Welcome aboard.'}
+  ];
+  var i=0;
+  function render(){
+    var s=STEPS[i];
+    document.getElementById('ft-tour-emoji').textContent=s.e;
+    document.getElementById('ft-tour-title').textContent=s.t;
+    var body=document.getElementById('ft-tour-body'); body.textContent=s.b;
+    if(s.badges){
+      var wrap=document.createElement('div'); wrap.className='ft-tour-badges';
+      s.badges.forEach(function(x){var sp=document.createElement('span');sp.textContent=x[0];sp.style.background=x[1];sp.style.color=x[2];wrap.appendChild(sp);});
+      body.appendChild(wrap);
+    }
+    var dots=document.getElementById('ft-tour-dots'); dots.innerHTML='';
+    STEPS.forEach(function(_,k){var d=document.createElement('i'); if(k===i)d.className='on'; dots.appendChild(d);});
+    document.getElementById('ft-tour-back').style.visibility = i===0 ? 'hidden':'visible';
+    document.getElementById('ft-tour-next').textContent = i===STEPS.length-1 ? 'Get started →' : (i===0 ? 'Take the tour →' : 'Next');
+  }
+  function start(){ i=0; render(); document.getElementById('ft-tour-ovl').classList.add('show'); }
+  function end(){ document.getElementById('ft-tour-ovl').classList.remove('show'); try{localStorage.setItem('ft_tour_v1','1');}catch(e){} }
+  return {
+    start:start, end:end,
+    next:function(){ if(i<STEPS.length-1){i++;render();} else {end();} },
+    prev:function(){ if(i>0){i--;render();} }
+  };
+})();
+document.addEventListener('DOMContentLoaded', function(){
+  var force = new URLSearchParams(location.search).has('tour');
+  var seen; try{seen=localStorage.getItem('ft_tour_v1');}catch(e){seen='1';}
+  if(force || !seen){ ftTour.start(); }
+  // Esc closes the tour
+  document.addEventListener('keydown', function(ev){ if(ev.key==='Escape') ftTour.end(); });
+});
+</script>
+
+<!-- ── Global sortable tables ────────────────────────────────────────────────
+     Any <table> renders click-to-sort headers (ascending / descending) on all
+     columns. Opt out with <table data-nosort> or a per-header <th data-nosort>.
+     A cell may supply data-sort="…" to override its sort key (e.g. a badge). -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function cellVal(row, idx){
+    const c = row.cells[idx];
+    if(!c) return '';
+    return c.dataset.sort !== undefined ? c.dataset.sort : c.textContent.trim();
+  }
+  document.querySelectorAll('table').forEach(function(table){
+    if(table.hasAttribute('data-nosort') || !table.tBodies.length) return;
+    const tbody = table.tBodies[0];
+    const headRow = table.tHead ? table.tHead.rows[0] : (table.rows[0] || null);
+    if(!headRow) return;
+    [...headRow.cells].forEach(function(th){
+      if(th.hasAttribute('data-nosort')) return;
+      th.style.cursor = 'pointer';
+      th.style.userSelect = 'none';
+      th.title = 'Click to sort';
+      th.addEventListener('click', function(){
+        const idx = th.cellIndex;
+        const dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+        [...headRow.cells].forEach(function(o){
+          o.removeAttribute('data-dir');
+          const s = o.querySelector('.sort-ind'); if(s) s.remove();
+        });
+        th.setAttribute('data-dir', dir);
+        const ind = document.createElement('span');
+        ind.className = 'sort-ind'; ind.style.marginLeft = '4px';
+        ind.textContent = dir === 'asc' ? '▲' : '▼';
+        th.appendChild(ind);
+        const rows = [...tbody.rows].filter(function(r){
+          return r.cells.length > idx && !r.querySelector('[colspan]');
+        });
+        const clean = function(v){ return parseFloat(String(v).replace(/[^0-9.\-]/g, '')); };
+        const numeric = rows.length > 0 && rows.every(function(r){
+          const v = cellVal(r, idx);
+          return v === '' || v === '—' || v === '?' || !isNaN(clean(v));
+        }) && rows.some(function(r){ return !isNaN(clean(cellVal(r, idx))); });
+        rows.sort(function(a, b){
+          let x = cellVal(a, idx), y = cellVal(b, idx);
+          if(numeric){
+            x = isNaN(clean(x)) ? -Infinity : clean(x);
+            y = isNaN(clean(y)) ? -Infinity : clean(y);
+          } else { x = x.toLowerCase(); y = y.toLowerCase(); }
+          return (x > y ? 1 : x < y ? -1 : 0) * (dir === 'asc' ? 1 : -1);
+        });
+        rows.forEach(function(r){ tbody.appendChild(r); });
+      });
+    });
+  });
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

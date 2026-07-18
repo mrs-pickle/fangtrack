@@ -1,0 +1,55 @@
+# Render Blueprint for FangTrack. In the Render dashboard: New → Blueprint → point at
+# this repo. See DEPLOY.md for the SQLite-vs-Postgres decision.
+#
+# This blueprint provisions Postgres + a separate crawler Cron Job (the clean, scalable
+# setup). For a quick SQLite-on-a-disk beta instead, comment out the `databases` block and
+# the cron service, drop `DATABASE_URL`, and add a disk (see the commented block below).
+databases:
+  - name: fangtrack-db
+    plan: free                          # Render Postgres free tier
+
+services:
+  - type: web
+    name: fangtrack
+    runtime: python
+    plan: starter
+    buildCommand: "pip install -r requirements.txt && playwright install --with-deps chromium"
+    startCommand: "gunicorn wsgi:app --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT"
+    healthCheckPath: /healthz
+    envVars:
+      - key: FANGTRACK_SECRET_KEY
+        generateValue: true
+      - key: FANGTRACK_HTTPS
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DATABASE_URL               # Postgres backend (database/pg.py activates)
+        fromDatabase:
+          name: fangtrack-db
+          property: connectionString
+
+  # Daily crawl as its own worker, sharing the Postgres DB. Set the schedule you want.
+  - type: cron
+    name: fangtrack-crawl
+    runtime: python
+    schedule: "0 9 * * *"               # 09:00 UTC daily
+    buildCommand: "pip install -r requirements.txt && playwright install --with-deps chromium"
+    startCommand: "python scheduled_crawl.py"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fangtrack-db
+          property: connectionString
+
+# ── SQLite-on-a-disk alternative (simpler, no Postgres) ──────────────────────
+# Remove the `databases:` block, the DATABASE_URL env vars, and the cron service above,
+# then give the web service a disk and point the DB at it:
+#     envVars:
+#       - key: FANGTRACK_DB_PATH
+#         value: "/data/market_history.sqlite"
+#     disk:
+#       name: fangtrack-data
+#       mountPath: /data
+#       sizeGB: 1
+# (With SQLite the crawler can't be a separate service — use the in-process
+#  FANGTRACK_DAILY_CRAWL_HOUR scheduler on an always-on plan instead.)

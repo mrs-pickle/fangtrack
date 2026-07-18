@@ -1,0 +1,15 @@
+# Tarantula Market Tracker configuration
+crawler:
+  engine: httpx           # crawlers use httpx (bulk JSON/GraphQL); playwright only for token capture
+  min_delay_seconds: 1.5    # polite delay lower bound between requests
+  max_delay_seconds: 3.5
+  max_retries: 3
+
+output:
+  xlsx_path: output/tarantula_market_tracker.xlsx
+  db_path: database/market_history.sqlite
+
+# Per-vendor overrides (optional). Example:
+# vendors:
+#   jamies:
+#     collections: [tarantulas, new-arrivals]

@@ -1,0 +1,101 @@
+{% extends "base.html" %}{% block title %}Alerts — FangTrack Pro{% endblock %}
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">🔔 Alerts</h1>
+  {% if feed %}<a href="/alerts?read=1" class="btn btn-ghost" style="font-size:12px; padding:5px 12px;">Mark all read</a>{% endif %}
+</div>
+
+<div class="grid gap-6" style="grid-template-columns:1fr 360px; align-items:start;">
+
+  <!-- Inbox -->
+  <div>
+    {% if feed %}
+    <div class="card" style="padding:0; overflow:hidden;">
+      {% for ev in feed %}
+      <div style="display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid #1e1e1e; {% if not ev.read %}background:#141414;{% endif %}">
+        <div style="font-size:18px;">{{ ev.icon }}</div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; color:#e0e0e0; font-weight:600;">
+            {% if ev.species_key %}<a href="/species/{{ ev.species_key|urlencode }}" style="color:#1a73e8; text-decoration:none;">{{ ev.title }}</a>{% else %}{{ ev.title }}{% endif %}
+          </div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">{{ ev.detail }}</div>
+          <div style="font-size:10px; color:#555; margin-top:3px;">{{ (ev.ts or '')[:16]|replace('T',' ') }}
+            {% if ev.url %} · <a href="{{ ev.url }}" target="_blank" rel="noopener" style="color:#1a73e8;">open listing →</a>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center; padding:40px; color:#555;">
+      No alerts yet. They appear after a crawl finds a price drop, a back-in-stock, an
+      all-time-low deal, or a match to one of your saved searches.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Saved searches -->
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:14px; text-transform:uppercase; letter-spacing:.06em;">＋ Saved Search</div>
+      <form action="/alerts/search/add" method="post" class="flex flex-col gap-3">
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">NAME</label>
+          <input name="name" placeholder="e.g. Cheap Pokies" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">SPECIES CONTAINS</label>
+          <input name="species" list="species-datalist" autocomplete="off" placeholder="e.g. Poecilotheria, versicolor" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="grid gap-3" style="grid-template-columns:1fr 1fr;">
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">MAX PRICE</label>
+            <input name="max_price" type="number" placeholder="Any" style="width:100%; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">SEX</label>
+            <select name="sex" style="width:100%;">
+              <option value="">Any</option><option value="F">♀ Female</option><option value="M">♂ Male</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid gap-3" style="grid-template-columns:1fr 1fr;">
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">MIN RARITY</label>
+            <select name="min_rarity" style="width:100%;">
+              <option value="">Any</option><option value="5">5+</option><option value="7">7+</option><option value="9">9+</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">DEAL</label>
+            <select name="deal" style="width:100%;">
+              <option value="">Any</option><option value="gem">💎+ gems</option><option value="fire">🔥 fire only</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;">Save & Alert Me</button>
+      </form>
+      <div style="font-size:11px; color:#666; margin-top:10px;">You'll get an inbox alert each crawl a new listing matches. Email too, if SMTP is set in <a href="/settings" style="color:#1a73e8;">Settings</a>.</div>
+    </div>
+
+    {% if searches %}
+    <div class="card">
+      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:.06em;">Your Searches ({{ searches|length }})</div>
+      {% for s in searches %}
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid #1e1e1e;">
+        <div style="min-width:0;">
+          <div style="font-weight:700; color:#e0e0e0; font-size:13px;">{{ s.name }}</div>
+          <div style="font-size:11px; color:#888;">
+            {% for k,v in s.criteria.items() %}<span style="background:#141414; border:1px solid #2a2a2a; border-radius:4px; padding:1px 6px; margin-right:4px; display:inline-block; margin-top:3px;">{{ k }}: {{ v }}</span>{% endfor %}
+          </div>
+        </div>
+        <form action="/alerts/search/remove/{{ s.id }}" method="post">
+          <button class="btn btn-danger" style="padding:3px 9px; font-size:11px;">✕</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

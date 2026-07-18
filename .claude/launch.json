@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fangtrack",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "D:\\fangtrack\\fangtrack_v2\\start.bat"],
+      "port": 5000
+    }
+  ]
+}
