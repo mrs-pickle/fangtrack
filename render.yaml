@@ -12,7 +12,10 @@ services:
   - type: web
     name: fangtrack
     runtime: python
-    plan: starter
+    # IMPORTANT: the blueprint's `plan` overrides the dashboard Instance Type on every
+    # sync. Keep this at `standard` (1 CPU / 2 GB) — a `starter` here silently reverts
+    # a manual upgrade on the next push and reintroduces the 0.5-CPU health-check flap.
+    plan: standard
     buildCommand: "pip install -r requirements.txt"
     # 512MB (starter) fits ONE worker: the snapshot build transiently loads ~75k rows
     # for rarity/trends, and two workers doing that at once OOM'd the instance. One
