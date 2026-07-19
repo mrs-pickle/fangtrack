@@ -1313,27 +1313,62 @@ def dashboard():
         wl_count=len(wl_targets), crawl_state=_crawl_state,
         movers=movers, mstats=stats, intel=intel,
         last_crawl=head["last_crawl"], days_history=head["days"],
-        crawl_health=head["health"], vendors_live=vendors_live)
+        crawl_health=head["health"], health_counts=head["health_counts"],
+        vendors_live=vendors_live)
 
 
 def _dashboard_header_meta() -> dict:
     """Last-crawl time, distinct crawl-day depth, and health for the header +
     the Market-Movers empty-state progress counters."""
-    out = {"last_crawl": None, "days": 0, "health": "ok"}
+    out = {"last_crawl": None, "days": 0, "health": "ok",
+           "health_counts": {"healthy": 0, "partial": 0, "down": 0}}
     try:
         conn = get_connection(DB_PATH)
         row = conn.execute("""SELECT MAX(started_at) mx,
                                      COUNT(DISTINCT DATE(started_at)) days
                               FROM crawl_runs WHERE status IN ('complete','partial')""").fetchone()
-        failed = conn.execute("""SELECT COUNT(*) f FROM crawl_runs cr
-                                 WHERE cr.status='failed' AND DATE(cr.started_at) =
-                                   (SELECT MAX(DATE(started_at)) FROM crawl_runs)""").fetchone()
+        # Honest scanner health from each vendor's LATEST run:
+        #   healthy = completed and actually returned products
+        #   partial = crawl truncated (429/rate-limit mid-pagination)
+        #   down    = failed/skipped, or "completed" but returned zero
+        # ("all healthy" was misleading — a blocked vendor that returned nothing
+        # still logged status='complete'/0 products and never showed as a problem.)
+        rows = conn.execute("""
+            SELECT cr.vendor_key AS vk, cr.status AS status, cr.products_found AS pf
+            FROM crawl_runs cr
+            JOIN (SELECT vendor_key, MAX(id) AS mid FROM crawl_runs GROUP BY vendor_key) m
+              ON cr.id = m.mid
+        """).fetchall()
         conn.close()
         if row and row["mx"]:
             out["last_crawl"] = str(row["mx"])[:16].replace("T", " ")
             out["days"] = row["days"] or 0
-        if failed and failed["f"]:
-            out["health"] = f"{failed['f']} failed"
+        # Only the ACTIVE scanners count toward health — retired/removed vendors
+        # still have old crawl_runs rows but aren't "down", they're gone.
+        try:
+            from vendors import REGISTRY
+            active = set(REGISTRY.keys())
+        except Exception:
+            active = None
+        healthy = partial = down = 0
+        for r in rows:
+            if active is not None and r["vk"] not in active:
+                continue
+            st = (r["status"] or "").lower()
+            pf = r["pf"] or 0
+            if st == "partial":
+                partial += 1
+            elif st == "complete" and pf > 0:
+                healthy += 1
+            else:
+                down += 1
+        out["health_counts"] = {"healthy": healthy, "partial": partial, "down": down}
+        if partial or down:
+            bits = []
+            if healthy: bits.append(f"{healthy} healthy")
+            if partial: bits.append(f"{partial} partial")
+            if down: bits.append(f"{down} down")
+            out["health"] = " · ".join(bits)
     except Exception:
         pass
     return out
