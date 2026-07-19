@@ -65,15 +65,32 @@ if os.environ.get("SENTRY_DSN"):
         logger.warning(f"Sentry not enabled: {_e}")
 
 app = Flask(__name__)
-# Secret key from env in production; dev fallback keeps local sessions stable.
-app.secret_key = os.environ.get("FANGTRACK_SECRET_KEY", "tmt-local-dev-secret-change-in-prod")
+# Secret key: required in production. A hardcoded fallback in the repo would let
+# anyone forge a signed session cookie (auth as any user), so fail closed when we
+# look like prod (Postgres or HTTPS configured) and the env var isn't set.
+_secret = os.environ.get("FANGTRACK_SECRET_KEY")
+_is_prod = bool(os.environ.get("DATABASE_URL") or os.environ.get("FANGTRACK_HTTPS"))
+if not _secret:
+    if _is_prod:
+        # Prod-like env with no configured key: use an EPHEMERAL random key so we never
+        # run on the repo's known fallback (which would allow session forgery). Sessions
+        # won't survive a restart until FANGTRACK_SECRET_KEY is set — loud-log it. (We
+        # don't raise: the cron also imports this module and has no key of its own.)
+        import sys as _sys
+        print("CRITICAL: FANGTRACK_SECRET_KEY not set in a prod-like env — using an "
+              "ephemeral key. Set it on the web service so sessions persist across restarts.",
+              file=_sys.stderr, flush=True)
+        _secret = os.urandom(32).hex()
+    else:
+        _secret = "tmt-local-dev-secret-change-in-prod"
+app.secret_key = _secret
 # Cap request bodies so the collection uploader (pandas) can't be DoS'd with a huge file.
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024   # 5 MB
-# Session cookie hardening. Set SESSION_COOKIE_SECURE=1 in the hosted (HTTPS) env.
+# Session cookie hardening. Secure by default whenever we look like prod.
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=bool(os.environ.get("FANGTRACK_HTTPS")),
+    SESSION_COOKIE_SECURE=bool(os.environ.get("FANGTRACK_HTTPS")) or _is_prod,
 )
 
 # Hand-rolled auth (users, login/register/logout, CSRF, @login_required/@admin_required).
@@ -341,7 +358,7 @@ def load_settings() -> dict:
         "smtp_pass": "",
         # From address must be on the VERIFIED sending domain (not the SMTP
         # username). Resend/others silently drop mail whose From isn't verified.
-        "mail_from": "FangTrack <noreply@fangtrack.com>",
+        "mail_from": "FangTrack <mike@fangtrack.com>",
         "auto_crawl": False,
         "crawl_schedule": "daily",
         "crawl_vendors": "all",
@@ -837,11 +854,14 @@ def persist_caches():
             if cache.get("data") is None:
                 continue
             payload = json.dumps(cache["data"], default=str)
-            # Portable upsert (the pg adapter only translates INSERT OR IGNORE, not
-            # OR REPLACE): delete the old row, then insert the fresh blob.
-            conn.execute("DELETE FROM cache_blob WHERE name = ?", (name,))
+            # Portable upsert. Must use ON CONFLICT (not DELETE+INSERT): the pg
+            # adapter auto-appends "RETURNING id" to a plain INSERT to emulate
+            # lastrowid, but cache_blob has no id column → "column id does not
+            # exist". The adapter skips RETURNING when the SQL has ON CONFLICT.
             conn.execute(
-                "INSERT INTO cache_blob (name, payload, built_at) VALUES (?,?,?)",
+                "INSERT INTO cache_blob (name, payload, built_at) VALUES (?,?,?) "
+                "ON CONFLICT(name) DO UPDATE SET payload=excluded.payload, "
+                "built_at=excluded.built_at",
                 (name, payload, stamp))
         conn.commit()
         logger.info("persist_caches: wrote %d cache blob(s)",
@@ -1156,7 +1176,7 @@ def send_email(to_addr: str, subject: str, body: str, settings: dict = None) -> 
     # The SMTP username (e.g. Resend's "resend") authenticates the session but is
     # NOT a valid From address. The From/envelope-sender must be on the verified
     # sending domain, or the provider silently drops the message.
-    from_header = settings.get("mail_from") or "FangTrack <noreply@fangtrack.com>"
+    from_header = settings.get("mail_from") or "FangTrack <mike@fangtrack.com>"
     envelope_from = (from_header.split("<", 1)[1].split(">", 1)[0]
                      if "<" in from_header and ">" in from_header else from_header)
     msg = f"From: {from_header}\r\nTo: {to_addr}\r\nSubject: {subject}\r\n\r\n{body}"
@@ -2495,9 +2515,11 @@ def api_alerts_unread():
 
 
 @app.route("/settings", methods=["GET","POST"])
-@login_required
+@admin_required
 def settings():
     if request.method == "POST":
+        # digest_path is NOT user-writable: /digest reads it, so accepting it from a
+        # form was an arbitrary-file-read hole. Keep it fixed here.
         data = {
             "dest_zip":       request.form.get("dest_zip","72712"),
             "notify_email":   request.form.get("notify_email",""),
@@ -2505,7 +2527,7 @@ def settings():
             "smtp_port":      int(request.form.get("smtp_port",587)),
             "smtp_user":      request.form.get("smtp_user",""),
             "smtp_pass":      request.form.get("smtp_pass",""),
-            "digest_path":    request.form.get("digest_path","output/daily_digest.txt"),
+            "digest_path":    "output/daily_digest.txt",
         }
         save_settings(data)
         flash("Settings saved", "success")
@@ -2726,7 +2748,7 @@ def submit_save():
 
 
 @app.route("/digest")
-@login_required
+@admin_required
 def digest():
     settings = load_settings()
     p = Path(settings.get("digest_path","output/daily_digest.txt"))

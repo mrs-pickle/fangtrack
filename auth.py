@@ -92,6 +92,11 @@ def init_auth_tables(db_path=DB_PATH):
         conn.execute("ALTER TABLE users ADD COLUMN is_public INTEGER DEFAULT 0")
     if "handle" not in ucols:
         conn.execute("ALTER TABLE users ADD COLUMN handle TEXT")
+    # Declarative admin allowlist: FANGTRACK_ADMIN_EMAILS (comma-separated) promotes
+    # those accounts to admin at startup. Promotes EXISTING users only — never demotes,
+    # never creates. Lets us grant admin without direct DB access. Idempotent.
+    for _ae in [e.strip().lower() for e in os.environ.get("FANGTRACK_ADMIN_EMAILS", "").split(",") if e.strip()]:
+        conn.execute("UPDATE users SET is_admin=1 WHERE lower(email)=? AND is_admin=0", (_ae,))
     conn.commit()
     conn.close()
 
