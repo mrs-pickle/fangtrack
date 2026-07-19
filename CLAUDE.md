@@ -5,6 +5,10 @@ vendor sites daily, normalizes listings, scores deals/rarity, serves a dashboard
 Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.com.
 
 ## Locked design constants (no change without Mike's written OK in chat)
+- **DEPLOY WORKFLOW (never break prod):** the site is LIVE with real users. Work
+  `local → dev → main`; **prod deploys ONLY from `main`, only after tests pass**. Never
+  `git push origin main` by hand or edit prod directly. Full process in `WORKFLOW.md`.
+  **Session start: confirm the working branch is `dev` (not `main`) before making changes.**
 - Brand, UI, `templates/`, `static/` — locked; visual/brand changes only at Mike's direction.
 - Crawl etiquette: **≥2s between requests to the same vendor**, sequential per vendor,
   no parallel-hammering, existing rotating UAs only — no evasion beyond that.
@@ -82,6 +86,10 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   `NOTIFY_EMAIL=mike@fangtrack.com`. Why: transactional deliverability for launch.
 - 2026-07-18 — Live on Render/Postgres at fangtrack.com; DNS + Resend DKIM/SPF/DMARC verified.
 - 2026-07-18 — Security headers added (nosniff/X-Frame/Referrer/HSTS). Deep security pass pending.
-- OPEN ITEMS: shipping scan PG bug (`origin_zip` ambiguous → skipped); a few vendors
-  (Big Z's, Fear Not, Urban Tarantulas) return non-JSON to Render's IP; rotate DB password +
-  Resend key (both exposed in chat); change admin pw; free Postgres expires ~90d.
+- 2026-07-19 — Dev-safety pipeline: `dev` branch + `main`=prod; CI (`.github/workflows/ci.yml`,
+  pytest on push) gates merges; Sentry ready (set `SENTRY_DSN` env to enable). Workflow in
+  `WORKFLOW.md`. Reason: yesterday's 15+ reactive prod pushes broke the live site repeatedly.
+- OPEN ITEMS: Shopify blocks Render's datacenter IP (only ~6/29 vendors crawl) → residential
+  rotating proxy pending (thesis-critical); Crawler tab 500 for admin (diagnose); move Mike's
+  collection from mrs2200 → mike@fangtrack.com; free Postgres expires ~90d (plan paid tier +
+  backups); wire welcome email into signup + HTML emails + nurture campaign.
