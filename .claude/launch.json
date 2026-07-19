@@ -1,4 +1,4 @@
-{
+﻿{
   "version": "0.0.1",
   "configurations": [
     {
@@ -6,6 +6,12 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "D:\\fangtrack\\fangtrack_v2\\start.bat"],
       "port": 5000
+    },
+    {
+      "name": "fangtrack-design",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set FANGTRACK_PORT=5050&& python app.py"],
+      "port": 5050
     }
   ]
 }

@@ -5,6 +5,7 @@ Run with: python app.py
 Opens automatically at http://localhost:5000
 """
 import os, sys, json, threading, time, logging, smtplib
+from email.message import EmailMessage
 from pathlib import Path
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -19,7 +20,8 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 from flask import (Flask, render_template, request, redirect, url_for,
-                   flash, jsonify, Response, session, g, abort)
+                   flash, jsonify, Response, session, g, abort,
+                   send_from_directory)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -282,7 +284,7 @@ def warm_caches():
         logger.warning(f"cache warm failed: {e}")
 
 
-def spark_svg(series: list, w: int = 108, h: int = 26, color: str = "#1a73e8") -> str:
+def spark_svg(series: list, w: int = 108, h: int = 26, color: str = "#2563eb") -> str:
     """Tiny inline sparkline SVG from a [[ymd, price], ...] series (cheapest per
     day). One point renders as a flat dashed hint; empty renders as a dash."""
     pts = [p for p in (series or []) if p and p[1] is not None]
@@ -1178,10 +1180,44 @@ def _write_digest(snapshot: list, hits: list):
             logger.warning(f"Email notification failed: {e}")
 
 
-def send_email(to_addr: str, subject: str, body: str, settings: dict = None) -> None:
-    """Send one plain-text email via the configured SMTP account. Shared by the
-    watchlist digest and the password-reset flow. Raises on failure so callers
-    can decide how loud to be."""
+SITE_URL = os.environ.get("FANGTRACK_SITE_URL", "https://fangtrack.com")
+
+# Email templates that may be rendered/previewed by name. Allowlist — the name
+# reaches render_template and the admin preview route.
+EMAIL_TEMPLATES = {"welcome"}
+
+
+@lru_cache(maxsize=1)
+def _design_tokens() -> dict:
+    """tokens/fangtrack.tokens.json — shared by the web app and the emails so
+    branded HTML mail never hard-codes a colour (tests enforce parity with
+    theme.py for the mirrored rarity/deal sections)."""
+    p = Path(__file__).parent / "tokens" / "fangtrack.tokens.json"
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def render_email(name: str, **ctx) -> tuple[str, str]:
+    """Render a branded email -> (html, plain_text). `name` must be in
+    EMAIL_TEMPLATES; both parts come from templates/email/<name>.{html,txt}
+    with the design tokens injected as `T`."""
+    if name not in EMAIL_TEMPLATES:
+        raise ValueError(f"unknown email template: {name!r}")
+    ctx.setdefault("site_url", SITE_URL)
+    ctx["T"] = _design_tokens()
+    # test_request_context, not app_context: the auth context processor reads
+    # session, which only exists inside a request context (the cron path has none).
+    with app.test_request_context():
+        html = render_template(f"email/{name}.html", **ctx)
+        text = render_template(f"email/{name}.txt", **ctx)
+    return html, text
+
+
+def send_email(to_addr: str, subject: str, body: str, settings: dict = None,
+               html: str = None) -> None:
+    """Send one email via the configured SMTP account. Plain text by default;
+    pass `html` to send multipart/alternative (text part stays the fallback).
+    Shared by the watchlist digest, password resets, and branded mail. Raises
+    on failure so callers can decide how loud to be."""
     settings = settings or load_settings()
     if not settings.get("smtp_user") or not settings.get("smtp_pass"):
         raise RuntimeError("SMTP is not configured (set FANGTRACK_SMTP_USER / _PASS)")
@@ -1191,11 +1227,15 @@ def send_email(to_addr: str, subject: str, body: str, settings: dict = None) -> 
     from_header = settings.get("mail_from") or "FangTrack <mike@fangtrack.com>"
     envelope_from = (from_header.split("<", 1)[1].split(">", 1)[0]
                      if "<" in from_header and ">" in from_header else from_header)
-    msg = f"From: {from_header}\r\nTo: {to_addr}\r\nSubject: {subject}\r\n\r\n{body}"
+    msg = EmailMessage()
+    msg["From"], msg["To"], msg["Subject"] = from_header, to_addr, subject
+    msg.set_content(body)
+    if html:
+        msg.add_alternative(html, subtype="html")
     with smtplib.SMTP(settings["smtp_host"], settings["smtp_port"]) as s:
         s.starttls()
         s.login(settings["smtp_user"], settings["smtp_pass"])
-        s.sendmail(envelope_from, [to_addr], msg.encode("utf-8"))
+        s.send_message(msg, from_addr=envelope_from, to_addrs=[to_addr])
 
 
 def _send_email(settings: dict, body: str, hits: list):
@@ -1210,6 +1250,29 @@ def _send_email(settings: dict, body: str, hits: list):
 def healthz():
     """Lightweight liveness probe for Render / uptime monitors — no DB hit."""
     return {"status": "ok"}, 200
+
+
+@app.route("/tokens/fangtrack.css")
+def tokens_css():
+    """Design-token stylesheet, served from tokens/ so the token files stay a
+    single directory of truth (base.html links this instead of an inline
+    :root block)."""
+    resp = send_from_directory(os.path.join(app.root_path, "tokens"),
+                               "fangtrack.css", mimetype="text/css")
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
+@app.route("/admin/email-preview/<name>")
+@admin_required
+def email_preview(name):
+    """Render an email template in the browser for review before anything is
+    sent. Allowlisted names only."""
+    if name not in EMAIL_TEMPLATES:
+        abort(404)
+    html, _ = render_email(name, display_name="Mike",
+                           cta_url=f"{SITE_URL}/deals", cta_label="Browse today's deals")
+    return html
 
 
 @app.route("/")
@@ -1250,27 +1313,62 @@ def dashboard():
         wl_count=len(wl_targets), crawl_state=_crawl_state,
         movers=movers, mstats=stats, intel=intel,
         last_crawl=head["last_crawl"], days_history=head["days"],
-        crawl_health=head["health"], vendors_live=vendors_live)
+        crawl_health=head["health"], health_counts=head["health_counts"],
+        vendors_live=vendors_live)
 
 
 def _dashboard_header_meta() -> dict:
     """Last-crawl time, distinct crawl-day depth, and health for the header +
     the Market-Movers empty-state progress counters."""
-    out = {"last_crawl": None, "days": 0, "health": "ok"}
+    out = {"last_crawl": None, "days": 0, "health": "ok",
+           "health_counts": {"healthy": 0, "partial": 0, "down": 0}}
     try:
         conn = get_connection(DB_PATH)
         row = conn.execute("""SELECT MAX(started_at) mx,
                                      COUNT(DISTINCT DATE(started_at)) days
                               FROM crawl_runs WHERE status IN ('complete','partial')""").fetchone()
-        failed = conn.execute("""SELECT COUNT(*) f FROM crawl_runs cr
-                                 WHERE cr.status='failed' AND DATE(cr.started_at) =
-                                   (SELECT MAX(DATE(started_at)) FROM crawl_runs)""").fetchone()
+        # Honest scanner health from each vendor's LATEST run:
+        #   healthy = completed and actually returned products
+        #   partial = crawl truncated (429/rate-limit mid-pagination)
+        #   down    = failed/skipped, or "completed" but returned zero
+        # ("all healthy" was misleading — a blocked vendor that returned nothing
+        # still logged status='complete'/0 products and never showed as a problem.)
+        rows = conn.execute("""
+            SELECT cr.vendor_key AS vk, cr.status AS status, cr.products_found AS pf
+            FROM crawl_runs cr
+            JOIN (SELECT vendor_key, MAX(id) AS mid FROM crawl_runs GROUP BY vendor_key) m
+              ON cr.id = m.mid
+        """).fetchall()
         conn.close()
         if row and row["mx"]:
             out["last_crawl"] = str(row["mx"])[:16].replace("T", " ")
             out["days"] = row["days"] or 0
-        if failed and failed["f"]:
-            out["health"] = f"{failed['f']} failed"
+        # Only the ACTIVE scanners count toward health — retired/removed vendors
+        # still have old crawl_runs rows but aren't "down", they're gone.
+        try:
+            from vendors import REGISTRY
+            active = set(REGISTRY.keys())
+        except Exception:
+            active = None
+        healthy = partial = down = 0
+        for r in rows:
+            if active is not None and r["vk"] not in active:
+                continue
+            st = (r["status"] or "").lower()
+            pf = r["pf"] or 0
+            if st == "partial":
+                partial += 1
+            elif st == "complete" and pf > 0:
+                healthy += 1
+            else:
+                down += 1
+        out["health_counts"] = {"healthy": healthy, "partial": partial, "down": down}
+        if partial or down:
+            bits = []
+            if healthy: bits.append(f"{healthy} healthy")
+            if partial: bits.append(f"{partial} partial")
+            if down: bits.append(f"{down} down")
+            out["health"] = " · ".join(bits)
     except Exception:
         pass
     return out
@@ -2842,4 +2940,5 @@ if __name__ == "__main__":
     print("="*55 + "\n")
 
     threading.Timer(1.5, lambda: webbrowser.open("http://localhost:5000")).start()
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("FANGTRACK_PORT", 5000)),
+            debug=False, use_reloader=False)

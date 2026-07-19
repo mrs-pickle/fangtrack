@@ -162,6 +162,15 @@ def run_pipeline(
     return str(xlsx_path)
 
 
+# ── Crawl write-guard thresholds ──────────────────────────────────────────────
+# Reject a vendor's run only when its last good run held a meaningful catalog
+# (>= _GUARD_MIN_BASELINE) AND the new run collapsed to under _GUARD_DROP_FLOOR of
+# it (>80% of listings vanished). Conservative on purpose: normal inventory churn
+# passes through; only a near-total wipe (the signature of a break/block) is held.
+_GUARD_MIN_BASELINE = 10
+_GUARD_DROP_FLOOR = 0.2
+
+
 def run_multi_vendor_pipeline(
     vendor_results:  list[tuple[str, str, list]],
     db_path:         str | Path = DB_PATH,
@@ -194,19 +203,48 @@ def run_multi_vendor_pipeline(
             continue
 
         db.upsert_vendor(vendor_key, vendor_name)
+
+        # Filter to the in-stock livestock we'd actually save.
+        stocked: list[dict] = []
+        for l in listings:
+            try:
+                d = _to_dict(l)
+                if _is_stocked(d) and _is_livestock(d):
+                    stocked.append(d)
+            except Exception as e:
+                logger.warning(f"[{vendor_key}] {e}")
+        saved = len(stocked)
+
+        # ── WRITE-GUARD ──────────────────────────────────────────────────────
+        # A scan that suddenly returns almost nothing for a vendor that normally
+        # carries stock is far likelier a scraper break / IP block than a real
+        # sell-out. Reject that run (status='rejected', which the snapshot query
+        # excludes) so the site KEEPS the vendor's last good data instead of
+        # dumping it. The honest health tile then shows the vendor "down".
+        # We only reject a collapse ONCE (guard_baseline tracks that) so a genuine
+        # sustained drop is accepted on the next crawl and we never get stuck.
+        last_good, last_rejected = db.guard_baseline(vendor_key)
+        if (not truncated and not last_rejected
+                and last_good >= _GUARD_MIN_BASELINE
+                and saved < max(1, int(last_good * _GUARD_DROP_FLOOR))):
+            run_id = db.start_run(vendor_key, started_at=scrape_started)
+            db.finish_run(run_id, saved, status="rejected",
+                          notes=f"write-guard: {saved} listings vs last-good "
+                                f"{last_good} — kept previous data",
+                          finished_at=scrape_finished)
+            logger.warning(f"[{vendor_key}] WRITE-GUARD rejected run — {saved} "
+                           f"listings vs last-good {last_good}; snapshot keeps "
+                           f"previous data (vendor shows 'down' until it recovers)")
+            continue
+
         compute_price_changes(listings, vendor_key, db_path)
         populate_historical_lows(listings, db_path)
 
         run_id = db.start_run(vendor_key, started_at=scrape_started)
-        saved = 0
-        for l in listings:
+        for d in stocked:
             try:
-                d = _to_dict(l)
-                if not _is_stocked(d) or not _is_livestock(d):
-                    continue
                 db.record(run_id, d)
                 all_saved.append(d)
-                saved += 1
             except Exception as e:
                 logger.warning(f"[{vendor_key}] {e}")
 

@@ -1,0 +1,52 @@
+{#  Welcome email — sent on signup (wiring pending; see CLAUDE.md open items).
+    COPY STATUS: DRAFT — awaiting Mike's approved wording. Structure/branding
+    final. Adapted from Mike's own first-run tour copy (base.html) — no
+    competitor names, keeper-to-keeper voice, signed from Mike.
+    Context: display_name (optional), site_url, T (tokens), cta_url/cta_label. #}
+{% extends "email/base_email.html" %}
+
+{% block preheader %}One clear picture of the invert market — here's how to get the most out of it.{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 14px; font-size:18px; font-weight:800; color:{{ T.color.text.primary }};">
+  Welcome aboard{% if display_name %}, {{ display_name }}{% endif %} 🕷️
+</p>
+
+<p style="margin:0 0 14px; color:{{ T.color.text.soft }};">
+  Thanks for signing up — you're one of the first people using FangTrack. It scans the
+  specialty invert vendors (names you probably know and have used) and turns all that
+  scattered info into one clear picture, so buying online is easier and more transparent.
+  No more jumping between twelve browser tabs.
+</p>
+
+<p style="margin:0 0 6px; font-weight:700; color:{{ T.color.text.primary }};">Three ways to start:</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px;">
+  <tr><td style="padding:4px 0; font-size:14px; line-height:1.6; color:{{ T.color.text.soft }};">
+    🔥&nbsp; <strong style="color:{{ T.color.text.primary }};">Deals</strong> — every in-stock
+    listing, scored like-for-like against the market and its own history.
+  </td></tr>
+  <tr><td style="padding:4px 0; font-size:14px; line-height:1.6; color:{{ T.color.text.soft }};">
+    👁️&nbsp; <strong style="color:{{ T.color.text.primary }};">Watchlist</strong> — add species
+    you're hunting with a target price; matches land in your Alerts after every crawl.
+  </td></tr>
+  <tr><td style="padding:4px 0; font-size:14px; line-height:1.6; color:{{ T.color.text.soft }};">
+    🎒&nbsp; <strong style="color:{{ T.color.text.primary }};">Collection</strong> — log what you
+    own and what you paid, and see today's market value. A spreadsheet imports in one upload.
+  </td></tr>
+</table>
+
+<p style="margin:0 0 14px; color:{{ T.color.text.soft }};">
+  One honest note: we're in beta. If you catch a wonky price, a missing vendor, or a rough
+  edge, <a href="{{ site_url }}/submit" style="color:{{ T.color.accent.primary }};">tell me</a> —
+  or just reply to this email. The best ideas in FangTrack so far came from keepers like you.
+  Curious how it all works (and why visible pricing is good for the whole hobby, sellers
+  included)? That's on
+  <a href="{{ site_url }}/transparency" style="color:{{ T.color.accent.primary }};">What is FangTrack?</a>
+</p>
+
+<p style="margin:0; color:{{ T.color.text.soft }};">
+  Welcome to the hunt,<br>
+  <strong style="color:{{ T.color.text.primary }};">Mike</strong><br>
+  <span style="font-size:12px; color:{{ T.color.text.muted }};">founder, FangTrack</span>
+</p>
+{% endblock %}

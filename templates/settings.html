@@ -4,76 +4,76 @@
 <div class="grid gap-6" style="grid-template-columns:1fr 1fr;">
   <form action="/settings" method="post" class="flex flex-col gap-4">
     <div class="card">
-      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">Market Settings</div>
+      <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">Market Settings</div>
       <div class="flex flex-col gap-3">
         <div>
-          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">YOUR ZIP CODE (for shipping estimates)</label>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">YOUR ZIP CODE (for shipping estimates)</label>
           <input name="dest_zip" value="{{ settings.dest_zip }}" placeholder="72712" style="width:140px;">
         </div>
         <div>
-          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">DIGEST OUTPUT PATH</label>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">DIGEST OUTPUT PATH</label>
           <input name="digest_path" value="{{ settings.digest_path }}" style="width:100%; box-sizing:border-box;">
         </div>
       </div>
     </div>
     <div class="card">
-      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">🔔 Deal Alerts</div>
+      <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">🔔 Deal Alerts</div>
       <div class="flex flex-col gap-3">
         <div>
-          <label style="font-size:12px; color:#e0e0e0; display:block; margin-bottom:6px;">Enter your email to get alerts on 🔥 fire deals and 🎯 watchlist hits</label>
+          <label style="font-size:12px; color:#e4e4e7; display:block; margin-bottom:6px;">Enter your email to get alerts on 🔥 fire deals and 🎯 watchlist hits</label>
           <input name="notify_email" type="email" value="{{ settings.notify_email }}" placeholder="you@email.com" style="width:100%; box-sizing:border-box; font-size:15px; padding:12px 16px;">
-          <div style="font-size:11px; color:#555; margin-top:6px;">We'll email you only when a species on your watchlist appears or an all-time-low fire deal lands. Email sending gets wired up to a mail server soon — for now this saves your address.</div>
+          <div style="font-size:11px; color:#52525b; margin-top:6px;">We'll email you only when a species on your watchlist appears or an all-time-low fire deal lands. Email sending gets wired up to a mail server soon — for now this saves your address.</div>
         </div>
       </div>
     </div>
     <button class="btn btn-primary" style="width:100%; justify-content:center;">Save Settings</button>
   </form>
   <div class="card" style="align-self:start;">
-    <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Display</div>
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Display</div>
     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
-      <input type="checkbox" onchange="toggleHidePrivate(this.checked)" {% if hide_private %}checked{% endif %} style="width:auto; accent-color:#1a73e8; cursor:pointer;">
-      <span style="font-size:13px; color:#e0e0e0;">Hide private sellers everywhere (show websites only)</span>
+      <input type="checkbox" onchange="toggleHidePrivate(this.checked)" {% if hide_private %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
+      <span style="font-size:13px; color:#e4e4e7;">Hide private sellers everywhere (show websites only)</span>
     </label>
-    <div style="font-size:11px; color:#555; margin-top:8px; line-height:1.6;">
+    <div style="font-size:11px; color:#52525b; margin-top:8px; line-height:1.6;">
       Applies site-wide — the dashboard, deals, and species cards will show only website-vendor
       listings and hide imported private-seller lists. Takes effect immediately.
     </div>
   </div>
   <div>
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">🏆 Public Profile</div>
+      <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">🏆 Public Profile</div>
       <form action="/profile/save" method="post" class="flex flex-col gap-3">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
-          <input type="checkbox" name="is_public" {% if current_user and current_user.is_public %}checked{% endif %} style="width:auto; accent-color:#1a73e8; cursor:pointer;">
-          <span style="font-size:13px; color:#e0e0e0;">Show my collection on the Leaderboard</span>
+          <input type="checkbox" name="is_public" {% if current_user and current_user.is_public %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
+          <span style="font-size:13px; color:#e4e4e7;">Show my collection on the Leaderboard</span>
         </label>
         <div>
-          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">HANDLE (your public URL)</label>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">HANDLE (your public URL)</label>
           <div style="display:flex; align-items:center; gap:0;">
-            <span style="color:#666; font-size:13px; padding:8px 0 8px 2px;">/u/</span>
+            <span style="color:#71717a; font-size:13px; padding:8px 0 8px 2px;">/u/</span>
             <input name="handle" value="{{ current_user.handle or '' }}" placeholder="your-name" style="flex:1;">
           </div>
         </div>
         <button class="btn btn-primary" style="width:100%; justify-content:center;">Save Profile</button>
-        <div style="font-size:11px; color:#555; line-height:1.6;">
+        <div style="font-size:11px; color:#52525b; line-height:1.6;">
           Your public page shows species, rarity, and market value — a flex card for sharing.
-          <strong style="color:#888;">What you paid stays private.</strong>
+          <strong style="color:#a1a1aa;">What you paid stays private.</strong>
           {% if current_user and current_user.is_public and current_user.handle %}
-          <br>Live at <a href="/u/{{ current_user.handle }}" style="color:#1a73e8;">/u/{{ current_user.handle }} →</a>
+          <br>Live at <a href="/u/{{ current_user.handle }}" style="color:#2563eb;">/u/{{ current_user.handle }} →</a>
           {% endif %}
         </div>
       </form>
     </div>
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">🔒 Change Password</div>
+      <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">🔒 Change Password</div>
       <form action="/settings/password" method="post" class="flex flex-col gap-3">
         <div>
-          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">CURRENT PASSWORD</label>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">CURRENT PASSWORD</label>
           <input name="current_password" type="password" required autocomplete="current-password"
                  style="width:100%; box-sizing:border-box; font-size:15px; padding:10px 14px;">
         </div>
         <div>
-          <label style="font-size:10px; color:#1a73e8; letter-spacing:.1em; display:block; margin-bottom:4px;">NEW PASSWORD</label>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">NEW PASSWORD</label>
           <input name="new_password" type="password" required minlength="8" autocomplete="new-password"
                  placeholder="at least 8 characters" style="width:100%; box-sizing:border-box; font-size:15px; padding:10px 14px;">
         </div>
@@ -81,15 +81,15 @@
       </form>
     </div>
     <div class="card">
-      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Help</div>
+      <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Help</div>
       <button type="button" class="btn btn-ghost" style="margin-bottom:12px;" onclick="ftTour.start()">🎬 Take the feature tour</button>
-      <div style="font-size:11px; color:#555; margin:0 0 16px; line-height:1.6;">Replays the welcome walkthrough of every tab.</div>
-      <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Latest Digest</div>
+      <div style="font-size:11px; color:#52525b; margin:0 0 16px; line-height:1.6;">Replays the welcome walkthrough of every tab.</div>
+      <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Latest Digest</div>
       <a href="/admin/discounts" class="btn btn-ghost" style="margin-bottom:12px;">🏷 Manage Discount Codes →</a>
-      <div style="font-size:12px; color:#555; margin-top:12px; line-height:1.7;">
-        <strong style="color:#e0e0e0;">Automated crawls:</strong><br>
-        The tracker runs in your browser. For automatic scheduled crawls without opening the app, use Windows Task Scheduler to run <code style="color:#1a73e8;">python app.py --headless</code> on a schedule (daily at 7am works well).<br><br>
-        <strong style="color:#e0e0e0;">Email setup:</strong><br>
+      <div style="font-size:12px; color:#52525b; margin-top:12px; line-height:1.7;">
+        <strong style="color:#e4e4e7;">Automated crawls:</strong><br>
+        The tracker runs in your browser. For automatic scheduled crawls without opening the app, use Windows Task Scheduler to run <code style="color:#2563eb;">python app.py --headless</code> on a schedule (daily at 7am works well).<br><br>
+        <strong style="color:#e4e4e7;">Email setup:</strong><br>
         Gmail requires an App Password. Go to your Google Account → Security → 2-Step Verification → App Passwords. Generate one for "Mail" and paste it above.
       </div>
     </div>

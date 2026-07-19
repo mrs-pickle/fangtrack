@@ -16,72 +16,94 @@ derives from this module:
 
 If you change a rarity colour, change it HERE and nowhere else.
 
-The system (not a list)
------------------------
-Every tier is a Tailwind ramp pair: the background is a ~600-800 step of a hue,
-and the text is the ~200-300 step of the SAME hue. To add a tier, pick an unused
-hue, take its 600-800 step for `bg` and the 200-300 step of that same hue for
-`text`, and make sure the new `bg` collides with nothing (see tests).
+The system (2026-07-19 rebrand, Mike-approved)
+----------------------------------------------
+Each tier has a single CORE colour on the hue ladder
+    oklch(0.66 0.20 H),  H: 340 → 300 → 260 → 200 → 150, then neutral
+    (pink → purple → blue → teal → green → gray, rarest → most common)
+and the pill derives everything from the core:
 
-The ladder is the classic trading-card rarity ramp, low -> high:
-  slate -> green -> sky -> indigo -> fuchsia -> orange.
-No rarity background equals any DEAL_BADGES background — the two systems are read
-in different columns and must never share a colour (the test enforces this).
+    bg     = core @ 15% alpha          (10% in a light theme)
+    text   = oklch(.78 .14 H)          (.45 .14 H in a light theme)
+    border = core @ 35% alpha          (25% in a light theme)
+
+To add a tier: pick the next hue on the ladder, apply the formula, and make
+sure the CORE collides with nothing that shares a column (see tests).
 
 DANGER — overloaded hexes
 -------------------------
-#7c3aed (violet-600) now belongs EXCLUSIVELY to the Exceptional 💎💎 DEAL badge.
-It must never be a rarity colour again. DEAL_BADGES below exists so the test
-suite can assert no rarity background ever collides with a deal background.
+#7c3aed (violet-600) belongs EXCLUSIVELY to the Exceptional 💎💎 DEAL badge.
+The Design-system draft put Legendary rarity AND Exceptional on #a855f7;
+Exceptional keeps its historical violet precisely so a Legendary pill can
+never be mistaken for an Exceptional badge. DEAL_BADGES below exists so the
+test suite can assert the two systems stay distinguishable.
+
+Some cores are deliberately SHARED with non-rarity roles (hue = one meaning
+family): #a855f7 is also the brand accent/private-seller purple, #3b82f6 the
+link blue, #22c55e the buyer-good green. Rarity pills stay recognisable by
+TREATMENT (translucent bg + border), not hue alone.
 """
 from __future__ import annotations
 
+
+def _rgba(hex_core: str, alpha: float) -> str:
+    r, g, b = (int(hex_core[i:i + 2], 16) for i in (1, 3, 5))
+    return f"rgba({r},{g},{b},{alpha:g})"
+
+
 # ── Rarity tiers: rarest → most common ──────────────────────────────────────
-# bg   = Tailwind 600-800 step   |   text = 200-300 step of the SAME hue
+# core = oklch(0.66 0.20 H) | text = oklch(.78 .14 H) | bg/border derived @15/35%
 RARITY_TIERS: dict[str, dict] = {
     "Mythic": {
-        "bg": "#c2410c", "text": "#fed7aa",          # orange-700 / orange-200
+        "core": "#e93d82", "text": "#f9a8d4",        # H 340 (pink)
         "label": "MYTHIC", "css": "r-mythic",
         "scores": (9, 10), "band": 0.05,
     },
     "Legendary": {
-        "bg": "#a21caf", "text": "#f5d0fe",          # fuchsia-700 / fuchsia-200
+        "core": "#a855f7", "text": "#d8b4fe",        # H 300 (purple)
         "label": "LEGEND", "css": "r-veryr",
         "scores": (8,), "band": 0.15,
     },
     "Rare": {
-        "bg": "#4338ca", "text": "#c7d2fe",          # indigo-700 / indigo-200
+        "core": "#3b82f6", "text": "#93c5fd",        # H 260 (blue)
         "label": "RARE", "css": "r-rare",
         "scores": (7,), "band": 0.30,
     },
     "Uncommon": {
-        "bg": "#0369a1", "text": "#bae6fd",          # sky-700 / sky-200
+        "core": "#14b8a6", "text": "#5eead4",        # H 200 (teal)
         "label": "UNCOMMON", "css": "r-uncomm",
         "scores": (5, 6), "band": 0.55,
     },
     "Common": {
-        "bg": "#15803d", "text": "#bbf7d0",          # green-700 / green-200
+        "core": "#22c55e", "text": "#86efac",        # H 150 (green)
         "label": "COMMON", "css": "r-common",
         "scores": (3, 4), "band": 0.80,
     },
     "Ubiquitous": {
-        "bg": "#475569", "text": "#cbd5e1",          # slate-600 / slate-300
+        "core": "#9ba1a6", "text": "#d4d4d8",        # neutral
         "label": "UBIQ", "css": "r-ubiq",
         "scores": (1, 2), "band": 1.01,
     },
 }
 
+# Derived pill colours (the pairing rule, applied once).
+for _t in RARITY_TIERS.values():
+    _t["bg"] = _rgba(_t["core"], 0.15)
+    _t["border"] = _rgba(_t["core"], 0.35)
+
 # Rarest → most common. The canonical order for legends, facets and sorting.
 TIER_ORDER: list[str] = list(RARITY_TIERS.keys())
 
-# ── Deal badges — a DIFFERENT system. Defined here only so the tests can prove
-# no rarity colour ever collides with one. Their CSS still lives in base.html.
+# ── Deal badges — a DIFFERENT system: FILLED chips (solid core bg), unlike the
+# translucent rarity pills, so the two never read alike even where they share a
+# hue. Text is white on dark cores, near-black on light cores. Defined here so
+# the tests can prove Legendary and Exceptional stay distinguishable.
 DEAL_BADGES: dict[str, dict] = {
-    "fire":        {"bg": "#ff6b00", "text": "#ffffff"},   # 🔥
-    "exceptional": {"bg": "#7c3aed", "text": "#f0f0f0"},   # 💎💎  violet-600
-    "strong":      {"bg": "#1d4ed8", "text": "#bfdbfe"},   # 💎
-    "fair":        {"bg": "#065f46", "text": "#a7f3d0"},   # 👍
-    "above":       {"bg": "#374151", "text": "#9ca3af"},   # 👎
+    "fire":        {"bg": "#f97316", "text": "#ffffff"},   # 🔥
+    "exceptional": {"bg": "#7c3aed", "text": "#f4f4f5"},   # 💎💎  violet-600, exclusive
+    "strong":      {"bg": "#3b82f6", "text": "#ffffff"},   # 💎
+    "fair":        {"bg": "#22c55e", "text": "#0a0a0b"},   # 👍
+    "above":       {"bg": "#a1a1aa", "text": "#0a0a0b"},   # 👎
 }
 
 # ── Derived lookups ─────────────────────────────────────────────────────────
@@ -94,11 +116,11 @@ TIER_BANDS: list[tuple[float, str, str]] = [
     (t["band"], name, t["css"]) for name, t in RARITY_TIERS.items()
 ]
 
-# 52-week range bar: the rarity ladder itself, low → high. Ubiquitous (gray) is
-# omitted — the bar is a price ramp and starts at the first chromatic step.
-# => emerald → blue → indigo → fuchsia → orange
+# 52-week range bar: the rarity ladder itself (solid cores), low → high.
+# Ubiquitous (gray) is omitted — the bar is a price ramp and starts at the
+# first chromatic step.  => green → teal → blue → purple → pink
 RANGE_BAR_GRADIENT: str = "linear-gradient(90deg," + ",".join(
-    RARITY_TIERS[n]["bg"] for n in reversed(TIER_ORDER) if n != "Ubiquitous"
+    RARITY_TIERS[n]["core"] for n in reversed(TIER_ORDER) if n != "Ubiquitous"
 ) + ")"
 
 
@@ -114,8 +136,8 @@ def rarity_css() -> str:
     """The ONLY place rarity colours become CSS.
 
     Emits, for all six tiers:
-      * custom properties  --rarity-<slug>-bg / --rarity-<slug>-text
-      * the tier classes   .r-mythic … .r-ubiq
+      * custom properties  --rarity-<slug>-core/-bg/-text/-border
+      * the tier classes   .r-mythic … .r-ubiq  (translucent bg + border)
       * the score classes  .score-1 … .score-10 (score → its tier's colours)
       * the range-bar gradient
     """
@@ -124,14 +146,18 @@ def rarity_css() -> str:
     lines.append(":root {")
     for name, t in RARITY_TIERS.items():
         slug = name.lower()
-        lines.append(f"  --rarity-{slug}-bg:{t['bg']}; --rarity-{slug}-text:{t['text']};")
+        lines.append(
+            f"  --rarity-{slug}-core:{t['core']}; --rarity-{slug}-bg:{t['bg']}; "
+            f"--rarity-{slug}-text:{t['text']}; --rarity-{slug}-border:{t['border']};"
+        )
     lines.append("}")
 
     for name, t in RARITY_TIERS.items():
         slug = name.lower()
         lines.append(
             f".{t['css']} {{ background:var(--rarity-{slug}-bg); "
-            f"color:var(--rarity-{slug}-text); }}"
+            f"color:var(--rarity-{slug}-text); "
+            f"border:1px solid var(--rarity-{slug}-border); }}"
         )
 
     for name, t in RARITY_TIERS.items():
@@ -139,7 +165,8 @@ def rarity_css() -> str:
         sel = ",".join(f".score-{s}" for s in t["scores"])
         lines.append(
             f"{sel} {{ background:var(--rarity-{slug}-bg); "
-            f"color:var(--rarity-{slug}-text); }}"
+            f"color:var(--rarity-{slug}-text); "
+            f"border:1px solid var(--rarity-{slug}-border); }}"
         )
 
     lines.append(

@@ -11,14 +11,14 @@
 tailwind.config = {
   theme: { extend: { colors: {
     ft: {
-      base:    '#0a0a0a',
-      surface: '#141414',
-      card:    '#1e1e1e',
-      border:  '#2a2a2a',
-      text:    '#f0f0f0',
-      muted:   '#888888',
-      teal:    '#1a73e8',
-      fire:    '#ff6b00',
+      base:    '#0a0a0b',
+      surface: '#141417',
+      card:    '#1c1c21',
+      border:  '#2a2a31',
+      text:    '#f4f4f5',
+      muted:   '#a1a1aa',
+      teal:    '#2563eb',
+      fire:    '#f97316',
       gem:     '#a855f7',
       up:      '#ef4444',
       down:    '#22c55e',
@@ -26,22 +26,19 @@ tailwind.config = {
   }}}
 }
 </script>
+<!-- FangTrack colour system — design tokens shared with the emails.
+     Source: tokens/fangtrack.css (+ tokens/fangtrack.tokens.json). -->
+<link rel="stylesheet" href="/tokens/fangtrack.css?v=2">
 <style>
 * { box-sizing: border-box; }
-body { background:#0a0a0a; color:#f0f0f0; font-family:system-ui,-apple-system,sans-serif; font-size:14px; margin:0; }
-
-/* ── FangTrack Pro color system ── */
-:root {
-  --base:#0a0a0a; --surface:#141414; --card:#1e1e1e; --border:#2a2a2a;
-  --text:#f0f0f0; --muted:#888; --accent-blue:#1a73e8;
-  --fire:#ff6b00; --gem:#a855f7; --down:#22c55e; --up:#ef4444;
-}
+body { background:#0a0a0b; color:#f4f4f5; font-family:system-ui,-apple-system,sans-serif; font-size:14px; margin:0; }
 
 /* ── Rarity — GENERATED from theme.py. Do NOT hard-code a rarity hex here. ──
-   Six distinct Tailwind pairs, escalating:
-   slate -> green -> sky -> indigo -> fuchsia -> orange (classic TCG rarity ramp).
-   Emits --rarity-*-bg/--rarity-*-text, .r-* tier classes, .score-1..10, and
-   the .rangebar gradient. Change colours in theme.py, nowhere else.
+   Six cores on the oklch(0.66 0.20 H) hue ladder, rarest -> common:
+   pink -> purple -> blue -> teal -> green -> gray. Pills are translucent
+   (core@15% bg, core@35% border) — deal badges are FILLED, so the systems
+   never read alike. Emits --rarity-*-core/-bg/-text/-border, .r-* classes,
+   .score-1..10, and the .rangebar gradient. Change colours in theme.py only.
    NB: violet-600 #7c3aed is NOT a rarity colour — it belongs to the
    Exceptional 💎💎 deal badge below. */
 {{ rarity_css()|safe }}
@@ -50,7 +47,7 @@ body { background:#0a0a0a; color:#f0f0f0; font-family:system-ui,-apple-system,sa
 /* Momentum tags (StockX heating/cooling) */
 .heat  { background:#7f1d1d; color:#fecaca; }
 .cool  { background:#064e3b; color:#a7f3d0; }
-.steady{ background:#1f2937; color:#9ca3af; }
+.steady{ background:#1f2937; color:#a1a1aa; }
 .mtag  { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.04em; }
 
 /* Sparkline cell */
@@ -58,86 +55,87 @@ body { background:#0a0a0a; color:#f0f0f0; font-family:system-ui,-apple-system,sa
 
 /* Smart pager (shared, see templates/_pager.html) */
 .pgr { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px; margin:14px 0; }
-.pgr-b, .pgr-n { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; padding:0 8px; border-radius:6px; font-size:13px; color:#1a73e8; text-decoration:none; border:1px solid #2a2a2a; background:#141414; }
-.pgr-b:hover, .pgr-n:hover { border-color:#1a73e8; }
-.pgr-cur { background:#1a73e8; color:#0a0a0a; border-color:#1a73e8; font-weight:700; }
+.pgr-b, .pgr-n { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; padding:0 8px; border-radius:6px; font-size:13px; color:#2563eb; text-decoration:none; border:1px solid #2a2a31; background:#141417; }
+.pgr-b:hover, .pgr-n:hover { border-color:#2563eb; }
+.pgr-cur { background:#2563eb; color:#0a0a0b; border-color:#2563eb; font-weight:700; }
 .pgr-off { opacity:.35; pointer-events:none; }
-.pgr-gap { color:#555; padding:0 2px; }
-.pgr-jump { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#888; margin-left:8px; }
+.pgr-gap { color:#52525b; padding:0 2px; }
+.pgr-jump { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#a1a1aa; margin-left:8px; }
 .pgr-jump input { width:58px; padding:5px 8px; text-align:center; }
-.pgr-lbl { font-size:12px; color:#666; margin-left:8px; }
+.pgr-lbl { font-size:12px; color:#71717a; margin-left:8px; }
 
 /* Badge helpers reused on dashboard/cards */
-.badge-fire { background:#ff6b00; color:#fff; }
-.badge-gem2 { background:#7c3aed; color:#f0f0f0; }
-.badge-gem1 { background:#1d4ed8; color:#bfdbfe; }
+.badge-fire { background:#f97316; color:#fff; }
+.badge-gem2 { background:#7c3aed; color:#f4f4f5; }
+.badge-gem1 { background:#3b82f6; color:#fff; }
 
 /* 52-week style range bar — the .rangebar track gradient is GENERATED from
    theme.py (it is the rarity ladder); only its markers are styled here. */
 .rangebar .you { position:absolute; top:-3px; width:3px; height:14px; border-radius:2px; background:#fff; box-shadow:0 0 4px #000; }
 .rangebar .atl { position:absolute; top:-2px; width:2px; height:12px; background:#34d399; }
 
-/* Deal badges */
-.d-fire  { background:#ff6b00; color:#fff; }
-.d-gem2  { background:#7c3aed; color:#f0f0f0; }
-.d-gem1  { background:#1d4ed8; color:#bfdbfe; }
-.d-fair  { background:#065f46; color:#a7f3d0; }
-.d-above { background:#374151; color:#9ca3af; }
+/* Deal badges — FILLED chips (solid core bg); values mirror theme.py
+   DEAL_BADGES. Rarity pills are translucent, so the systems never collide. */
+.d-fire  { background:#f97316; color:#fff; }
+.d-gem2  { background:#7c3aed; color:#f4f4f5; }
+.d-gem1  { background:#3b82f6; color:#fff; }
+.d-fair  { background:#22c55e; color:#0a0a0b; }
+.d-above { background:#a1a1aa; color:#0a0a0b; }
 
 /* Table */
 table { border-collapse:collapse; width:100%; }
 th {
-  background:#141414; color:#1a73e8; font-size:10px; letter-spacing:.1em;
+  background:#141417; color:#2563eb; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; padding:10px 12px; text-align:left;
-  position:sticky; top:0; z-index:10; border-bottom:1px solid #2a2a2a;
+  position:sticky; top:0; z-index:10; border-bottom:1px solid #2a2a31;
 }
-td { padding:8px 12px; border-bottom:1px solid #1e1e1e; font-size:13px; vertical-align:middle; }
-tr:hover td { background:#141414; }
-.species-name { font-style:italic; color:#1a73e8; }
+td { padding:8px 12px; border-bottom:1px solid #1c1c21; font-size:13px; vertical-align:middle; }
+tr:hover td { background:#141417; }
+.species-name { font-style:italic; color:#2563eb; }
 
 /* Controls */
 input, select, textarea {
-  background:#1e1e1e; border:1px solid #2a2a2a; color:#f0f0f0;
+  background:#1c1c21; border:1px solid #2a2a31; color:#f4f4f5;
   border-radius:6px; padding:8px 12px; font-size:13px; outline:none;
 }
-input:focus, select:focus { border-color:#1a73e8; }
+input:focus, select:focus { border-color:#2563eb; }
 
 /* Buttons */
 .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; border:none; letter-spacing:.02em; transition:all .12s; }
-.btn-primary { background:#1a73e8; color:#0a0a0a; }
-.btn-primary:hover { background:#1558c0; }
-.btn-ghost { background:transparent; color:#1a73e8; border:1px solid #1a73e8; }
-.btn-ghost:hover { background:#1a73e820; }
+.btn-primary { background:#2563eb; color:#0a0a0b; }
+.btn-primary:hover { background:#1d4ed8; }
+.btn-ghost { background:transparent; color:#2563eb; border:1px solid #2563eb; }
+.btn-ghost:hover { background:#2563eb20; }
 .btn-danger { background:transparent; color:#ef4444; border:1px solid #ef4444; }
 .btn-danger:hover { background:#ef444415; }
 
 /* Cards */
-.card { background:#1e1e1e; border-radius:10px; padding:20px; border:1px solid #2a2a2a; }
-.stat-card { background:#141414; border-radius:10px; padding:16px 20px; border:1px solid #2a2a2a; }
+.card { background:#1c1c21; border-radius:10px; padding:20px; border:1px solid #2a2a31; }
+.stat-card { background:#141417; border-radius:10px; padding:16px 20px; border:1px solid #2a2a31; }
 
 /* Nav */
 .crawl-btn.is-disabled, .crawl-btn[disabled] { opacity:.45 !important; cursor:not-allowed !important; pointer-events:none; filter:grayscale(.6) !important; }
-.nav-link { color:#888; padding:6px 14px; border-radius:5px; font-size:13px; font-weight:500; letter-spacing:.02em; transition:all .12s; text-decoration:none; display:inline-block; }
-.nav-link:hover { color:#f0f0f0; background:#1e1e1e; }
-.nav-link.active { color:#1a73e8; background:#1e1e1e; }
+.nav-link { color:#a1a1aa; padding:6px 14px; border-radius:5px; font-size:13px; font-weight:500; letter-spacing:.02em; transition:all .12s; text-decoration:none; display:inline-block; }
+.nav-link:hover { color:#f4f4f5; background:#1c1c21; }
+.nav-link.active { color:#2563eb; background:#1c1c21; }
 
 /* Flash */
 .flash-ok  { background:#064e3b; border:1px solid #059669; color:#d1fae5; padding:10px 16px; border-radius:6px; margin-bottom:14px; }
 .flash-err { background:#450a0a; border:1px solid #b91c1c; color:#fecaca; padding:10px 16px; border-radius:6px; margin-bottom:14px; }
 
 /* Owned badge */
-.owned-badge { color:#1a73e8; font-weight:800; font-size:15px; }
+.owned-badge { color:#2563eb; font-weight:800; font-size:15px; }
 
 /* Shipping info */
-.ship-info { font-size:11px; color:#888; line-height:1.5; }
+.ship-info { font-size:11px; color:#a1a1aa; line-height:1.5; }
 .ship-free { color:#22c55e; font-weight:700; }
 
 /* Dark scrollbars that blend with the background */
-* { scrollbar-color: #242424 #0d0d0d; scrollbar-width: thin; }
+* { scrollbar-color: #26262b #0e0e10; scrollbar-width: thin; }
 ::-webkit-scrollbar { width:10px; height:10px; }
-::-webkit-scrollbar-track { background:#0d0d0d; }
-::-webkit-scrollbar-thumb { background:#242424; border-radius:5px; border:2px solid #0d0d0d; }
-::-webkit-scrollbar-thumb:hover { background:#333; }
+::-webkit-scrollbar-track { background:#0e0e10; }
+::-webkit-scrollbar-thumb { background:#26262b; border-radius:5px; border:2px solid #0e0e10; }
+::-webkit-scrollbar-thumb:hover { background:#3f3f46; }
 
 /* ── Mobile / responsive ─────────────────────────────────────────────────────
    The app is inline-style heavy, so these override common inline layouts with
@@ -164,7 +162,7 @@ input:focus, select:focus { border-color:#1a73e8; }
 <body>
 
 <!-- ── NAV ────────────────────────────────────────────────────────────────── -->
-<nav style="background:#0d0d0d; border-bottom:1px solid #1e1e1e; position:sticky; top:0; z-index:50;">
+<nav style="background:#0e0e10; border-bottom:1px solid #1c1c21; position:sticky; top:0; z-index:50;">
   <div class="navwrap" style="max-width:1600px; margin:0 auto; padding:0 20px; height:52px; display:flex; align-items:center; gap:4px;">
 
     <!-- Logo mark + wordmark -->
@@ -174,10 +172,10 @@ input:focus, select:focus { border-color:#1a73e8; }
            style="width:auto; image-rendering:auto;">
       <div>
         <div style="font-size:16px; font-weight:900; letter-spacing:-.02em; line-height:1;">
-          <span style="color:#ffffff;">FANG</span><span style="color:#1a73e8;">TRACK</span>
+          <span style="color:#ffffff;">FANG</span><span style="color:#2563eb;">TRACK</span>
         </div>
         {% if current_user %}
-        <div style="background:#1a73e8; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">PRO</div>
+        <div style="background:#2563eb; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">PRO</div>
         {% else %}
         <div style="background:#a855f7; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">BETA</div>
         {% endif %}
@@ -189,16 +187,16 @@ input:focus, select:focus { border-color:#1a73e8; }
     <a href="/deals"     class="nav-link {% if request.path.startswith('/deals') %}active{% endif %}">Deals</a>
     <a href="/species"   class="nav-link {% if request.path.startswith('/species') %}active{% endif %}">Species</a>
     <a href="/watchlist" class="nav-link {% if request.path.startswith('/watchlist') %}active{% endif %}"{% if not current_user %} style="color:#a855f7;"{% endif %}>Watchlist</a>
-    <a href="/alerts" class="nav-link {% if request.path.startswith('/alerts') %}active{% endif %}" style="position:relative;{% if not current_user %} color:#a855f7;{% endif %}">Alerts<span id="alert-badge" style="display:none; position:absolute; top:-2px; right:-4px; background:#ff6b00; color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; line-height:15px; text-align:center; border-radius:8px; padding:0 3px;"></span></a>
+    <a href="/alerts" class="nav-link {% if request.path.startswith('/alerts') %}active{% endif %}" style="position:relative;{% if not current_user %} color:#a855f7;{% endif %}">Alerts<span id="alert-badge" style="display:none; position:absolute; top:-2px; right:-4px; background:#f97316; color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; line-height:15px; text-align:center; border-radius:8px; padding:0 3px;"></span></a>
     <a href="/collection"class="nav-link {% if request.path.startswith('/collection') %}active{% endif %}">Collection</a>
     <a href="/sellers"   class="nav-link {% if request.path.startswith('/sellers') or request.path.startswith('/vendors') %}active{% endif %}">Vendors</a>
     {% if current_user and current_user.is_admin %}<a href="/history" class="nav-link {% if request.path.startswith('/history') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Crawler</a>{% endif %}
     <a href="/submit"    class="nav-link {% if request.path.startswith('/submit') %}active{% endif %}">Submit</a>
 
     <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
-      <span id="crawl-badge" style="display:none; background:#1a73e8; color:#0a0a0a; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; letter-spacing:.04em;">↻ CRAWLING...</span>
+      <span id="crawl-badge" style="display:none; background:#2563eb; color:#0a0a0b; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; letter-spacing:.04em;">↻ CRAWLING...</span>
       <a href="/leaderboard" class="nav-link {% if request.path.startswith('/leaderboard') or request.path.startswith('/u/') %}active{% endif %}">🏆 Leaderboard</a>
-      <a href="/transparency" class="nav-link {% if request.path.startswith('/transparency') %}active{% endif %}" style="color:#ff6b00; font-weight:700;">What is FangTrack?</a>
+      <a href="/transparency" class="nav-link {% if request.path.startswith('/transparency') %}active{% endif %}" style="color:#f97316; font-weight:700;">What is FangTrack?</a>
       {% if current_user %}
         <a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}">⚙</a>
         <form method="post" action="/logout" style="display:inline; margin:0;">
@@ -206,7 +204,7 @@ input:focus, select:focus { border-color:#1a73e8; }
         </form>
       {% else %}
         <a href="/login" class="nav-link {% if request.path.startswith('/login') %}active{% endif %}">Sign in</a>
-        <a href="/register" class="nav-link btn btn-primary" style="padding:5px 12px; color:#0a0a0a;">Sign up</a>
+        <a href="/register" class="nav-link btn btn-primary" style="padding:5px 12px; color:#0a0a0b;">Sign up</a>
       {% endif %}
     </div>
   </div>
@@ -228,24 +226,24 @@ input:focus, select:focus { border-color:#1a73e8; }
 </datalist>
 
 <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
-<footer style="border-top:1px solid #1e1e1e; padding:16px 20px; text-align:center; color:#444; font-size:12px; margin-top:40px;">
+<footer style="border-top:1px solid #1c1c21; padding:16px 20px; text-align:center; color:#3f3f46; font-size:12px; margin-top:40px;">
   FangTrack — private market intelligence tool<br>
   <div style="display:flex; gap:16px; justify-content:center; align-items:center; margin:12px 0;">
     <a href="https://instagram.com/fangtrack" target="_blank" rel="noopener noreferrer"
-       title="@fangtrack on Instagram" aria-label="Instagram @fangtrack" style="color:#888;">
+       title="@fangtrack on Instagram" aria-label="Instagram @fangtrack" style="color:#a1a1aa;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 1.62c-3.15 0-3.5.01-4.74.07-1.14.05-1.76.24-2.17.4-.55.21-.94.47-1.35.88-.41.41-.67.8-.88 1.35-.16.41-.35 1.03-.4 2.17-.06 1.24-.07 1.59-.07 4.74s.01 3.5.07 4.74c.05 1.14.24 1.76.4 2.17.21.55.47.94.88 1.35.41.41.8.67 1.35.88.41.16 1.03.35 2.17.4 1.24.06 1.59.07 4.74.07s3.5-.01 4.74-.07c1.14-.05 1.76-.24 2.17-.4.55-.21.94-.47 1.35-.88.41-.41.67-.8.88-1.35.16-.41.35-1.03.4-2.17.06-1.24.07-1.59.07-4.74s-.01-3.5-.07-4.74c-.05-1.14-.24-1.76-.4-2.17a3.6 3.6 0 0 0-.88-1.35 3.6 3.6 0 0 0-1.35-.88c-.41-.16-1.03-.35-2.17-.4-1.24-.06-1.59-.07-4.74-.07zm0 2.76a5.46 5.46 0 1 1 0 10.92 5.46 5.46 0 0 1 0-10.92zm0 9a3.54 3.54 0 1 0 0-7.08 3.54 3.54 0 0 0 0 7.08zm6.95-9.22a1.27 1.27 0 1 1-2.55 0 1.27 1.27 0 0 1 2.55 0z"/></svg>
     </a>
     <a href="https://tiktok.com/@fangtrack" target="_blank" rel="noopener noreferrer"
-       title="@fangtrack on TikTok" aria-label="TikTok @fangtrack" style="color:#888;">
+       title="@fangtrack on TikTok" aria-label="TikTok @fangtrack" style="color:#a1a1aa;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 5.82a4.28 4.28 0 0 1-1.05-2.82h-3.2v12.7a2.6 2.6 0 0 1-2.6 2.5 2.6 2.6 0 0 1-2.6-2.6 2.6 2.6 0 0 1 3.4-2.48V7.36a5.8 5.8 0 0 0-.8-.06A5.82 5.82 0 0 0 4.13 13.1a5.82 5.82 0 0 0 5.82 5.82 5.82 5.82 0 0 0 5.82-5.82V9.01a7.5 7.5 0 0 0 4.35 1.39V7.2a4.28 4.28 0 0 1-3.52-1.38z"/></svg>
     </a>
     <a href="https://youtube.com/@fangtrack" target="_blank" rel="noopener noreferrer"
-       title="@fangtrack on YouTube" aria-label="YouTube @fangtrack" style="color:#888;">
+       title="@fangtrack on YouTube" aria-label="YouTube @fangtrack" style="color:#a1a1aa;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14A31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg>
     </a>
   </div>
-  <a href="/privacy" style="color:#666; text-decoration:none;">Privacy Policy</a> ·
-  <a href="/terms" style="color:#666; text-decoration:none;">Terms of Service</a><br>
+  <a href="/privacy" style="color:#71717a; text-decoration:none;">Privacy Policy</a> ·
+  <a href="/terms" style="color:#71717a; text-decoration:none;">Terms of Service</a><br>
   © FangTrack 2026
 </footer>
 
@@ -256,19 +254,19 @@ input:focus, select:focus { border-color:#1a73e8; }
 <style>
   #ft-tour-ovl{position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px;}
   #ft-tour-ovl.show{display:flex;}
-  .ft-tour-card{background:#161616; border:1px solid #2a2a2a; border-radius:14px; max-width:440px; width:100%; padding:28px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative;}
+  .ft-tour-card{background:#161616; border:1px solid #2a2a31; border-radius:14px; max-width:440px; width:100%; padding:28px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative;}
   .ft-tour-emoji{font-size:34px; line-height:1; margin-bottom:12px;}
-  .ft-tour-title{font-size:19px; font-weight:900; letter-spacing:-.02em; color:#f0f0f0; margin:0 0 8px;}
-  .ft-tour-body{font-size:14px; line-height:1.65; color:#bbb; margin:0 0 8px; min-height:66px;}
+  .ft-tour-title{font-size:19px; font-weight:900; letter-spacing:-.02em; color:#f4f4f5; margin:0 0 8px;}
+  .ft-tour-body{font-size:14px; line-height:1.65; color:#a1a1aa; margin:0 0 8px; min-height:66px; white-space:pre-line;}
   .ft-tour-badges{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;}
   .ft-tour-badges span{font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px;}
   .ft-tour-foot{display:flex; align-items:center; justify-content:space-between; margin-top:18px;}
   .ft-tour-dots{display:flex; gap:6px;}
-  .ft-tour-dots i{width:7px; height:7px; border-radius:50%; background:#333; transition:background .15s;}
-  .ft-tour-dots i.on{background:#1a73e8;}
+  .ft-tour-dots i{width:7px; height:7px; border-radius:50%; background:#3f3f46; transition:background .15s;}
+  .ft-tour-dots i.on{background:#2563eb;}
   .ft-tour-btns{display:flex; gap:8px;}
-  .ft-tour-skip{position:absolute; top:14px; right:16px; color:#666; font-size:12px; background:none; border:none; cursor:pointer;}
-  .ft-tour-skip:hover{color:#aaa;}
+  .ft-tour-skip{position:absolute; top:14px; right:16px; color:#71717a; font-size:12px; background:none; border:none; cursor:pointer;}
+  .ft-tour-skip:hover{color:#a1a1aa;}
   @media (max-width:480px){ .ft-tour-card{padding:22px 18px 16px;} .ft-tour-title{font-size:17px;} }
 </style>
 <div id="ft-tour-ovl" role="dialog" aria-modal="true" aria-label="FangTrack tour">
@@ -344,10 +342,11 @@ function toggleHidePrivate(on){
 // ── First-run feature tour ────────────────────────────────────────────────
 var ftTour = (function(){
   var STEPS = [
-    {e:'🕷️', t:'Welcome to FangTrack', b:'Market intelligence for the exotic-invertebrate hobby — Keepa-style price history, StockX-style deal scoring, and TCG-style rarity, for tarantulas, scorpions, isopods and myriapods. Quick tour?'},
+    {e:'🕷️', t:'Welcome to FangTrack', b:'FangTrack scans specialty invert vendors, names you probably know and have used, and turns all that scattered info into one clear picture, so buying online is easier, more transparent, and better for the hobby. (No more jumping between 12 browser tabs.) When pricing is visible and comparable, everyone wins — breeders, vendors, and keepers.'},
+    {e:'🧪', t:'We\'re a beta', b:'This is a work in progress, and you\'re one of the first people using it. That means you\'ll occasionally catch a wonky price, a missing vendor, or a rough edge. When you do, tell me. mike@fangtrack.com or use the Submit button. Early adopter notes are what will shape this thing, and the best ideas in FangTrack so far came from keepers like you.'},
     {e:'📊', t:'Dashboard', b:'Your at-a-glance snapshot: total live listings, deal counts, market movers, and Market Intelligence. Every tile is clickable and filters the Deals page.'},
     {e:'🔥', t:'Deals & badges', b:'Every in-stock listing, scored like-for-like against the market and its own history.',
-      badges:[['🔥 Fire','#ff6b00','#fff'],['💎💎 Exceptional','#7c3aed','#f0f0f0'],['💎 Strong','#1d4ed8','#bfdbfe'],['👍 Fair','#065f46','#a7f3d0']]},
+      badges:[['🔥 Fire','#f97316','#fff'],['💎💎 Exceptional','#7c3aed','#f4f4f5'],['💎 Strong','#3b82f6','#fff'],['👍 Fair','#22c55e','#0a0a0b']]},
     {e:'💎', t:'Rarity tiers', b:'Every species is percentile-ranked across the whole market by how few sellers carry it — rarest at the top.',
       badges:[{% for n in TIER_ORDER %}['{{ n }}','{{ RARITY_TIERS[n].bg }}','{{ RARITY_TIERS[n].text }}']{% if not loop.last %},{% endif %}{% endfor %}]},
     {e:'🔍', t:'Species catalog', b:'Look up any species by scientific OR common name. Each gets a spider card: price history, market stats, rarity, and every live listing across vendors.'},

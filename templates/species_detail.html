@@ -4,9 +4,9 @@
 
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <div class="flex items-center gap-4 mb-4" style="flex-wrap:wrap;">
-  <a href="/species" style="color:#555; font-size:13px;">← All species</a>
-  <h1 style="font-size:24px; font-weight:900; letter-spacing:-.02em; font-style:italic; color:#1a73e8; margin:0;">{{ display or species_key }}</h1>
-  {% if common %}<span style="color:#e0e0e0; font-size:16px;">{{ common }}</span>{% endif %}
+  <a href="/species" style="color:#52525b; font-size:13px;">← All species</a>
+  <h1 style="font-size:24px; font-weight:900; letter-spacing:-.02em; font-style:italic; color:#2563eb; margin:0;">{{ display or species_key }}</h1>
+  {% if common %}<span style="color:#e4e4e7; font-size:16px;">{{ common }}</span>{% endif %}
   {% if owned %}<span class="owned-badge" title="In your collection">✓ Owned</span>{% endif %}
   {% if genus %}<a href="/family/{{ genus }}" class="nav-link" style="font-size:12px;">More {{ genus|capitalize }} →</a>{% endif %}
   <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
@@ -29,20 +29,20 @@
 <div class="card" style="padding:12px 14px; margin-bottom:16px;">
   <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
     {% if traits.kind and traits.kind != 'Tarantula' %}
-      <span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#888; margin-right:2px;">{{ traits.kind }}</span>
+      <span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#a1a1aa; margin-right:2px;">{{ traits.kind }}</span>
     {% endif %}
     {% for b in traits.badges %}
     <span title="{{ b.tip }}" style="display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:600; border:1px solid {{ b.color }}55; background:{{ b.color }}1a; color:{{ b.color }}; cursor:help;">
       <span style="font-size:13px;">{{ b.emoji }}</span>{{ b.value }}
     </span>
     {% endfor %}
-    <a href="/transparency#traits" style="color:#555; font-size:11px; margin-left:2px; text-decoration:none;" title="What do these mean?">ⓘ</a>
+    <a href="/transparency#traits" style="color:#52525b; font-size:11px; margin-left:2px; text-decoration:none;" title="What do these mean?">ⓘ</a>
   </div>
 </div>
 {% endif %}
 
 {% if not history %}
-<div class="card" style="text-align:center; padding:40px; color:#555;">No price history found for this species.</div>
+<div class="card" style="text-align:center; padding:40px; color:#52525b;">No price history found for this species.</div>
 {% else %}
 
 {% if not stats.listings_live_now %}
@@ -54,34 +54,34 @@
 <!-- ── StockX market-summary strip ────────────────────────────────────────── -->
 <div class="grid gap-3 mb-4" style="grid-template-columns:repeat(6,1fr);">
   <div class="stat-card">
-    <div style="font-size:10px;color:#1a73e8;text-transform:uppercase;letter-spacing:.08em;">Lowest Ask</div>
-    <div style="font-size:24px;font-weight:800;color:#1a73e8;">{% if stats.lowest_ask %}${{ "%.0f"|format(stats.lowest_ask) }}{% else %}—{% endif %}</div>
-    <div style="font-size:10px;color:#555;">best value listed now</div>
+    <div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Lowest Ask</div>
+    <div style="font-size:24px;font-weight:800;color:#2563eb;">{% if stats.lowest_ask %}${{ "%.0f"|format(stats.lowest_ask) }}{% else %}—{% endif %}</div>
+    <div style="font-size:10px;color:#52525b;">best value listed now</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:10px;color:#1a73e8;text-transform:uppercase;letter-spacing:.08em;">Market Price</div>
+    <div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Market Price</div>
     <div style="font-size:24px;font-weight:800;">${{ "%.0f"|format(stats.market_price or 0) }}</div>
-    <div style="font-size:10px;color:#555;">trimmed median, recent asks</div>
+    <div style="font-size:10px;color:#52525b;">trimmed median, recent asks</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:10px;color:#1a73e8;text-transform:uppercase;letter-spacing:.08em;">All-Time Low</div>
+    <div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">All-Time Low</div>
     <div style="font-size:24px;font-weight:800;color:#34d399;">${{ "%.0f"|format(stats.all_time_low or (history|map(attribute='price_usd')|min)) }}</div>
-    <div style="font-size:10px;color:#555;">seen across all crawls</div>
+    <div style="font-size:10px;color:#52525b;">seen across all crawls</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:10px;color:#1a73e8;text-transform:uppercase;letter-spacing:.08em;">90-Day Range</div>
+    <div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">90-Day Range</div>
     <div style="font-size:18px;font-weight:800;">${{ "%.0f"|format(stats.low_90d or 0) }}–${{ "%.0f"|format(stats.high_90d or 0) }}</div>
-    <div style="font-size:10px;color:#555;">low to high</div>
+    <div style="font-size:10px;color:#52525b;">low to high</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:10px;color:#1a73e8;text-transform:uppercase;letter-spacing:.08em;">Live Listings</div>
+    <div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Live Listings</div>
     <div style="font-size:24px;font-weight:800;">{{ stats.listings_live_now or 0 }}</div>
-    <div style="font-size:10px;color:#555;">at {{ stats.vendors_live or 0 }} vendor{{ 's' if (stats.vendors_live or 0)!=1 else '' }} now</div>
+    <div style="font-size:10px;color:#52525b;">at {{ stats.vendors_live or 0 }} vendor{{ 's' if (stats.vendors_live or 0)!=1 else '' }} now</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:10px;color:#1a73e8;text-transform:uppercase;letter-spacing:.08em;">Rarity</div>
+    <div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Rarity</div>
     {% if tier[0] %}<div style="margin-top:4px;"><span class="rtier {{ tier[1] }}">{{ tier[0] }}</span></div>
-    <div style="font-size:12px;color:#888;margin-top:4px;">{{ rarity_score }}/10 · seen at {{ stats.vendors_all or 0 }} vendors ever</div>
+    <div style="font-size:12px;color:#a1a1aa;margin-top:4px;">{{ rarity_score }}/10 · seen at {{ stats.vendors_all or 0 }} vendors ever</div>
     {% else %}<div style="font-size:24px;font-weight:800;">—</div>{% endif %}
   </div>
 </div>
@@ -92,7 +92,7 @@
 {% if ath > atl %}
 {% set you = ((stats.lowest_ask or atl) - atl) / (ath - atl) * 100 %}
 <div class="card mb-4" style="padding:16px 20px;">
-  <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:10px;">
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:#a1a1aa;margin-bottom:10px;">
     <span>The white marker shows where today's best-value listing sits between the lowest and highest price ever recorded.</span>
     <span>Liquidity: {{ stats.listings_90d or 0 }} listings / 90d · {{ stats.vendors_all or 0 }} vendors ever</span>
   </div>
@@ -100,7 +100,7 @@
     <div class="atl" style="left:0%;" title="All-time low ${{ '%.0f'|format(atl) }}"></div>
     <div class="you" style="left:{{ '%.1f'|format(you if you>=0 else 0) }}%;" title="Best value now ${{ '%.0f'|format(stats.lowest_ask or atl) }}"></div>
   </div>
-  <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-top:6px;">
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:#71717a;margin-top:6px;">
     <span style="color:#34d399;">${{ "%.0f"|format(atl) }} all-time low</span>
     <span>best value now: <b style="color:#fff;">${{ "%.0f"|format(stats.lowest_ask or atl) }}</b></span>
     <span style="color:#f87171;">${{ "%.0f"|format(ath) }} all-time high</span>
@@ -111,17 +111,17 @@
 <!-- ── Price history chart ────────────────────────────────────────────────── -->
 <div class="card mb-4">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;color:#1a73e8;text-transform:uppercase;letter-spacing:.06em;">Price History
-      <span style="color:#555;font-weight:400;text-transform:none;letter-spacing:0;">— asking prices; a time trend appears as daily crawls accumulate</span>
+    <div style="font-size:13px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:.06em;">Price History
+      <span style="color:#52525b;font-weight:400;text-transform:none;letter-spacing:0;">— asking prices; a time trend appears as daily crawls accumulate</span>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
-      <label style="font-size:10px;color:#888;letter-spacing:.08em;">SEX</label>
+      <label style="font-size:10px;color:#a1a1aa;letter-spacing:.08em;">SEX</label>
       <select id="f-sex" style="width:120px;">
         <option value="">All</option><option value="F">♀ Female</option>
         <option value="M">♂ Male</option>
         <option value="MM">♂ Mature Male</option><option value="U">Unsexed</option>
       </select>
-      <label style="font-size:10px;color:#888;letter-spacing:.08em;">SIZE</label>
+      <label style="font-size:10px;color:#a1a1aa;letter-spacing:.08em;">SIZE</label>
       <select id="f-size" style="width:150px;">
         <option value="">All sizes</option>
         <option value="sling">Sling (&lt;0.75&quot;)</option>
@@ -132,19 +132,19 @@
     </div>
   </div>
   <!-- Legend -->
-  <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; font-size:11px; color:#888; margin-bottom:8px;">
-    <span style="color:#666;">Each dot = one listing:</span>
+  <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; font-size:11px; color:#a1a1aa; margin-bottom:8px;">
+    <span style="color:#71717a;">Each dot = one listing:</span>
     <span><span style="color:#f9a8d4;">●</span> Female</span>
     <span><span style="color:#93c5fd;">●</span> Male</span>
     <span><span style="color:#6b7280;">●</span> Unsexed</span>
-    <span style="color:#444;">|</span>
+    <span style="color:#3f3f46;">|</span>
     <span><span style="color:#34d399;">– –</span> all-time low</span>
-    <span><span style="color:#1a73e8;">– –</span> market price</span>
+    <span><span style="color:#2563eb;">– –</span> market price</span>
     <span><span style="color:#fff;">—</span> best value now</span>
-    <span style="color:#666;">(hover a dot for its price · size · sex · vendor · date)</span>
+    <span style="color:#71717a;">(hover a dot for its price · size · sex · vendor · date)</span>
   </div>
   <div id="price-chart" style="width:100%; overflow-x:auto;"></div>
-  <div id="chart-summary" style="font-size:12px; color:#888; margin-top:8px;"></div>
+  <div id="chart-summary" style="font-size:12px; color:#a1a1aa; margin-top:8px;"></div>
 </div>
 
 <script type="application/json" id="history-data">{{ history|tojson }}</script>
@@ -153,15 +153,15 @@
 <!-- ── Inferred recent sales (honest sold-price proxy) ────────────────────── -->
 {% if inferred_sales %}
 <div class="card mb-4">
-  <div style="font-size:13px;font-weight:700;color:#1a73e8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">
+  <div style="font-size:13px;font-weight:700;color:#2563eb;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">
     Likely Recently Taken
-    <span style="color:#555;font-weight:400;text-transform:none;letter-spacing:0;">— listings that vanished since the prior crawl (inferred, not confirmed sales)</span>
+    <span style="color:#52525b;font-weight:400;text-transform:none;letter-spacing:0;">— listings that vanished since the prior crawl (inferred, not confirmed sales)</span>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
     {% for s in inferred_sales[:12] %}
-    <span style="background:#141414;border:1px solid #2a2a2a;border-radius:6px;padding:5px 10px;font-size:12px;">
-      ~<b style="color:#e0e0e0;">${{ "%.0f"|format(s.price) }}</b>
-      <span style="color:#555;">@{{ s.vendor }} · {{ s.date }}</span>
+    <span style="background:#141417;border:1px solid #2a2a31;border-radius:6px;padding:5px 10px;font-size:12px;">
+      ~<b style="color:#e4e4e7;">${{ "%.0f"|format(s.price) }}</b>
+      <span style="color:#52525b;">@{{ s.vendor }} · {{ s.date }}</span>
     </span>
     {% endfor %}
   </div>
@@ -171,8 +171,8 @@
 <!-- ── Live listings (the deals list) ─────────────────────────────────────── -->
 {% if current %}
 <div class="card">
-  <div style="font-size:13px;font-weight:700;color:#1a73e8;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;">Available Now — {{ current|length }} listing{{ 's' if current|length!=1 else '' }}
-    <span style="color:#555;font-weight:400;text-transform:none;letter-spacing:0;">· click a row to open the seller's page</span>
+  <div style="font-size:13px;font-weight:700;color:#2563eb;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;">Available Now — {{ current|length }} listing{{ 's' if current|length!=1 else '' }}
+    <span style="color:#52525b;font-weight:400;text-transform:none;letter-spacing:0;">· click a row to open the seller's page</span>
   </div>
   <div style="overflow-x:auto;">
   <table>
@@ -181,8 +181,8 @@
     {% for l in current|sort(attribute='price_usd') %}
     {% set buy = l.product_url or l.vendor_homepage %}
     <tr {% if buy %}onclick="window.open('{{ buy }}','_blank')" style="cursor:pointer;"{% endif %}>
-      <td style="font-size:12px;">{% if l.is_private %}<span title="Private seller" style="color:#a855f7;">👤</span> {% endif %}{% if buy %}<a href="{{ buy }}" target="_blank" rel="noopener" style="color:#1a73e8;text-decoration:none;" onclick="event.stopPropagation()">{{ l.vendor_key }}</a>{% else %}{{ l.vendor_key }}{% endif %}</td>
-      <td style="color:#888;">{{ l.size_text or '?' }}{% if l.size_text %}"{% endif %}</td>
+      <td style="font-size:12px;">{% if l.is_private %}<span title="Private seller" style="color:#a855f7;">👤</span> {% endif %}{% if buy %}<a href="{{ buy }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;" onclick="event.stopPropagation()">{{ l.vendor_key }}</a>{% else %}{{ l.vendor_key }}{% endif %}</td>
+      <td style="color:#a1a1aa;">{{ l.size_text or '?' }}{% if l.size_text %}"{% endif %}</td>
       <td>{% if l.sex=='F'%}<span style="color:#f9a8d4;">♀</span>{% elif l.sex=='M'%}<span style="color:#93c5fd;">♂</span>{% else %}?{% endif %}</td>
       <td style="font-size:11px; font-weight:700;">
         {% set p = l.source_provenance %}
@@ -192,14 +192,14 @@
                     else ('Inferred: far below this species adult size, so it is a captive-bred juvenile' if p=='inferred-juvenile'
                     else 'Seller did not state a source. Still competes for deal status.'))) %}
         {% set dim = p not in ('stated', '') %}
-        {% if l.source_type=='CB' %}<span style="color:{{ '#166534' if dim else '#22c55e' }};" title="{{ tip }}">CB{% if dim %}<span style="color:#666; font-weight:400;">°</span>{% endif %}</span>
-        {% elif l.source_type=='WC' %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:#666; font-weight:400;">°</span>{% endif %}</span>
+        {% if l.source_type=='CB' %}<span style="color:{{ '#166534' if dim else '#22c55e' }};" title="{{ tip }}">CB{% if dim %}<span style="color:#71717a; font-weight:400;">°</span>{% endif %}</span>
+        {% elif l.source_type=='WC' %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:#71717a; font-weight:400;">°</span>{% endif %}</span>
         {% elif l.source_type=='LTC' %}<span style="color:#fbbf24;" title="{{ tip }}">LTC</span>
-        {% else %}<span style="color:#555;" title="{{ tip }}">?</span>{% endif %}
+        {% else %}<span style="color:#52525b;" title="{{ tip }}">?</span>{% endif %}
       </td>
-      <td style="font-weight:700;color:#1a73e8;">${{ "%.2f"|format(l.price_usd) }}</td>
-      <td>{% if l.price_with_code %}<span style="color:#34d399;font-weight:700;">${{ "%.2f"|format(l.price_with_code) }}</span> <span style="font-size:10px;color:#555;">{{ l.discount_code }}</span>{% else %}—{% endif %}</td>
-      <td style="color:#888; font-size:12px;">{% if l.landed_cost %}${{ "%.0f"|format(l.landed_cost) }}{% else %}—{% endif %}</td>
+      <td style="font-weight:700;color:#2563eb;">${{ "%.2f"|format(l.price_usd) }}</td>
+      <td>{% if l.price_with_code %}<span style="color:#34d399;font-weight:700;">${{ "%.2f"|format(l.price_with_code) }}</span> <span style="font-size:10px;color:#52525b;">{{ l.discount_code }}</span>{% else %}—{% endif %}</td>
+      <td style="color:#a1a1aa; font-size:12px;">{% if l.landed_cost %}${{ "%.0f"|format(l.landed_cost) }}{% else %}—{% endif %}</td>
       <td>{% if l.is_fire_deal %}🔥{% elif l.deal_rating=='💎💎'%}💎💎{% elif l.deal_rating=='💎'%}💎{% else %}{{ l.deal_rating or '—'}}{% endif %}</td>
       <td>{% set rs=l.size_class_rarity_score%}{% if rs%}<span class="score-{{rs}} rtier">{{rs}}/10</span>{% endif %}</td>
       <td>{% if buy %}<a href="{{ buy }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:3px 12px;font-size:11px;" onclick="event.stopPropagation()">Buy →</a>{% endif %}</td>
@@ -210,7 +210,7 @@
   </div>
 </div>
 {% else %}
-<div class="card" style="text-align:center; padding:32px; color:#555;">No live listings right now — the price history above shows where it has traded.</div>
+<div class="card" style="text-align:center; padding:32px; color:#52525b;">No live listings right now — the price history above shows where it has traded.</div>
 {% endif %}
 {% endif %}
 {% endblock %}
@@ -253,7 +253,7 @@
   function draw(){
     var pts = filtered();
     var W = Math.max(760, chart.clientWidth||760), H = 300, pad = {l:52,r:16,t:14,b:34};
-    if(!pts.length){ chart.innerHTML = '<div style="color:#555;padding:40px;text-align:center;">No observations match these filters.</div>'; summary.textContent=''; return; }
+    if(!pts.length){ chart.innerHTML = '<div style="color:#52525b;padding:40px;text-align:center;">No observations match these filters.</div>'; summary.textContent=''; return; }
     var prices = pts.map(function(d){return d.price_usd;});
     var pmin = Math.min.apply(null,prices), pmax = Math.max.apply(null,prices);
     if(pmin===pmax){ pmin = pmin*0.9; pmax = pmax*1.1; }
@@ -281,18 +281,18 @@
     // grid + y labels
     for(var k=0;k<=4;k++){
       var p = pmin + (pmax-pmin)*k/4, y = Y(p);
-      svg.push('<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="#2a2a2a" stroke-width="1"/>');
-      svg.push('<text x="'+(pad.l-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#666">$'+p.toFixed(0)+'</text>');
+      svg.push('<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="#2a2a31" stroke-width="1"/>');
+      svg.push('<text x="'+(pad.l-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#71717a">$'+p.toFixed(0)+'</text>');
     }
     // market-price line
     var mp = STAT.market_price || median;
-    svg.push('<line x1="'+pad.l+'" y1="'+Y(mp)+'" x2="'+(W-pad.r)+'" y2="'+Y(mp)+'" stroke="#1a73e8" stroke-dasharray="4 3" stroke-width="1.5"/>');
-    svg.push('<text x="'+(W-pad.r)+'" y="'+(Y(mp)-5)+'" text-anchor="end" font-size="11" fill="#1a73e8">market $'+mp.toFixed(0)+'</text>');
+    svg.push('<line x1="'+pad.l+'" y1="'+Y(mp)+'" x2="'+(W-pad.r)+'" y2="'+Y(mp)+'" stroke="#2563eb" stroke-dasharray="4 3" stroke-width="1.5"/>');
+    svg.push('<text x="'+(W-pad.r)+'" y="'+(Y(mp)-5)+'" text-anchor="end" font-size="11" fill="#2563eb">market $'+mp.toFixed(0)+'</text>');
     // connect over time if multiple dates
     if(!singleDate && dates.length>1){
       var line = pts.slice().sort(function(a,b){return (parseDate(a.observed_at)||0)-(parseDate(b.observed_at)||0);});
       var dpath = line.map(function(d,i){return (i?'L':'M')+X(d, pts.indexOf(d)).toFixed(1)+' '+Y(d.price_usd).toFixed(1);}).join(' ');
-      svg.push('<path d="'+dpath+'" fill="none" stroke="#333" stroke-width="1"/>');
+      svg.push('<path d="'+dpath+'" fill="none" stroke="#3f3f46" stroke-width="1"/>');
     }
     // points
     pts.forEach(function(d,i){
@@ -306,10 +306,10 @@
     }
     // x labels
     if(singleDate){
-      svg.push('<text x="'+(W/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" fill="#666">'+(dates.length?new Date(dmin).toISOString().slice(0,10):'single crawl')+' — spread across '+pts.length+' listings</text>');
+      svg.push('<text x="'+(W/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" fill="#71717a">'+(dates.length?new Date(dmin).toISOString().slice(0,10):'single crawl')+' — spread across '+pts.length+' listings</text>');
     } else {
-      svg.push('<text x="'+pad.l+'" y="'+(H-8)+'" font-size="11" fill="#666">'+new Date(dmin).toISOString().slice(0,10)+'</text>');
-      svg.push('<text x="'+(W-pad.r)+'" y="'+(H-8)+'" text-anchor="end" font-size="11" fill="#666">'+new Date(dmax).toISOString().slice(0,10)+'</text>');
+      svg.push('<text x="'+pad.l+'" y="'+(H-8)+'" font-size="11" fill="#71717a">'+new Date(dmin).toISOString().slice(0,10)+'</text>');
+      svg.push('<text x="'+(W-pad.r)+'" y="'+(H-8)+'" text-anchor="end" font-size="11" fill="#71717a">'+new Date(dmax).toISOString().slice(0,10)+'</text>');
     }
     svg.push('</svg>');
     chart.innerHTML = svg.join('');

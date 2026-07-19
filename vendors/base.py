@@ -4,6 +4,8 @@ Every vendor module must subclass BaseScraper and implement scrape().
 """
 import asyncio
 import logging
+import os
+import random
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -12,6 +14,16 @@ import httpx
 from models import Listing, CrawlResult, VerificationLevel
 
 logger = logging.getLogger(__name__)
+
+
+def _mask_proxy(url: str) -> str:
+    """Render a proxy URL as scheme://***@host:port — never log its credentials."""
+    try:
+        from urllib.parse import urlsplit
+        p = urlsplit(url)
+        return f"{p.scheme}://***@{p.hostname}:{p.port}"
+    except Exception:
+        return "***"
 
 import re as _re
 _TAG_RE = _re.compile(r"<[^>]+>")
@@ -43,7 +55,8 @@ class BaseScraper(ABC):
     BASE_URL: str = ""
     PLATFORM: str = "unknown"
 
-    REQUEST_DELAY: float = 2.0   # seconds between requests
+    REQUEST_DELAY: float = 2.0   # seconds between requests (min gap to same vendor)
+    JITTER_MAX: float = 1.5      # + random 0..1.5s so requests aren't perfectly periodic
     MAX_RETRIES: int = 3         # fail fast on a stubborn 429; recovery pass mops up
     TIMEOUT: int = 30
 
@@ -65,18 +78,30 @@ class BaseScraper(ABC):
     async def __aenter__(self):
         # Full browser-like header set so a CDN bot-heuristic (Cloudflare et al.)
         # is less likely to flag our paginated JSON requests as a scraper.
-        self.client = httpx.AsyncClient(
+        client_kwargs = dict(
             headers={
                 "User-Agent": self.USER_AGENT,
                 "Accept": "text/html,application/json,application/xhtml+xml,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br",
+                # NB: do NOT hard-set Accept-Encoding. httpx advertises only the
+                # codecs it can actually decode (gzip/deflate; br only if brotli is
+                # installed). Forcing "br" made CDNs return brotli we couldn't decode
+                # → garbage bytes → JSON parse failures (esp. via the proxy path).
                 "Connection": "keep-alive",
             },
             timeout=self.TIMEOUT,
             follow_redirects=True,
             http2=False,
         )
+        # Route through a residential rotating proxy when configured. Shopify's
+        # products.json blocks datacenter IPs (Render), so FANGTRACK_PROXY_URL
+        # points the crawler at a rotating residential gateway. Local dev with
+        # the var unset connects directly, unchanged.
+        proxy_url = os.environ.get("FANGTRACK_PROXY_URL", "").strip()
+        if proxy_url:
+            client_kwargs["proxy"] = proxy_url
+            logger.info(f"[{self.VENDOR_KEY}] via proxy {_mask_proxy(proxy_url)}")
+        self.client = httpx.AsyncClient(**client_kwargs)
         return self
 
     async def __aexit__(self, *args):
@@ -84,9 +109,11 @@ class BaseScraper(ABC):
             await self.client.aclose()
 
     async def _throttle(self):
-        """Enforce minimum delay between requests."""
+        """Enforce a minimum ≥REQUEST_DELAY gap between requests, plus random
+        jitter so the cadence isn't perfectly periodic (less bot-like)."""
         elapsed = time.monotonic() - self._last_request_time
-        delay = self.REQUEST_DELAY - elapsed
+        target = self.REQUEST_DELAY + random.uniform(0, self.JITTER_MAX)
+        delay = target - elapsed
         if delay > 0:
             await asyncio.sleep(delay)
         self._last_request_time = time.monotonic()

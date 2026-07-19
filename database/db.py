@@ -611,6 +611,29 @@ class MarketDB:
         conn.commit()
         conn.close()
 
+    def guard_baseline(self, vendor_key: str) -> tuple[int, bool]:
+        """(last_good_count, last_run_was_rejected) for the crawl write-guard.
+
+        last_good_count = stocked-listing count of this vendor's most recent
+        snapshot-eligible run (status complete/partial) — i.e. the data the site
+        is currently showing. last_run_was_rejected lets a *genuine* sustained
+        drop through on the second try: we reject a sudden collapse ONCE (keeping
+        the previous data), then accept the confirmed low so we never get stuck."""
+        conn = get_connection(self.db_path)
+        good = conn.execute("""
+            SELECT products_found FROM crawl_runs
+            WHERE vendor_key = ? AND status IN ('complete','partial')
+            ORDER BY id DESC LIMIT 1
+        """, (vendor_key,)).fetchone()
+        last = conn.execute("""
+            SELECT status FROM crawl_runs WHERE vendor_key = ?
+            ORDER BY id DESC LIMIT 1
+        """, (vendor_key,)).fetchone()
+        conn.close()
+        last_good = (good["products_found"] or 0) if good else 0
+        last_rejected = bool(last and last["status"] == "rejected")
+        return last_good, last_rejected
+
     def historical_lows(self) -> dict:
         """Return {(species_key, sex): min_price} from all history."""
         from database.history import get_all_historical_lows

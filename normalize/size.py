@@ -36,6 +36,13 @@ def parse_size(raw: Optional[str]) -> Tuple[Optional[float], Optional[float], Op
     n = re.sub(r'[""]', '"', n)
     n = re.sub(r'\b(inch(es)?|in\.?)\b', '"', n, flags=re.IGNORECASE)
 
+    # Mixed number: "3 1/2" -> 3.5 (must come BEFORE the bare-fraction branch,
+    # or "3 1/2" is misread as just 1/2 = 0.5).
+    m = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)", n.strip())
+    if m:
+        val = int(m.group(1)) + int(m.group(2)) / int(m.group(3))
+        return val, val, val
+
     # Fraction: 1/2
     m = re.match(r"^(\d+)/(\d+)", n.strip())
     if m:
@@ -76,11 +83,15 @@ _NUM = r'(?:\d+(?:\.\d+)?|\.\d+)'
 # fraction-aware number: matches "3/4" as well as "1.5" / ".75" (fraction first
 # so a range endpoint like "3/4-1" isn't misread as "4-1").
 _NUMF = r'(?:\d+\s*/\s*\d+|\d+(?:\.\d+)?|\.\d+)'
+# Range/endpoint number that ALSO understands a mixed number ("3 1/2"). Mixed
+# first so "3 1/2" is grabbed whole, not reduced to its "1/2" fraction.
+_NUMM = r'(?:\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:\.\d+)?|\.\d+)'
 _INCH = r'(?:"|”|“|″|\'\'|inch(?:es)?|in\b)'
 _SIZE_IN_TITLE = re.compile(
     r'(?<![\w])'
     r'(?:'
-    rf'(?P<range>{_NUMF}\s*[-–]\s*{_NUMF})\s*(?:{_INCH}|cm)'
+    rf'(?P<range>{_NUMM}\s*[-–]\s*{_NUMM})\s*(?:{_INCH}|cm)'
+    rf'|(?P<mixed>\d+\s+\d+\s*/\s*\d+)\s*{_INCH}'
     rf'|(?P<frac>\d+\s*/\s*\d+)\s*{_INCH}'
     rf'|(?P<uni>[½¼¾])\s*{_INCH}?'
     rf'|(?P<single>{_NUM})\s*(?P<unit>{_INCH}|cm)\s*(?P<plus>\+)?'
@@ -110,6 +121,9 @@ def extract_size_from_title(title: Optional[str]) -> Optional[str]:
         # so "3/4-1" -> 0.75-1, not the "4-1" the old numeric range produced.
         def _val(p):
             p = p.strip()
+            mm = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)$", p)   # mixed "1 1/2"
+            if mm:
+                return int(mm.group(1)) + int(mm.group(2)) / int(mm.group(3))
             if "/" in p:
                 a, b = re.split(r"\s*/\s*", p)
                 return float(a) / float(b)
@@ -126,6 +140,10 @@ def extract_size_from_title(title: Optional[str]) -> Optional[str]:
                 lo, hi = hi, lo
             return f'{round(lo, 3)}-{round(hi, 3)}"'
         return raw + '"'
+    if m.group("mixed"):
+        mm = re.match(r"(\d+)\s+(\d+)\s*/\s*(\d+)", m.group("mixed"))
+        val = int(mm.group(1)) + int(mm.group(2)) / int(mm.group(3))
+        return f'{val}"'
     if m.group("frac"):
         return m.group("frac") + '"'
     if m.group("uni"):

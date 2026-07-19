@@ -1,5 +1,10 @@
 # FangTrack — Brand Book Prompt
 
+> **SUPERSEDED 2026-07-19.** The brand book now exists: see `BRANDBOOK.md` (written for the
+> Mike-approved full rebrand — oklch rarity ladder, blue #2563eb primary + purple accent —
+> which replaced the Tailwind-ramp palette this prompt describes). This file is kept as
+> historical context only; the hexes below are PRE-rebrand values. Do not design from it.
+
 > Paste the block below into Claude (Design / artifact) to generate the FangTrack brand book.
 > Every hex is pulled from the live source as of 2026-07-14: the rarity ladder + deal badges come
 > from `theme.py` (the single source of truth, `RARITY_TIERS` / `DEAL_BADGES`); all other tokens

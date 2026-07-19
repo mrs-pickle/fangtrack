@@ -21,9 +21,14 @@ after the change has been tested.
 2. Make changes. **Test locally**: `python -m pytest tests/` (must pass) + drive the affected page.
 3. `git push origin dev` → **CI runs** (`.github/workflows/ci.yml`). Wait for green.
 4. *(If staging exists)* it auto-deploys from `dev` → verify there (Postgres + email path).
-5. When a batch is solid, **promote**: `git switch main && git merge dev && git push origin main`
-   → prod deploys once, already-verified.
-6. Watch the deploy go **Live**; sanity-check fangtrack.com.
+5. **REVIEW GATE (Mike's rule — never skip).** Before anything reaches prod, Mike reviews the
+   batch: Claude drives a local preview (`python wsgi.py` + the in-app browser) so Mike can
+   *see and click through* every change. Backend-only fixes that can't be "seen" locally get an
+   explicit note of what changed and how it was verified. **Mike gives an explicit "ship it"** —
+   generally at end of day. No merge to `main` without that command.
+6. On Mike's "ship it", **promote**: `git switch main && git merge dev && git push origin main`
+   → prod deploys once, already-reviewed.
+7. Watch the deploy go **Live**; sanity-check fangtrack.com.
 
 ## Rollback (when a bad deploy reaches prod anyway)
 Render → `fangtrack` web service → **Events/Deploys** → find the last good deploy → **Rollback**.
