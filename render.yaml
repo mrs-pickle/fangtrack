@@ -35,6 +35,8 @@ services:
         value: "https://fangtrack.com"
       - key: FANGTRACK_PROXY_HOPS       # Render sits behind 1 proxy → real client IP
         value: "1"
+      - key: NOTIFY_EMAIL               # where /submit form reports are emailed
+        value: "mike@fangtrack.com"
       # SMTP for password-reset + watchlist/digest email. Render will PROMPT for
       # these at blueprint creation (sync:false = not stored in the repo). Leave
       # blank to launch without email — reset links then just log server-side.
@@ -45,8 +47,6 @@ services:
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS
-        sync: false
-      - key: NOTIFY_EMAIL
         sync: false
 
   # Daily crawl as its own worker, sharing the Postgres DB. Set the schedule you want.
@@ -70,8 +70,8 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
-      - key: NOTIFY_EMAIL
-        sync: false
+      - key: NOTIFY_EMAIL               # daily watchlist digest recipient
+        value: "mike@fangtrack.com"
 
 # ── SQLite-on-a-disk alternative (simpler, no Postgres) ──────────────────────
 # Remove the `databases:` block, the DATABASE_URL env vars, and the cron service above,

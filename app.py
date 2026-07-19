@@ -102,6 +102,21 @@ def _forbidden(e):
                            msg="You don't have access to that. Admin only."), 403
 
 
+@app.after_request
+def _security_headers(resp):
+    """Baseline hardening headers on every response. Kept conservative so they
+    don't break the UI: no strict CSP yet (the templates use inline styles), just
+    the non-breaking wins — MIME-sniffing off, clickjacking blocked, referrer
+    trimmed, and HSTS once we're on HTTPS (prod)."""
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if os.environ.get("FANGTRACK_HTTPS"):
+        resp.headers.setdefault("Strict-Transport-Security",
+                                "max-age=31536000; includeSubDomains")
+    return resp
+
+
 # ── Market analytics (StockX/Keepa/TCG microstructure layer) ────────────────
 _market_cache = {"data": None, "ts": 0}
 
@@ -2549,6 +2564,21 @@ def submit_save():
     conn.close()
     label = {"vendor": "Vendor suggestion", "bug": "Error report",
              "idea": "Improvement idea"}.get(kind, "Submission")
+    # Notify the FangTrack team so submissions don't sit unseen in the DB. Degrades
+    # gracefully: if SMTP isn't configured yet it just logs (submission is already
+    # saved). Once SMTP is wired this lands in mike@fangtrack.com.
+    try:
+        notify_to = (os.environ.get("FANGTRACK_NOTIFY_EMAIL")
+                     or os.environ.get("NOTIFY_EMAIL") or "mike@fangtrack.com")
+        body = (f"New {label.lower()} on FangTrack\n\n"
+                f"Type:    {kind}\n"
+                f"Vendor:  {vendor_name or '—'}\n"
+                f"URL:     {vendor_url or '—'}\n"
+                f"Contact: {contact or '—'}\n\n"
+                f"Message:\n{message or '—'}\n")
+        send_email(notify_to, f"[FangTrack] {label}", body)
+    except Exception as e:
+        logger.warning(f"submission email skipped (submission still saved): {e}")
     flash(f"{label} received — thank you! We review these regularly.", "success")
     return redirect(url_for("submit"))
 
