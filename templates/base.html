@@ -259,7 +259,7 @@ input:focus, select:focus { border-color:#1a73e8; }
   .ft-tour-card{background:#161616; border:1px solid #2a2a2a; border-radius:14px; max-width:440px; width:100%; padding:28px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative;}
   .ft-tour-emoji{font-size:34px; line-height:1; margin-bottom:12px;}
   .ft-tour-title{font-size:19px; font-weight:900; letter-spacing:-.02em; color:#f0f0f0; margin:0 0 8px;}
-  .ft-tour-body{font-size:14px; line-height:1.65; color:#bbb; margin:0 0 8px; min-height:66px;}
+  .ft-tour-body{font-size:14px; line-height:1.65; color:#bbb; margin:0 0 8px; min-height:66px; white-space:pre-line;}
   .ft-tour-badges{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;}
   .ft-tour-badges span{font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px;}
   .ft-tour-foot{display:flex; align-items:center; justify-content:space-between; margin-top:18px;}
@@ -344,7 +344,8 @@ function toggleHidePrivate(on){
 // ── First-run feature tour ────────────────────────────────────────────────
 var ftTour = (function(){
   var STEPS = [
-    {e:'🕷️', t:'Welcome to FangTrack', b:'Market intelligence for the exotic-invertebrate hobby — Keepa-style price history, StockX-style deal scoring, and TCG-style rarity, for tarantulas, scorpions, isopods and myriapods. Quick tour?'},
+    {e:'🕷️', t:'Welcome to FangTrack', b:'FangTrack scans the specialty invert vendors, names you probably know and have used, and turns all that scattered info into one clear picture, so buying online is easier, more transparent, and better for the hobby. (No more jumping between 12 browser tabs.) When pricing is visible and comparable, everyone wins — breeders, vendors, and keepers.'},
+    {e:'🧪', t:'We\'re a beta', b:'This is a work in progress, and you\'re one of the first people using it. That means you\'ll occasionally catch a wonky price, a missing vendor, or a rough edge. When you do, tell me. mike@fangtrack.com or use the Submit button. Early adopter notes are what will shape this thing, and the best ideas in FangTrack so far came from keepers like you.'},
     {e:'📊', t:'Dashboard', b:'Your at-a-glance snapshot: total live listings, deal counts, market movers, and Market Intelligence. Every tile is clickable and filters the Deals page.'},
     {e:'🔥', t:'Deals & badges', b:'Every in-stock listing, scored like-for-like against the market and its own history.',
       badges:[['🔥 Fire','#ff6b00','#fff'],['💎💎 Exceptional','#7c3aed','#f0f0f0'],['💎 Strong','#1d4ed8','#bfdbfe'],['👍 Fair','#065f46','#a7f3d0']]},
