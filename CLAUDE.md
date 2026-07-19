@@ -9,6 +9,8 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   `local → dev → main`; **prod deploys ONLY from `main`, only after tests pass**. Never
   `git push origin main` by hand or edit prod directly. Full process in `WORKFLOW.md`.
   **Session start: confirm the working branch is `dev` (not `main`) before making changes.**
+  **REVIEW GATE: no merge to `main` until Mike has reviewed the batch (Claude drives a local
+  preview so he can click through) and given an explicit "ship it" — generally end of day.**
 - Brand, UI, `templates/`, `static/` — locked; visual/brand changes only at Mike's direction.
 - Crawl etiquette: **≥2s between requests to the same vendor**, sequential per vendor,
   no parallel-hammering, existing rotating UAs only — no evasion beyond that.
