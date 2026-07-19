@@ -1,0 +1,30 @@
+Welcome aboard{% if display_name %}, {{ display_name }}{% endif %}!
+
+Thanks for signing up — you're one of the first people using FangTrack. It
+scans the specialty invert vendors (names you probably know and have used) and
+turns all that scattered info into one clear picture, so buying online is
+easier and more transparent. No more jumping between twelve browser tabs.
+
+Three ways to start:
+
+  * Deals — every in-stock listing, scored like-for-like against the market
+    and its own history.
+  * Watchlist — add species you're hunting with a target price; matches land
+    in your Alerts after every crawl.
+  * Collection — log what you own and what you paid, and see today's market
+    value. A spreadsheet imports in one upload.
+
+One honest note: we're in beta. If you catch a wonky price, a missing vendor,
+or a rough edge, tell me at {{ site_url }}/submit — or just reply to this
+email. The best ideas in FangTrack so far came from keepers like you.
+
+Curious how it all works (and why visible pricing is good for the whole hobby,
+sellers included)? {{ site_url }}/transparency
+
+Welcome to the hunt,
+Mike
+founder, FangTrack
+
+--
+FangTrack — private market intelligence tool
+{{ site_url }}/transparency · mike@fangtrack.com

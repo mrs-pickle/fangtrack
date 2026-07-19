@@ -1,0 +1,90 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FangTrack design tokens — CSS custom properties.
+   2026-07-19 rebrand (Mike-approved, from the FangTrack Design project):
+   blue-dominant + purple accent, zinc neutrals, oklch rarity ladder.
+
+   Values mirror tokens/fangtrack.tokens.json; tests/test_tokens.py enforces
+   parity for the core set AND that the rarity cores here match theme.py
+   (theme.py remains the single source of truth for rarity — it generates the
+   pill CSS; these vars exist for tooling/new code).
+
+   Dark is the default and the only shipped web theme; [data-theme="light"]
+   values marked "derived" were extrapolated from the Design excerpt's
+   formulas, pending the full Design-project files.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand: blue dominant, purple accent ── */
+  --ft-primary: #2563eb;  --ft-primary-strong: #1d4ed8;  --ft-on-primary: #ffffff;
+  --ft-primary-soft: rgba(37,99,235,.15);   --ft-link: #3b82f6;
+  --ft-accent: #a855f7;   --ft-accent-strong: #9333ea;
+  --ft-accent-soft: rgba(168,85,247,.15);
+
+  /* ── Rarity cores — oklch(0.66 0.20 H), H: 340>300>260>200>150, then neutral.
+     Pairing: text oklch(.78 .14 H) dark / oklch(.45 .14 H) light;
+     bg core@15% dark / @10% light; border core@35% dark / @25% light.
+     theme.py applies the formula and generates the pill classes. ── */
+  --ft-rarity-mythic: #e93d82;     --ft-rarity-legendary: #a855f7;
+  --ft-rarity-rare: #3b82f6;       --ft-rarity-uncommon: #14b8a6;
+  --ft-rarity-common: #22c55e;     --ft-rarity-ubiquitous: #9ba1a6;
+
+  /* ── Deal grades (FILLED chips — solid core bg, unlike translucent rarity).
+     Exceptional stays violet #7c3aed (NOT accent purple) so a Legendary pill
+     can never be mistaken for an Exceptional badge. ── */
+  --ft-grade-fire: #f97316;  --ft-grade-exceptional: #7c3aed;
+  --ft-grade-strong: #3b82f6; --ft-grade-fair: #22c55e; --ft-grade-above: #a1a1aa;
+
+  /* ── Dark neutrals (default) ── */
+  --ft-bg: #0a0a0b;  --ft-surface: #141417;  --ft-surface-2: #1c1c21;
+  --ft-border: #2a2a31;  --ft-text: #f4f4f5;  --ft-text-2: #a1a1aa;  --ft-text-3: #71717a;
+
+  --ft-radius-sm: 6px; --ft-radius-md: 8px; --ft-radius-lg: 12px;
+
+  /* ── Directional — always the BUYER's perspective: down = good = green ── */
+  --ft-down: #22c55e;  --ft-up: #ef4444;
+
+  /* ── Legacy aliases (pre-rebrand var names used across the app CSS) ── */
+  --base: var(--ft-bg);  --surface: var(--ft-surface);  --card: var(--ft-surface-2);
+  --hover: #17171a;  --nav: #0e0e10;  --border: var(--ft-border);
+  --divider: #232327;  --row-divider: var(--ft-surface-2);
+  --text: var(--ft-text);  --text-soft: #e4e4e7;  --text-quiet: #d4d4d8;
+  --muted: var(--ft-text-2);  --text-dim: var(--ft-text-3);
+  --text-dimmer: #52525b;  --text-dimmest: #3f3f46;
+  --accent-blue: var(--ft-primary);  --accent-hover: var(--ft-primary-strong);
+  --fire: var(--ft-grade-fire);  --gem: var(--ft-accent);
+  --down: var(--ft-down);  --up: var(--ft-up);
+
+  /* Flash messages */
+  --flash-ok-bg:  #064e3b; --flash-ok-border:  #059669; --flash-ok-text:  #d1fae5;
+  --flash-err-bg: #450a0a; --flash-err-border: #b91c1c; --flash-err-text: #fecaca;
+
+  /* Type scale (px) — base 14, tabular-nums on all numerics */
+  --fs-kpi: 26px; --fs-panel: 22px; --fs-title: 20px;
+  --fs-stat: 19px; --fs-stat-sm: 15px;
+  --fs-body: 13px; --fs-secondary: 12px; --fs-caption: 11px; --fs-micro: 10px;
+
+  /* Radii (legacy component radii; --ft-radius-* is the go-forward scale) */
+  --r-card: 10px; --r-cell: 8px; --r-row: 7px; --r-control: 6px;
+  --r-pill: 20px; --r-badge: 4px;
+
+  /* Spacing / layout */
+  --pad-card: 20px; --pad-page: 24px 20px;
+  --nav-h: 52px; --content-max: 1600px;
+}
+
+/* ── Light theme — soft variants per the Design formulas; neutrals are
+   DERIVED (zinc-light), pending the full Design-project files. Used by
+   emails/new surfaces; the web UI ships dark-only. ── */
+[data-theme="light"] {
+  --ft-primary-soft: rgba(37,99,235,.10);
+  --ft-accent-soft: rgba(168,85,247,.10);
+
+  --ft-bg: #fafafa;  --ft-surface: #ffffff;  --ft-surface-2: #f4f4f5;
+  --ft-border: #e4e4e7;  --ft-text: #18181b;  --ft-text-2: #52525b;  --ft-text-3: #a1a1aa;
+
+  --hover: #eef0f3;  --nav: #ffffff;  --divider: #ececef;  --row-divider: #f0f0f2;
+  --text-soft: #27272a;  --text-quiet: #3f3f46;
+  --text-dimmer: #71717a;  --text-dimmest: #8f8f98;
+
+  --ft-down: #16a34a;  --ft-up: #dc2626;
+}
