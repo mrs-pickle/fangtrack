@@ -220,13 +220,16 @@ def init_auth(app):
                     flash("That email is already registered — sign in instead.", "error")
                     return render_template("register.html")
                 is_first = conn.execute("SELECT COUNT(*) c FROM users").fetchone()["c"] == 0
+                # Registration NEVER grants admin (a public signup on a fresh/empty DB
+                # would otherwise hand admin to a stranger). Admin comes only from the
+                # FANGTRACK_ADMIN_EMAILS allowlist (see init_auth_tables).
                 cur = conn.execute(
                     "INSERT INTO users (email, password_hash, display_name, notify_email, is_admin) "
-                    "VALUES (?,?,?,?,?)",
-                    (email, generate_password_hash(pw), name, email, 1 if is_first else 0))
+                    "VALUES (?,?,?,?,0)",
+                    (email, generate_password_hash(pw), name, email))
                 uid = cur.lastrowid
                 if is_first:
-                    # First account inherits any pre-existing single-user data.
+                    # First account still inherits any pre-existing single-user data.
                     for tbl in _USER_TABLES:
                         conn.execute(f"UPDATE {tbl} SET user_id=? WHERE user_id IS NULL", (uid,))
                 conn.commit()

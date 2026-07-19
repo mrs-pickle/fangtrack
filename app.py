@@ -128,6 +128,18 @@ def _security_headers(resp):
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    # CSP tuned to what the site actually loads: Tailwind CDN + inline styles/scripts
+    # (base.html), and external product images on deals/species. Restricts everything
+    # else — blocks 3rd-party script injection, framing (clickjacking), external form
+    # posts, and <base> hijacking. Defense-in-depth (stored-XSS risk is already low).
+    resp.headers.setdefault("Content-Security-Policy",
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'self'; base-uri 'self'; form-action 'self'")
     if os.environ.get("FANGTRACK_HTTPS"):
         resp.headers.setdefault("Strict-Transport-Security",
                                 "max-age=31536000; includeSubDomains")
@@ -2466,10 +2478,11 @@ def vendor_detail(vendor_key):
 @login_required
 def alerts():
     from analytics.alerts import load_feed, load_saved_searches, mark_all_read
-    feed = load_feed(200)
-    searches = load_saved_searches()
+    uid = current_user_id()
+    feed = load_feed(200, user_id=uid)
+    searches = load_saved_searches(user_id=uid)
     if request.args.get("read") == "1":
-        mark_all_read()
+        mark_all_read(user_id=uid)
         return redirect(url_for("alerts"))
     return render_template("alerts.html", feed=feed, searches=searches)
 
@@ -2491,7 +2504,8 @@ def alerts_search_add():
     if not crit:
         flash("Add at least one filter to save a search.", "error")
         return redirect(url_for("alerts"))
-    add_saved_search(name, crit, notify=True, now=datetime.now().isoformat())
+    add_saved_search(name, crit, notify=True, now=datetime.now().isoformat(),
+                     user_id=current_user_id())
     flash(f"Saved search '{name or 'unnamed'}' — you'll be alerted on new matches.", "success")
     return redirect(url_for("alerts"))
 
@@ -2500,7 +2514,7 @@ def alerts_search_add():
 @login_required
 def alerts_search_remove(sid):
     from analytics.alerts import remove_saved_search
-    remove_saved_search(sid)
+    remove_saved_search(sid, user_id=current_user_id())
     flash("Saved search removed.", "success")
     return redirect(url_for("alerts"))
 
@@ -2509,7 +2523,7 @@ def alerts_search_remove(sid):
 def api_alerts_unread():
     try:
         from analytics.alerts import unread_count
-        return jsonify({"unread": unread_count()})
+        return jsonify({"unread": unread_count(user_id=current_user_id())})
     except Exception:
         return jsonify({"unread": 0})
 

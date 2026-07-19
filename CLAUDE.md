@@ -56,9 +56,12 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   cron imports app.py too); Secure session cookie default in prod. Added `FANGTRACK_ADMIN_EMAILS`
   allowlist (promotes listed emails to admin at boot; promote-only). Audit verified SOUND: CSRF,
   SQL-injection (all parameterized incl. pg adapter), password hashing/reset, collection/watchlist
-  IDOR scoping, file upload, open-redirect, login/register/forgot rate-limits. STILL OPEN (pre-heavy-
-  multiuser): alerts saved-searches are GLOBAL not per-user (IDOR — M1); first-user-auto-admin (M2,
-  mitigated by allowlist); no CSP (L3).
+  IDOR scoping, file upload, open-redirect, login/register/forgot rate-limits.
+- 2026-07-19 — Security round 2 (M1/M2/L3 FIXED): alerts saved-searches + feed now scoped to
+  `user_id` (remove verifies ownership — closes the cross-user IDOR); registration NEVER grants
+  admin (M2 — admin only via the allowlist); CSP added (allows Tailwind CDN + inline + https images,
+  restricts the rest). Also fixed the same From-address bug in alerts `_maybe_email`. Auth test
+  updated to the allowlist model; `_csrf` test helper uses /collection (settings is admin-only now).
 - 2026-07-19 — `cache_blob` upsert MUST use `ON CONFLICT(name) DO UPDATE` (not DELETE+INSERT): the pg
   adapter auto-appends `RETURNING id` to a plain INSERT and cache_blob has no id → "column id does not
   exist" and warm_and_persist silently skipped (site showed 0). ON CONFLICT makes the adapter skip it.

@@ -36,9 +36,10 @@ def _reset():
 
 
 def _csrf(client):
-    # /register only renders the token while logged-out (redirects once
-    # authenticated); /settings renders it for a logged-in user.
-    for path in ("/register", "/settings"):
+    # /register renders the token while logged-out (redirects once authenticated);
+    # /collection renders it for any logged-in user (base.html emits window.CSRF).
+    # NB: /settings is admin-only now, so it can't be the logged-in fallback.
+    for path in ("/register", "/collection"):
         m = re.search(r'window\.CSRF = "([a-f0-9]+)"', client.get(path).get_data(as_text=True))
         if m:
             return m.group(1)
@@ -51,13 +52,22 @@ def _register(client, email, pw="password123", name="U"):
                                           "password": pw, "display_name": name})
 
 
-def test_first_user_is_admin_and_isolation():
+def test_admin_via_allowlist_and_isolation():
     _reset()
     c1 = app.test_client()
     r = _register(c1, "admin@x.com")
     assert r.status_code == 302, "register should redirect"
-    # admin can reach the admin-only Crawler tab
-    assert c1.get("/history").status_code == 200
+    # Registration NO LONGER auto-grants admin (public signup on empty DB must not).
+    assert c1.get("/history").status_code == 403, "first registrant must NOT be auto-admin"
+
+    # Admin is granted only via the FANGTRACK_ADMIN_EMAILS allowlist, applied at init.
+    import auth
+    os.environ["FANGTRACK_ADMIN_EMAILS"] = "admin@x.com"
+    try:
+        auth.init_auth_tables()
+    finally:
+        os.environ.pop("FANGTRACK_ADMIN_EMAILS", None)
+    assert c1.get("/history").status_code == 200, "allowlisted account should be admin"
 
     # second user: non-admin, empty collection, no admin access
     c2 = app.test_client()

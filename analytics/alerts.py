@@ -50,25 +50,39 @@ def _write(path: Path, data):
 
 # ── Saved searches ──────────────────────────────────────────────────────────
 
-def load_saved_searches() -> list:
+def _all_saved_searches() -> list:
     return _read(SEARCHES_FILE, [])
 
 
+def _visible_to(rec, user_id):
+    """An untagged (legacy) record is global; otherwise it belongs to one user."""
+    uid = rec.get("user_id")
+    return uid is None or user_id is None or uid == user_id
+
+
+def load_saved_searches(user_id=None) -> list:
+    """Searches for ONE user. user_id=None (crawl/eval context) returns all."""
+    return [s for s in _all_saved_searches() if _visible_to(s, user_id)]
+
+
 def add_saved_search(name: str, criteria: dict, notify: bool = True,
-                     now: str | None = None) -> dict:
-    searches = load_saved_searches()
+                     now: str | None = None, user_id=None) -> dict:
+    searches = _all_saved_searches()
     sid = (max([s.get("id", 0) for s in searches]) + 1) if searches else 1
     entry = {"id": sid, "name": name or f"Search {sid}",
-             "criteria": criteria, "notify": bool(notify),
+             "criteria": criteria, "notify": bool(notify), "user_id": user_id,
              "created_at": now or datetime.now().isoformat()}
     searches.append(entry)
     _write(SEARCHES_FILE, searches)
     return entry
 
 
-def remove_saved_search(sid: int) -> None:
-    searches = [s for s in load_saved_searches() if s.get("id") != sid]
-    _write(SEARCHES_FILE, searches)
+def remove_saved_search(sid: int, user_id=None) -> None:
+    """Remove only if the search belongs to this user (prevents cross-user IDOR)."""
+    searches = _all_saved_searches()
+    kept = [s for s in searches
+            if not (s.get("id") == sid and (user_id is None or s.get("user_id") == user_id))]
+    _write(SEARCHES_FILE, kept)
 
 
 # ── Matching ────────────────────────────────────────────────────────────────
@@ -187,19 +201,23 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
     return new_events
 
 
-def load_feed(limit: int = 200) -> list:
-    return _read(FEED_FILE, [])[:limit]
+def load_feed(limit: int = 200, user_id=None) -> list:
+    """Alerts visible to this user: global market events (untagged) + this user's
+    saved-search hits. user_id=None returns everything (eval context)."""
+    return [ev for ev in _read(FEED_FILE, []) if _visible_to(ev, user_id)][:limit]
 
 
-def mark_all_read() -> None:
+def mark_all_read(user_id=None) -> None:
     feed = _read(FEED_FILE, [])
     for ev in feed:
-        ev["read"] = True
+        if _visible_to(ev, user_id):
+            ev["read"] = True
     _write(FEED_FILE, feed)
 
 
-def unread_count() -> int:
-    return sum(1 for ev in _read(FEED_FILE, []) if not ev.get("read"))
+def unread_count(user_id=None) -> int:
+    return sum(1 for ev in _read(FEED_FILE, [])
+               if not ev.get("read") and _visible_to(ev, user_id))
 
 
 def _maybe_email(settings: dict, events: list) -> None:
@@ -213,9 +231,12 @@ def _maybe_email(settings: dict, events: list) -> None:
              for e in events[:50]]
     body = ("FangTrack Pro — %d new alert(s)\n\n" % len(events)) + "\n\n".join(lines)
     subject = f"🕷 FangTrack — {len(events)} new alert(s)"
-    msg = (f"From: {settings['smtp_user']}\r\nTo: {settings['notify_email']}\r\n"
+    # From must be a verified-domain address, not the SMTP username (Resend drops it).
+    frm = settings.get("mail_from") or "FangTrack <mike@fangtrack.com>"
+    envelope = (frm.split("<", 1)[1].split(">", 1)[0] if "<" in frm and ">" in frm else frm)
+    msg = (f"From: {frm}\r\nTo: {settings['notify_email']}\r\n"
            f"Subject: {subject}\r\n\r\n{body}")
     with smtplib.SMTP(settings["smtp_host"], settings["smtp_port"]) as srv:
         srv.starttls()
         srv.login(settings["smtp_user"], settings["smtp_pass"])
-        srv.sendmail(settings["smtp_user"], [settings["notify_email"]], msg.encode("utf-8"))
+        srv.sendmail(envelope, [settings["notify_email"]], msg.encode("utf-8"))
