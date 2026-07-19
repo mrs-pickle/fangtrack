@@ -5,9 +5,9 @@
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; gap:12px; flex-wrap:wrap;">
   <div>
-    <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0; color:#f0f0f0;">Dashboard</h1>
-    <div style="font-size:12px; color:#666; margin-top:4px;">
-      Last crawl <span style="color:#aaa;">{{ last_crawl or '—' }}</span> · {{ vendors_live }} vendors ·
+    <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0; color:#f4f4f5;">Dashboard</h1>
+    <div style="font-size:12px; color:#71717a; margin-top:4px;">
+      Last crawl <span style="color:#a1a1aa;">{{ last_crawl or '—' }}</span> · {{ vendors_live }} vendors ·
       {% if crawl_health == 'ok' %}<span style="color:#22c55e;">all healthy</span>{% else %}<span style="color:#f59e0b;">{{ crawl_health }}</span>{% endif %}
     </div>
   </div>
@@ -15,19 +15,19 @@
 
 <!-- ── KPI strip ──────────────────────────────────────────────────────────── -->
 <div class="kpi-strip">
-  <a href="/deals" class="kpi" style="--acc:#1a73e8;">
-    <div class="kpi-label" style="color:#888;">Total listings</div>
-    <div class="kpi-val" style="color:#f0f0f0;">{{ "{:,}".format(total) }}</div>
+  <a href="/deals" class="kpi" style="--acc:#2563eb;">
+    <div class="kpi-label" style="color:#a1a1aa;">Total listings</div>
+    <div class="kpi-val" style="color:#f4f4f5;">{{ "{:,}".format(total) }}</div>
   </a>
-  <a href="/deals?deal=fire" class="kpi" style="--acc:#ff6b00;">
-    <div class="kpi-label" style="color:#ff6b00;">🔥 Fire deals</div>
+  <a href="/deals?deal=fire" class="kpi" style="--acc:#f97316;">
+    <div class="kpi-label" style="color:#f97316;">🔥 Fire deals</div>
     <div class="kpi-val" style="color:#f59e0b;">{{ fire_count }}</div>
   </a>
   <a href="/deals?deal=gem2" class="kpi" style="--acc:#a855f7;">
     <div class="kpi-label" style="color:#a78bfa;">💎💎 Exceptional</div>
     <div class="kpi-val" style="color:#a78bfa;">{{ "{:,}".format(gem2_count) }}</div>
   </a>
-  <a href="/deals?deal=gem" class="kpi" style="--acc:#1d4ed8;">
+  <a href="/deals?deal=gem" class="kpi" style="--acc:#3b82f6;">
     <div class="kpi-label" style="color:#93c5fd;">💎 Strong</div>
     <div class="kpi-val" style="color:#93c5fd;">{{ "{:,}".format(gem1_count) }}</div>
   </a>
@@ -36,8 +36,8 @@
     <div class="kpi-val" style="color:#6ee7b7;">{{ "{:,}".format(fair_count) }}</div>
   </div>
   <div class="kpi kpi--static">
-    <div class="kpi-label" style="color:#9ca3af;">👎 Above market</div>
-    <div class="kpi-val" style="color:#9ca3af;">{{ "{:,}".format(above_count) }}</div>
+    <div class="kpi-label" style="color:#a1a1aa;">👎 Above market</div>
+    <div class="kpi-val" style="color:#a1a1aa;">{{ "{:,}".format(above_count) }}</div>
   </div>
   <a href="/deals?sex=F" class="kpi" style="--acc:#f9a8d4;">
     <div class="kpi-label" style="color:#f9a8d4;">♀ Females</div>
@@ -45,17 +45,17 @@
   </a>
   <a href="/watchlist" class="kpi" style="--acc:#34d399;">
     <div class="kpi-label" style="color:#34d399;">🎯 Watchlist</div>
-    <div class="kpi-val" style="color:#34d399;">{{ wl_count }} <span style="font-size:11px; font-weight:400; color:#888;">targets</span></div>
+    <div class="kpi-val" style="color:#34d399;">{{ wl_count }} <span style="font-size:11px; font-weight:400; color:#a1a1aa;">targets</span></div>
   </a>
 </div>
 
 <!-- ── Market Movers ──────────────────────────────────────────────────────── -->
-<div style="font-size:12px; font-weight:700; color:#1a73e8; margin:0 0 12px; text-transform:uppercase; letter-spacing:.06em;">📈 Market movers</div>
+<div style="font-size:12px; font-weight:700; color:#2563eb; margin:0 0 12px; text-transform:uppercase; letter-spacing:.06em;">📈 Market movers</div>
 
 {% macro empty_state(glyph, color, title, body, pill) %}
 <div class="mv-empty">
   <div class="mv-empty-ico" style="color:{{ color }};">{{ glyph }}</div>
-  <div style="font-size:13px; font-weight:600; color:#cfcfcf;">{{ title }}</div>
+  <div style="font-size:13px; font-weight:600; color:#d4d4d8;">{{ title }}</div>
   <div style="font-size:12px; color:#777; line-height:1.5; max-width:210px;">{{ body }}</div>
   <div class="mv-pill">{{ pill|safe }}</div>
 </div>
@@ -65,77 +65,77 @@
 
   <!-- Fire deals (populated) -->
   <div class="mv-card">
-    <div style="font-size:12px; font-weight:700; color:#ff6b00; margin-bottom:10px;">🔥 All-Time-Low Deals{% if movers.fire %} <span style="color:#555; font-weight:400;">({{ movers.fire|length }})</span>{% endif %}</div>
+    <div style="font-size:12px; font-weight:700; color:#f97316; margin-bottom:10px;">🔥 All-Time-Low Deals{% if movers.fire %} <span style="color:#52525b; font-weight:400;">({{ movers.fire|length }})</span>{% endif %}</div>
     {% if movers.fire %}
     <div style="display:flex; flex-direction:column;">
       {% for l in movers.fire[:5] %}
       <a href="/species/{{ l.scientific_name_key }}" class="mover-item">
         <div class="mover-name" title="{{ l.sci_display }}{% if l.common_clean %} ({{ l.common_clean }}){% endif %}">{{ l.sci_display }}{% if l.common_clean %} <span class="mover-common">({{ l.common_clean }})</span>{% endif %}</div>
-        <div style="font-size:12px; color:#888; margin-top:2px;"><b style="color:#e0e0e0;">${{ "%.0f"|format(l.price_usd) }}</b>{% if l.size_text %} · {{ l.size_text }}{% endif %}{% if l.landed_cost %} · ${{ "%.0f"|format(l.landed_cost) }} shipped{% endif %} · {{ l.vendor_key }}</div>
+        <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><b style="color:#e4e4e7;">${{ "%.0f"|format(l.price_usd) }}</b>{% if l.size_text %} · {{ l.size_text }}{% endif %}{% if l.landed_cost %} · ${{ "%.0f"|format(l.landed_cost) }} shipped{% endif %} · {{ l.vendor_key }}</div>
       </a>
       {% endfor %}
-      <a href="/deals?deal=fire" style="font-size:12px; color:#1a73e8; padding-top:10px; text-decoration:none;">All {{ movers.fire|length }} →</a>
+      <a href="/deals?deal=fire" style="font-size:12px; color:#2563eb; padding-top:10px; text-decoration:none;">All {{ movers.fire|length }} →</a>
     </div>
     {% else %}
-    {{ empty_state('🔥', '#ff6b00', 'No all-time lows yet', 'Fire deals appear when a delivered price is the lowest we have ever recorded and multiple vendors carry it.', 'Populates as prices accumulate') }}
+    {{ empty_state('🔥', '#f97316', 'No all-time lows yet', 'Fire deals appear when a delivered price is the lowest we have ever recorded and multiple vendors carry it.', 'Populates as prices accumulate') }}
     {% endif %}
   </div>
 
   <!-- Biggest drops -->
   <div class="mv-card">
-    <div style="font-size:12px; font-weight:700; color:#22c55e; margin-bottom:10px;">▼ Biggest Price Drops{% if movers.drops %} <span style="color:#555; font-weight:400;">({{ movers.drops|length }})</span>{% endif %}</div>
+    <div style="font-size:12px; font-weight:700; color:#22c55e; margin-bottom:10px;">▼ Biggest Price Drops{% if movers.drops %} <span style="color:#52525b; font-weight:400;">({{ movers.drops|length }})</span>{% endif %}</div>
     {% if movers.drops %}
     <div style="display:flex; flex-direction:column;">
       {% for d in movers.drops[:5] %}
       <a href="/species/{{ d.scientific_name_key }}" class="mover-item">
         <div class="mover-name" title="{{ d.sci_display }}">{{ d.sci_display }}{% if d.common_clean %} <span class="mover-common">({{ d.common_clean }})</span>{% endif %}</div>
-        <div style="font-size:12px; color:#888; margin-top:2px;"><s style="color:#666;">${{ "%.0f"|format(d.prev_price) }}</s> → <b style="color:#22c55e;">${{ "%.0f"|format(d.new_price) }}</b> <span style="color:#22c55e;">−{{ d.pct|int }}%</span></div>
+        <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><s style="color:#71717a;">${{ "%.0f"|format(d.prev_price) }}</s> → <b style="color:#22c55e;">${{ "%.0f"|format(d.new_price) }}</b> <span style="color:#22c55e;">−{{ d.pct|int }}%</span></div>
       </a>
       {% endfor %}
     </div>
     {% elif days_history < 2 %}
-    {{ empty_state('▼', '#22c55e', 'No price history yet', 'Drops are detected by comparing prices across daily crawls.', 'Unlocks after 2 days of crawls · <b style="color:#e0e0e0">' ~ days_history ~ ' of 2</b>') }}
+    {{ empty_state('▼', '#22c55e', 'No price history yet', 'Drops are detected by comparing prices across daily crawls.', 'Unlocks after 2 days of crawls · <b style="color:#e4e4e7">' ~ days_history ~ ' of 2</b>') }}
     {% else %}
-    {{ empty_state('▼', '#22c55e', 'No drops in the latest crawl', 'We compared the two most recent crawls; nothing got cheaper at the same seller.', 'Checked latest crawl · <b style="color:#e0e0e0">none found</b>') }}
+    {{ empty_state('▼', '#22c55e', 'No drops in the latest crawl', 'We compared the two most recent crawls; nothing got cheaper at the same seller.', 'Checked latest crawl · <b style="color:#e4e4e7">none found</b>') }}
     {% endif %}
   </div>
 
   <!-- Back in stock -->
   <div class="mv-card">
-    <div style="font-size:12px; font-weight:700; color:#1a73e8; margin-bottom:10px;">↺ Back In Stock{% if movers.back_in_stock %} <span style="color:#555; font-weight:400;">({{ movers.back_in_stock|length }})</span>{% endif %}</div>
+    <div style="font-size:12px; font-weight:700; color:#2563eb; margin-bottom:10px;">↺ Back In Stock{% if movers.back_in_stock %} <span style="color:#52525b; font-weight:400;">({{ movers.back_in_stock|length }})</span>{% endif %}</div>
     {% if movers.back_in_stock %}
     <div style="display:flex; flex-direction:column;">
       {% for l in movers.back_in_stock[:5] %}
       <a href="/species/{{ l.scientific_name_key }}" class="mover-item">
         <div class="mover-name" title="{{ l.sci_display }}">{{ l.sci_display }}{% if l.common_clean %} <span class="mover-common">({{ l.common_clean }})</span>{% endif %}</div>
-        <div style="font-size:12px; color:#888; margin-top:2px;"><b style="color:#e0e0e0;">${{ "%.0f"|format(l.price_usd) }}</b> · {{ l.vendor_key }}</div>
+        <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><b style="color:#e4e4e7;">${{ "%.0f"|format(l.price_usd) }}</b> · {{ l.vendor_key }}</div>
       </a>
       {% endfor %}
     </div>
     {% elif days_history < 2 %}
-    {{ empty_state('↺', '#1a73e8', 'Nothing to restock yet', 'Restocks show when a species that sold out reappears at any vendor.', 'Unlocks after 2 days of crawls · <b style="color:#e0e0e0">' ~ days_history ~ ' of 2</b>') }}
+    {{ empty_state('↺', '#2563eb', 'Nothing to restock yet', 'Restocks show when a species that sold out reappears at any vendor.', 'Unlocks after 2 days of crawls · <b style="color:#e4e4e7">' ~ days_history ~ ' of 2</b>') }}
     {% else %}
-    {{ empty_state('↺', '#1a73e8', 'No restocks in the latest crawl', 'Nothing that was sold out last crawl is back in stock this crawl.', 'Checked latest crawl · <b style="color:#e0e0e0">none found</b>') }}
+    {{ empty_state('↺', '#2563eb', 'No restocks in the latest crawl', 'Nothing that was sold out last crawl is back in stock this crawl.', 'Checked latest crawl · <b style="color:#e4e4e7">none found</b>') }}
     {% endif %}
   </div>
 
   <!-- Heating up -->
   <div class="mv-card">
-    <div style="font-size:12px; font-weight:700; color:#ef4444; margin-bottom:10px;">▲ Heating Up{% if movers.heating %} <span style="color:#555; font-weight:400;">({{ movers.heating|length }})</span>{% endif %}</div>
+    <div style="font-size:12px; font-weight:700; color:#ef4444; margin-bottom:10px;">▲ Heating Up{% if movers.heating %} <span style="color:#52525b; font-weight:400;">({{ movers.heating|length }})</span>{% endif %}</div>
     {% if movers.heating %}
     <div style="display:flex; flex-direction:column;">
       {% for key, st in movers.heating[:5] %}
       <a href="/species/{{ key }}" class="mover-item" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <div style="min-width:0; flex:1;">
           <div class="mover-name">{{ key.split()[0]|capitalize }} {{ key.split()[1:]|join(' ') }}</div>
-          <div style="font-size:12px; color:#888;">mkt ${{ "%.0f"|format(st.market_price or 0) }} · <span style="color:#ef4444;">+{{ st.trend_pct|int }}%/mo</span></div>
+          <div style="font-size:12px; color:#a1a1aa;">mkt ${{ "%.0f"|format(st.market_price or 0) }} · <span style="color:#ef4444;">+{{ st.trend_pct|int }}%/mo</span></div>
         </div>
         <span class="spark" style="flex:none;">{{ spark_svg(st.spark, 60, 22)|safe }}</span>
       </a>
       {% endfor %}
     </div>
     {% else %}
-    {{ empty_state('▲', '#ef4444', 'Momentum needs history', 'Heating / cooling tags appear after ~2 weeks of daily crawls.', 'Day <b style="color:#e0e0e0">' ~ ([days_history, 14]|min) ~ ' of 14</b>') }}
+    {{ empty_state('▲', '#ef4444', 'Momentum needs history', 'Heating / cooling tags appear after ~2 weeks of daily crawls.', 'Day <b style="color:#e4e4e7">' ~ ([days_history, 14]|min) ~ ' of 14</b>') }}
     {% endif %}
   </div>
 </div>
@@ -146,8 +146,8 @@
   <!-- Top Deals -->
   <div class="dash-tile" style="display:flex; flex-direction:column;">
     <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-      <div style="font-size:12px; font-weight:700; color:#1a73e8; text-transform:uppercase; letter-spacing:.06em;">🔥 Top deals right now</div>
-      <a href="/deals?deal=fire" style="font-size:12px; color:#1a73e8; text-decoration:none;">View all deals →</a>
+      <div style="font-size:12px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:.06em;">🔥 Top deals right now</div>
+      <a href="/deals?deal=fire" style="font-size:12px; color:#2563eb; text-decoration:none;">View all deals →</a>
     </div>
     {% if top_deals %}
     <table style="border-collapse:collapse; width:100%;">
@@ -160,29 +160,29 @@
       {% set rs = l.size_class_rarity_score or l.rarity_score or 0 %}
       <tr>
         <td class="td-td">
-          {% if l.is_fire_deal %}<span style="background:#ff6b00; color:#fff; padding:2px 7px; border-radius:4px; font-size:11px;">🔥</span>
-          {% elif l.deal_rating == '💎💎' %}<span style="background:#7c3aed; color:#f0f0f0; padding:2px 7px; border-radius:4px; font-size:11px;">💎💎</span>
-          {% elif l.deal_rating == '💎' %}<span style="background:#1d4ed8; color:#bfdbfe; padding:2px 7px; border-radius:4px; font-size:11px;">💎</span>{% endif %}
+          {% if l.is_fire_deal %}<span style="background:#f97316; color:#fff; padding:2px 7px; border-radius:4px; font-size:11px;">🔥</span>
+          {% elif l.deal_rating == '💎💎' %}<span style="background:#7c3aed; color:#f4f4f5; padding:2px 7px; border-radius:4px; font-size:11px;">💎💎</span>
+          {% elif l.deal_rating == '💎' %}<span style="background:#3b82f6; color:#ffffff; padding:2px 7px; border-radius:4px; font-size:11px;">💎</span>{% endif %}
         </td>
-        <td class="td-td"><a href="/species/{{ l.scientific_name_key }}" style="font-style:italic; color:#1a73e8; font-size:13px; text-decoration:none;">{{ l.sci_display }}</a>{% if l.owned %} <span style="color:#1a73e8; font-weight:800;" title="You own this">✓</span>{% endif %}</td>
-        <td class="td-td" style="color:#888; font-size:13px;">{{ l.size_text or '?' }}</td>
-        <td class="td-td" style="font-weight:700; color:#f0f0f0; text-align:right; font-variant-numeric:tabular-nums;">${{ "%.0f"|format(l.price_usd) }}</td>
-        <td class="td-td" style="color:#555; font-size:12px;">{{ l.vendor_key }}</td>
+        <td class="td-td"><a href="/species/{{ l.scientific_name_key }}" style="font-style:italic; color:#2563eb; font-size:13px; text-decoration:none;">{{ l.sci_display }}</a>{% if l.owned %} <span style="color:#2563eb; font-weight:800;" title="You own this">✓</span>{% endif %}</td>
+        <td class="td-td" style="color:#a1a1aa; font-size:13px;">{{ l.size_text or '?' }}</td>
+        <td class="td-td" style="font-weight:700; color:#f4f4f5; text-align:right; font-variant-numeric:tabular-nums;">${{ "%.0f"|format(l.price_usd) }}</td>
+        <td class="td-td" style="color:#52525b; font-size:12px;">{{ l.vendor_key }}</td>
         <td class="td-td">{% if rs %}<span class="score-{{ rs }}" style="padding:2px 7px; border-radius:4px; font-size:11px; font-weight:700;">{{ rs }}/10</span>{% endif %}</td>
       </tr>
       {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div style="color:#555; text-align:center; padding:40px 0;">No deals loaded yet — the next scheduled crawl will populate this.</div>
+    <div style="color:#52525b; text-align:center; padding:40px 0;">No deals loaded yet — the next scheduled crawl will populate this.</div>
     {% endif %}
   </div>
 
   <!-- Market Intelligence -->
   <div class="dash-tile">
     <div style="display:flex; align-items:baseline; justify-content:space-between;">
-      <div style="font-size:12px; font-weight:700; color:#1a73e8; text-transform:uppercase; letter-spacing:.06em;">🧠 Market intelligence</div>
-      <div style="font-size:11px; color:#666;">latest crawl · whole dataset</div>
+      <div style="font-size:12px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:.06em;">🧠 Market intelligence</div>
+      <div style="font-size:11px; color:#71717a;">latest crawl · whole dataset</div>
     </div>
 
     {% set pa = intel.price_action %}{% set cov = intel.coverage %}
@@ -191,26 +191,26 @@
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
       <div class="mi-cell">
         <div class="mi-cap-lbl">Median ask</div>
-        <div class="mi-big" style="color:#f0f0f0;">${{ "{:,}".format(pa.median_ask or 0) }}</div>
-        <div style="font-size:11px; color:#666; margin-top:2px;">trimmed median</div>
+        <div class="mi-big" style="color:#f4f4f5;">${{ "{:,}".format(pa.median_ask or 0) }}</div>
+        <div style="font-size:11px; color:#71717a; margin-top:2px;">trimmed median</div>
       </div>
       {% if pa.jump %}
       <a href="{{ pa.jump.href }}" class="mi-cell mi-cell--link">
         <div class="mi-cap-lbl">Biggest jump</div>
         <div class="mi-big" style="color:#ef4444;">{{ pa.jump.label }}</div>
-        <div style="font-size:11px; color:#888; margin-top:2px; font-style:italic;">{{ pa.jump.sci }} <span style="font-style:normal; color:#666;">${{ "%.0f"|format(pa.jump.prev) }}→${{ "%.0f"|format(pa.jump.new) }}</span></div>
+        <div style="font-size:11px; color:#a1a1aa; margin-top:2px; font-style:italic;">{{ pa.jump.sci }} <span style="font-style:normal; color:#71717a;">${{ "%.0f"|format(pa.jump.prev) }}→${{ "%.0f"|format(pa.jump.new) }}</span></div>
       </a>
       {% else %}
-      <div class="mi-cell"><div class="mi-cap-lbl">Biggest jump</div><div class="mi-big" style="color:#555;">—</div><div style="font-size:11px; color:#666; margin-top:2px;">needs history</div></div>
+      <div class="mi-cell"><div class="mi-cap-lbl">Biggest jump</div><div class="mi-big" style="color:#52525b;">—</div><div style="font-size:11px; color:#71717a; margin-top:2px;">needs history</div></div>
       {% endif %}
       {% if pa.drop %}
       <a href="{{ pa.drop.href }}" class="mi-cell mi-cell--link">
         <div class="mi-cap-lbl">Biggest drop</div>
         <div class="mi-big" style="color:#22c55e;">{{ pa.drop.label }}</div>
-        <div style="font-size:11px; color:#888; margin-top:2px; font-style:italic;">{{ pa.drop.sci }} <span style="font-style:normal; color:#666;">${{ "%.0f"|format(pa.drop.prev) }}→${{ "%.0f"|format(pa.drop.new) }}</span></div>
+        <div style="font-size:11px; color:#a1a1aa; margin-top:2px; font-style:italic;">{{ pa.drop.sci }} <span style="font-style:normal; color:#71717a;">${{ "%.0f"|format(pa.drop.prev) }}→${{ "%.0f"|format(pa.drop.new) }}</span></div>
       </a>
       {% else %}
-      <div class="mi-cell"><div class="mi-cap-lbl">Biggest drop</div><div class="mi-big" style="color:#555;">—</div><div style="font-size:11px; color:#666; margin-top:2px;">needs history</div></div>
+      <div class="mi-cell"><div class="mi-cap-lbl">Biggest drop</div><div class="mi-big" style="color:#52525b;">—</div><div style="font-size:11px; color:#71717a; margin-top:2px;">needs history</div></div>
       {% endif %}
     </div>
 
@@ -218,20 +218,20 @@
     <div class="mi-group">Coverage</div>
     <div class="mi-coverage">
       <a href="/species" style="text-decoration:none;">
-        <div style="font-size:19px; font-weight:800; color:#f0f0f0; font-variant-numeric:tabular-nums;">{{ "{:,}".format(cov.species or 0) }}</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">species tracked · {{ cov.genera }} genera</div>
+        <div style="font-size:19px; font-weight:800; color:#f4f4f5; font-variant-numeric:tabular-nums;">{{ "{:,}".format(cov.species or 0) }}</div>
+        <div style="font-size:11px; color:#a1a1aa; margin-top:2px;">species tracked · {{ cov.genera }} genera</div>
       </a>
       <a href="/deals" style="text-decoration:none;">
-        <div style="font-size:19px; font-weight:800; color:#f0f0f0; font-variant-numeric:tabular-nums;">{{ "{:,}".format(cov.listings or 0) }}</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">live listings · {{ cov.vendors }} vendors</div>
+        <div style="font-size:19px; font-weight:800; color:#f4f4f5; font-variant-numeric:tabular-nums;">{{ "{:,}".format(cov.listings or 0) }}</div>
+        <div style="font-size:11px; color:#a1a1aa; margin-top:2px;">live listings · {{ cov.vendors }} vendors</div>
       </a>
       <a href="{{ cov.biggest_genus_href }}" style="text-decoration:none;">
-        <div style="font-size:15px; font-weight:700; color:#f0f0f0; font-style:italic;">{{ cov.biggest_genus }}</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">biggest genus · {{ cov.biggest_genus_n }} species</div>
+        <div style="font-size:15px; font-weight:700; color:#f4f4f5; font-style:italic;">{{ cov.biggest_genus }}</div>
+        <div style="font-size:11px; color:#a1a1aa; margin-top:2px;">biggest genus · {{ cov.biggest_genus_n }} species</div>
       </a>
       <a href="{{ cov.most_listed_href }}" style="text-decoration:none;">
-        <div style="font-size:15px; font-weight:700; color:#f0f0f0; font-style:italic;">{{ cov.most_listed }}</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">most listed · {{ cov.most_listed_n }} live{% if cov.most_listed_common %} · <span style="font-style:italic;">{{ cov.most_listed_common }}</span>{% endif %}</div>
+        <div style="font-size:15px; font-weight:700; color:#f4f4f5; font-style:italic;">{{ cov.most_listed }}</div>
+        <div style="font-size:11px; color:#a1a1aa; margin-top:2px;">most listed · {{ cov.most_listed_n }} live{% if cov.most_listed_common %} · <span style="font-style:italic;">{{ cov.most_listed_common }}</span>{% endif %}</div>
       </a>
     </div>
 
@@ -241,9 +241,9 @@
       {% for s in intel.standouts %}
       <a href="{{ s.href }}" class="mi-standout">
         <span style="background:{{ s.bg }}; color:{{ s.fg }}; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.03em; flex:none;">{{ s.badge }}</span>
-        <span style="font-style:italic; color:#e0e0e0; font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ s.sci }}</span>
-        <span style="margin-left:auto; font-size:13px; font-weight:700; color:#f0f0f0; font-variant-numeric:tabular-nums; flex:none;">{{ s.value }}</span>
-        <span style="font-size:11px; color:#666; flex:none;">{{ s.caption }}</span>
+        <span style="font-style:italic; color:#e4e4e7; font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ s.sci }}</span>
+        <span style="margin-left:auto; font-size:13px; font-weight:700; color:#f4f4f5; font-variant-numeric:tabular-nums; flex:none;">{{ s.value }}</span>
+        <span style="font-size:11px; color:#71717a; flex:none;">{{ s.caption }}</span>
       </a>
       {% endfor %}
     </div>
@@ -254,7 +254,7 @@
   /* KPI strip */
   .kpi-strip { display:grid; grid-template-columns:repeat(8,1fr); gap:10px; margin-bottom:24px; }
   .kpi {
-    background:#141414; border:1px solid #2a2a2a; border-radius:10px; padding:14px 16px;
+    background:#141417; border:1px solid #2a2a31; border-radius:10px; padding:14px 16px;
     text-decoration:none; display:block; transition:border-color .12s;
   }
   a.kpi:hover { border-color:var(--acc); }
@@ -267,36 +267,36 @@
   .movers-grid { display:grid; gap:14px; margin-bottom:24px; grid-template-columns:repeat(4, minmax(0,1fr)); }
   @media (max-width:1100px){ .movers-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
   @media (max-width:560px){  .movers-grid { grid-template-columns:1fr; } }
-  .mv-card { background:#1e1e1e; border:1px solid #2a2a2a; border-radius:10px; padding:16px; display:flex; flex-direction:column; }
-  .mover-item { display:block; text-decoration:none; padding:7px 0; border-bottom:1px solid #1e1e1e; }
+  .mv-card { background:#1c1c21; border:1px solid #2a2a31; border-radius:10px; padding:16px; display:flex; flex-direction:column; }
+  .mover-item { display:block; text-decoration:none; padding:7px 0; border-bottom:1px solid #1c1c21; }
   .mover-item:last-child { border-bottom:none; }
-  .mover-name { font-style:italic; color:#1a73e8; font-size:12.5px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mover-name { font-style:italic; color:#2563eb; font-size:12.5px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mover-common { color:#777; font-style:normal; }
-  .mv-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px dashed #2a2a2a; border-radius:8px; padding:24px 16px; gap:8px; min-height:200px; }
-  .mv-empty-ico { width:40px; height:40px; border-radius:20px; background:#141414; display:flex; align-items:center; justify-content:center; font-size:18px; }
-  .mv-pill { font-size:11px; color:#888; background:#141414; border:1px solid #2a2a2a; border-radius:20px; padding:4px 12px; margin-top:4px; }
+  .mv-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px dashed #2a2a31; border-radius:8px; padding:24px 16px; gap:8px; min-height:200px; }
+  .mv-empty-ico { width:40px; height:40px; border-radius:20px; background:#141417; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .mv-pill { font-size:11px; color:#a1a1aa; background:#141417; border:1px solid #2a2a31; border-radius:20px; padding:4px 12px; margin-top:4px; }
 
   /* Bottom row */
   .dash-bottom { display:grid; grid-template-columns:1fr 480px; gap:20px; align-items:stretch; }
   @media (max-width:1100px){ .dash-bottom { grid-template-columns:1fr; } }
-  .dash-tile { background:#1e1e1e; border:1px solid #2a2a2a; border-radius:10px; padding:20px; }
-  .td-th { background:#141414; color:#1a73e8; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:9px 12px; text-align:left; border-bottom:1px solid #2a2a2a; position:static; }
-  .td-td { padding:8px 12px; border-bottom:1px solid #1e1e1e; }
+  .dash-tile { background:#1c1c21; border:1px solid #2a2a31; border-radius:10px; padding:20px; }
+  .td-th { background:#141417; color:#2563eb; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:9px 12px; text-align:left; border-bottom:1px solid #2a2a31; position:static; }
+  .td-td { padding:8px 12px; border-bottom:1px solid #1c1c21; }
   .dash-tile tbody tr:last-child .td-td { border-bottom:none; }
   .dash-tile tbody tr:hover td { background:transparent; }
 
   /* Market Intelligence */
   .mi-group { font-size:10px; font-weight:700; color:#777; text-transform:uppercase; letter-spacing:.1em; margin:18px 0 8px; }
-  .mi-cell { background:#141414; border:1px solid #2a2a2a; border-radius:8px; padding:12px; display:block; text-decoration:none; }
+  .mi-cell { background:#141417; border:1px solid #2a2a31; border-radius:8px; padding:12px; display:block; text-decoration:none; }
   .mi-cell--link:hover { border-color:#3a3a3a; }
-  .mi-cap-lbl { font-size:10.5px; color:#888; text-transform:uppercase; letter-spacing:.06em; }
+  .mi-cap-lbl { font-size:10.5px; color:#a1a1aa; text-transform:uppercase; letter-spacing:.06em; }
   .mi-big { font-size:22px; font-weight:800; margin-top:4px; font-variant-numeric:tabular-nums; }
-  .mi-coverage { display:grid; grid-template-columns:1fr 1fr; gap:0; background:#141414; border:1px solid #2a2a2a; border-radius:8px; overflow:hidden; }
+  .mi-coverage { display:grid; grid-template-columns:1fr 1fr; gap:0; background:#141417; border:1px solid #2a2a31; border-radius:8px; overflow:hidden; }
   .mi-coverage > a { padding:12px; text-decoration:none; }
-  .mi-coverage > a:nth-child(1), .mi-coverage > a:nth-child(3) { border-right:1px solid #232323; }
-  .mi-coverage > a:nth-child(1), .mi-coverage > a:nth-child(2) { border-bottom:1px solid #232323; }
+  .mi-coverage > a:nth-child(1), .mi-coverage > a:nth-child(3) { border-right:1px solid #232327; }
+  .mi-coverage > a:nth-child(1), .mi-coverage > a:nth-child(2) { border-bottom:1px solid #232327; }
   .mi-standout { display:flex; align-items:center; gap:10px; padding:8px; border-radius:7px; text-decoration:none; transition:background .12s; }
-  .mi-standout:hover { background:#151515; }
+  .mi-standout:hover { background:#17171a; }
 </style>
 
 {% endblock %}

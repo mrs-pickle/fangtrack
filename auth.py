@@ -179,6 +179,21 @@ def _deliver_reset_email(to_addr: str, name: str, link: str) -> None:
         log.warning(f"Reset email not sent ({e}); link for {to_addr}: {link}")
 
 
+def _deliver_welcome_email(to_addr: str, name: str) -> None:
+    """Send the branded multipart welcome email on signup (copy approved by
+    Mike 2026-07-19). Best-effort — a failed send must never break
+    registration; without SMTP (local dev) it just logs."""
+    try:
+        import app as _app
+        html, text = _app.render_email(
+            "welcome", display_name=name,
+            cta_url=f"{_app.SITE_URL}/deals", cta_label="Browse today's deals")
+        _app.send_email(to_addr, "Welcome to FangTrack 🕷️", text, html=html)
+        log.info(f"Welcome email sent to {to_addr}")
+    except Exception as e:
+        log.warning(f"Welcome email not sent to {to_addr}: {e}")
+
+
 def init_auth(app):
     """Wire CSRF, the per-request user loader, and auth routes onto the app."""
     init_auth_tables()
@@ -236,6 +251,7 @@ def init_auth(app):
                 conn.close()
                 session.clear()
                 session["user_id"] = uid
+                _deliver_welcome_email(email, name)
                 flash("Welcome to FangTrack!" + (" You're the admin." if is_first else ""), "success")
                 return redirect(url_for("dashboard"))
         return render_template("register.html")

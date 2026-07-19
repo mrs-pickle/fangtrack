@@ -4,15 +4,15 @@
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
   <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">
-    Deals <span style="color:#888; font-weight:400; font-size:14px; margin-left:8px;">{{ matched_count }} listings{% if pages > 1 %} · page {{ page }}/{{ pages }}{% endif %}</span>
+    Deals <span style="color:#a1a1aa; font-weight:400; font-size:14px; margin-left:8px;">{{ matched_count }} listings{% if pages > 1 %} · page {{ page }}/{{ pages }}{% endif %}</span>
   </h1>
   <a href="/deals" class="btn-ghost btn" style="font-size:12px; padding:5px 12px;">Reset</a>
 </div>
 
 <!-- Filters -->
-<form method="get" style="background:#141414; border:1px solid #2a2a2a; border-radius:8px; padding:14px 16px; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+<form method="get" style="background:#141417; border:1px solid #2a2a31; border-radius:8px; padding:14px 16px; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">DEAL</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">DEAL</div>
     <select name="deal" style="width:130px;">
       <option value="">All deals</option>
       <option value="fire" {% if filters.get('deal')=='fire' %}selected{% endif %}>🔥 Fire only</option>
@@ -21,7 +21,7 @@
     </select>
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SEX</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">SEX</div>
     <select name="sex" style="width:100px;">
       <option value="">Any</option>
       <option value="F" {% if filters.get('sex')=='F' %}selected{% endif %}>♀ Female</option>
@@ -30,14 +30,14 @@
     </select>
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">VENDOR</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">VENDOR</div>
     <select name="vendor" style="width:170px;">
       <option value="">All vendors</option>
       {% for v in vendors %}<option value="{{ v }}" {% if filters.get('vendor')==v %}selected{% endif %}>{{ v }}</option>{% endfor %}
     </select>
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SOURCE</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">SOURCE</div>
     <select name="source" style="width:110px;">
       <option value="">CB + WC</option>
       <option value="CB" {% if filters.get('source')=='CB' %}selected{% endif %}>CB only</option>
@@ -45,7 +45,7 @@
     </select>
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SELLERS</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">SELLERS</div>
     <select name="private" style="width:150px;">
       <option value="all">Websites + private</option>
       <option value="web"     {% if filters.get('private')=='web' %}selected{% endif %}>Websites only</option>
@@ -53,7 +53,7 @@
     </select>
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">DEAL CODE</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">DEAL CODE</div>
     <select name="code" style="width:130px;">
       <option value="">Any</option>
       <option value="1" {% if filters.get('code')=='1' %}selected{% endif %}>🏷 Has code</option>
@@ -61,7 +61,7 @@
   </div>
   {% if filters.get('species') %}<input type="hidden" name="species" value="{{ filters.get('species') }}">{% endif %}
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">MIN RARITY</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">MIN RARITY</div>
     <select name="min_rarity" style="width:100px;">
       <option value="0">Any</option>
       <option value="5" {% if filters.get('min_rarity','0')=='5' %}selected{% endif %}>5+ Uncommon</option>
@@ -70,15 +70,15 @@
     </select>
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">MIN PRICE</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">MIN PRICE</div>
     <input name="min_price" type="number" min="0" placeholder="$0" value="{{ filters.get('min_price','') }}" style="width:80px;">
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">MAX PRICE</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">MAX PRICE</div>
     <input name="max_price" type="number" min="0" placeholder="Any" value="{{ filters.get('max_price','') }}" style="width:80px;">
   </div>
   <div>
-    <div style="font-size:10px; color:#1a73e8; letter-spacing:.1em; margin-bottom:4px;">SORT</div>
+    <div style="font-size:10px; color:#2563eb; letter-spacing:.1em; margin-bottom:4px;">SORT</div>
     <select name="sort" style="width:110px;">
       <option value="deal"   {% if filters.get('sort','deal')=='deal' %}selected{% endif %}>Best deal</option>
       <option value="price"  {% if filters.get('sort')=='price' %}selected{% endif %}>Lowest price</option>
@@ -126,7 +126,7 @@
   {% for l in listings %}
   {% set mk = mstats.get(l.scientific_name_key) or {} %}
   {% set rs = l.size_class_rarity_score or l.rarity_score or 0 %}
-  <tr {% if l.owned %}style="border-left:2px solid #1a73e8;"{% endif %}>
+  <tr {% if l.owned %}style="border-left:2px solid #2563eb;"{% endif %}>
     <!-- Owned -->
     <td style="text-align:center; padding:4px;">
       {% if l.owned %}<span class="owned-badge" title="In your collection">✓</span>{% endif %}
@@ -145,48 +145,48 @@
     {% endif %}</td>
     <!-- Species (common name) — standardized canonical format -->
     <td data-sort="{{ l.sci_display }}" style="min-width:210px;">
-      <a href="/species/{{ l.scientific_name_key }}" class="species-name" style="text-decoration:none; font-size:13px; font-style:italic;">{{ l.sci_display }}</a>{% if l.common_clean %} <span style="color:#8a8a8a; font-size:12px;">({{ l.common_clean }})</span>{% endif %}{% if l.sale_label %} <span title="Vendor has an active {{ l.sale_label|lower }} — applies at checkout" style="background:#ff6b00; color:#fff; font-size:10px; padding:1px 6px; border-radius:3px; font-weight:800; letter-spacing:.03em;">🎉 {{ l.sale_label }}{% if l.sale_pct %} {{ l.sale_pct }}%{% endif %}</span>{% endif %}{% if l.notes and 'Pack of' in l.notes %} <span title="{{ l.notes }}" style="background:#3a2a10; color:#fbbf24; font-size:10px; padding:1px 5px; border-radius:3px; font-weight:700;">📦 {{ l.notes.split('Pack of ')[1].split(' ')[0].rstrip('.') }}</span>{% endif %}</td>
+      <a href="/species/{{ l.scientific_name_key }}" class="species-name" style="text-decoration:none; font-size:13px; font-style:italic;">{{ l.sci_display }}</a>{% if l.common_clean %} <span style="color:#8a8a8a; font-size:12px;">({{ l.common_clean }})</span>{% endif %}{% if l.sale_label %} <span title="Vendor has an active {{ l.sale_label|lower }} — applies at checkout" style="background:#f97316; color:#fff; font-size:10px; padding:1px 6px; border-radius:3px; font-weight:800; letter-spacing:.03em;">🎉 {{ l.sale_label }}{% if l.sale_pct %} {{ l.sale_pct }}%{% endif %}</span>{% endif %}{% if l.notes and 'Pack of' in l.notes %} <span title="{{ l.notes }}" style="background:#3a2a10; color:#fbbf24; font-size:10px; padding:1px 5px; border-radius:3px; font-weight:700;">📦 {{ l.notes.split('Pack of ')[1].split(' ')[0].rstrip('.') }}</span>{% endif %}</td>
     <!-- Life stage -->
-    <td style="color:#555; font-size:11px;">{{ l.size_bucket_label or l.size_text or '?' }}</td>
+    <td style="color:#52525b; font-size:11px;">{{ l.size_bucket_label or l.size_text or '?' }}</td>
     <!-- Sex -->
     <td data-sort="{{ {'F':0,'PF':1,'M':2,'MM':3}.get(l.sex, 4) }}" style="text-align:center;">
       {% if l.sex=='F' %}<span style="color:#f9a8d4; font-weight:700;">♀</span>
       {% elif l.sex=='M' %}<span style="color:#93c5fd; font-weight:700;">♂</span>
-      {% else %}<span style="color:#444;">?</span>{% endif %}
+      {% else %}<span style="color:#3f3f46;">?</span>{% endif %}
     </td>
     <!-- Ask (this listing's asking price) -->
-    <td data-sort="{{ l.price_usd }}" style="font-weight:800; color:#1a73e8; font-size:15px;">${{ "%.0f"|format(l.price_usd) }}</td>
+    <td data-sort="{{ l.price_usd }}" style="font-weight:800; color:#2563eb; font-size:15px;">${{ "%.0f"|format(l.price_usd) }}</td>
     <!-- Market Price (trimmed median of recent asks) + vs-market delta -->
     <td data-sort="{{ mk.market_price or 999999 }}" style="font-size:12px; white-space:nowrap;">
-      {% if mk.market_price %}<span style="color:#bbb;">${{ "%.0f"|format(mk.market_price) }}</span>
+      {% if mk.market_price %}<span style="color:#a1a1aa;">${{ "%.0f"|format(mk.market_price) }}</span>
         {% set delta = ((l.price_usd - mk.market_price) / mk.market_price * 100) if mk.market_price else 0 %}
         {% if delta <= -10 %}<span style="color:#22c55e; font-size:11px;"> {{ delta|round|int }}%</span>
         {% elif delta >= 10 %}<span style="color:#ef4444; font-size:11px;"> +{{ delta|round|int }}%</span>{% endif %}
-      {% else %}<span style="color:#444;">—</span>{% endif %}
+      {% else %}<span style="color:#3f3f46;">—</span>{% endif %}
     </td>
     <!-- 90-day sparkline -->
     <td data-nosort><span class="spark">{{ spark_svg(mk.spark, 72, 22)|safe }}</span></td>
     <!-- Shipping -->
     <td class="ship-info">
-      {% if l.shipping_share %}+${{ "%.0f"|format(l.shipping_share) }}{% else %}<span style="color:#444;">?</span>{% endif %}
+      {% if l.shipping_share %}+${{ "%.0f"|format(l.shipping_share) }}{% else %}<span style="color:#3f3f46;">?</span>{% endif %}
     </td>
     <!-- Landed -->
-    <td style="font-weight:600; color:#e0e0e0; white-space:nowrap;">
+    <td style="font-weight:600; color:#e4e4e7; white-space:nowrap;">
       {% if l.landed_cost %}<span style="font-size:13px;">${{ "%.0f"|format(l.landed_cost) }}</span>{% else %}—{% endif %}
     </td>
     <!-- Free shipping threshold -->
     <td class="ship-info" data-sort="{{ l.free_ship_threshold or 999999 }}">
       {% if l.free_ship_threshold %}
         {% if l.price_usd >= l.free_ship_threshold %}<span class="ship-free" title="Qualifies for free shipping">FREE ✓</span>
-        {% else %}<span style="color:#888;" title="Free shipping at ${{ '%.0f'|format(l.free_ship_threshold) }}">${{ "%.0f"|format(l.free_ship_threshold) }}+</span>{% endif %}
-      {% else %}<span style="color:#444;">—</span>{% endif %}
+        {% else %}<span style="color:#a1a1aa;" title="Free shipping at ${{ '%.0f'|format(l.free_ship_threshold) }}">${{ "%.0f"|format(l.free_ship_threshold) }}+</span>{% endif %}
+      {% else %}<span style="color:#3f3f46;">—</span>{% endif %}
     </td>
     <!-- Trend (species-level, span-guarded: only shows once real history exists) -->
     <td data-sort="{{ mk.trend_pct if mk.trend_pct is not none else -999 }}" style="text-align:center;">
       {% if mk.trend=='heating' %}<span class="mtag heat" title="Median rising {{ mk.trend_pct }}%/mo">▲</span>
       {% elif mk.trend=='cooling' %}<span class="mtag cool" title="Median falling {{ mk.trend_pct }}%/mo">▼</span>
-      {% elif mk.trend=='steady' %}<span style="color:#555;">→</span>
-      {% else %}<span style="color:#333;" title="Building history">·</span>{% endif %}
+      {% elif mk.trend=='steady' %}<span style="color:#52525b;">→</span>
+      {% else %}<span style="color:#3f3f46;" title="Building history">·</span>{% endif %}
     </td>
     <!-- CB/WC -->
     <td data-sort="{{ l.source_type or 'zz' }}" style="font-size:11px; font-weight:700;">
@@ -197,17 +197,17 @@
                   else ('Inferred: far below this species adult size, so it is a captive-bred juvenile' if p=='inferred-juvenile'
                   else 'Seller did not state a source'))) %}
       {% set dim = p not in ('stated', '') %}
-      {% if l.source_type=='CB' %}<span style="color:{{ '#166534' if dim else '#22c55e' }};" title="{{ tip }}">CB{% if dim %}<span style="color:#666; font-weight:400;">°</span>{% endif %}</span>
-      {% elif l.source_type=='WC' %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:#666; font-weight:400;">°</span>{% endif %}</span>
+      {% if l.source_type=='CB' %}<span style="color:{{ '#166534' if dim else '#22c55e' }};" title="{{ tip }}">CB{% if dim %}<span style="color:#71717a; font-weight:400;">°</span>{% endif %}</span>
+      {% elif l.source_type=='WC' %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:#71717a; font-weight:400;">°</span>{% endif %}</span>
       {% elif l.source_type=='LTC' %}<span style="color:#fbbf24;" title="{{ tip }}">LTC</span>
-      {% else %}<span style="color:#333;" title="{{ tip }}">?</span>{% endif %}
+      {% else %}<span style="color:#3f3f46;" title="{{ tip }}">?</span>{% endif %}
     </td>
     <!-- Hist low -->
-    <td style="font-size:12px; color:#555;">{% if l.historical_low %}${{ "%.0f"|format(l.historical_low) }}{% else %}—{% endif %}</td>
+    <td style="font-size:12px; color:#52525b;">{% if l.historical_low %}${{ "%.0f"|format(l.historical_low) }}{% else %}—{% endif %}</td>
     <!-- Qty -->
     <td style="text-align:center; font-size:12px;">
       {% if l.quantity == 1 %}<span style="color:#ef4444; font-weight:700;" title="Only 1!">1</span>
-      {% elif l.quantity %}<span style="color:#888;">{{ l.quantity }}</span>{% else %}—{% endif %}
+      {% elif l.quantity %}<span style="color:#a1a1aa;">{{ l.quantity }}</span>{% else %}—{% endif %}
     </td>
     <!-- Discount code -->
     <td data-sort="{{ l.discount_value or 0 }}" style="font-size:11px; white-space:nowrap;">
@@ -217,15 +217,15 @@
           {{ l.discount_code }}{% if l.discount_type=='pct' %} −{{ "%.0f"|format(l.discount_value) }}%{% else %} −${{ "%.0f"|format(l.discount_value) }}{% endif %}
         </span>
         {% if l.price_with_code %}<div style="color:#34d399; font-size:11px; margin-top:2px;">→ ${{ "%.0f"|format(l.price_with_code) }}</div>{% endif %}
-      {% else %}<span style="color:#444;">—</span>{% endif %}
+      {% else %}<span style="color:#3f3f46;">—</span>{% endif %}
     </td>
     <!-- Vendor -->
     <td data-sort="{{ l.vendor_key }}" style="font-size:11px;">
       {% if l.is_private %}<span title="Private seller" style="color:#a855f7;">👤</span> {% endif %}
       {% if l.vendor_homepage %}
-        <a href="{{ l.vendor_homepage }}" target="_blank" style="color:#888; text-decoration:none;" title="{{ l.vendor_key }}">{{ l.vendor_key[:16] }}</a>
+        <a href="{{ l.vendor_homepage }}" target="_blank" style="color:#a1a1aa; text-decoration:none;" title="{{ l.vendor_key }}">{{ l.vendor_key[:16] }}</a>
       {% else %}
-        <span style="color:#555;">{{ l.vendor_key[:16] }}</span>
+        <span style="color:#52525b;">{{ l.vendor_key[:16] }}</span>
       {% endif %}
     </td>
     <!-- Buy link -->
@@ -238,18 +238,18 @@
     </td>
     <!-- Research / Wikipedia -->
     <td style="text-align:center;">
-      <a href="{{ l.wiki_url }}" target="_blank" style="color:#1a73e8; text-decoration:none; font-size:14px;" title="Wikipedia: {{ l.sci_display }}">🔬</a>
+      <a href="{{ l.wiki_url }}" target="_blank" style="color:#2563eb; text-decoration:none; font-size:14px;" title="Wikipedia: {{ l.sci_display }}">🔬</a>
     </td>
   </tr>
   {% else %}
-  <tr><td colspan="20" style="text-align:center; color:#555; padding:40px;">No listings match your filters.</td></tr>
+  <tr><td colspan="20" style="text-align:center; color:#52525b; padding:40px;">No listings match your filters.</td></tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
 </div>
 {{ pager() }}
-<div style="font-size:11px; color:#666; margin-top:8px;">The table fills the browser width — widen the window to see more at once · it scrolls sideways only on narrow screens · click any column header to sort.</div>
+<div style="font-size:11px; color:#71717a; margin-top:8px;">The table fills the browser width — widen the window to see more at once · it scrolls sideways only on narrow screens · click any column header to sort.</div>
 
 <style>
   /* Break the wide table out of the page's centered 1600px column so it can use
@@ -262,11 +262,11 @@
     box-sizing: border-box;
   }
   .deals-scroll {
-    background:#141414; border:1px solid #2a2a2a; border-radius:8px;
+    background:#141417; border:1px solid #2a2a31; border-radius:8px;
     overflow:auto; max-height:80vh;
   }
   .deals-table { width:100%; min-width:1180px; }
-  .deals-table th { position:sticky; top:0; background:#141414; z-index:2; }
+  .deals-table th { position:sticky; top:0; background:#141417; z-index:2; }
   @media (max-width: 640px) {
     .deals-fullbleed { padding:0 8px; }
   }

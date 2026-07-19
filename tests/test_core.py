@@ -104,58 +104,60 @@ def test_tier_bands_form_pyramid():
 
 
 def test_rarity_tiers_are_one_source_of_truth():
-    """Locks in the Option-B rarity ladder and the collision that caused it.
+    """Locks in the 2026-07-19 rebrand ladder (Mike-approved) and the
+    distinguishability rules that survived it.
 
     Rare and Legendary once shared #7c3aed because tier colours were duplicated
-    across templates; violet-600 now belongs exclusively to the Exceptional
-    deal badge. These asserts make that regression impossible.
+    across templates; violet-600 belongs exclusively to the Exceptional deal
+    badge — the Design draft put Legendary AND Exceptional on #a855f7, and
+    Exceptional keeps violet precisely so the two can never be confused.
     """
     from theme import RARITY_TIERS, DEAL_BADGES, TIER_ORDER, RANGE_BAR_GRADIENT
 
     # (a) exactly six tiers
     assert len(RARITY_TIERS) == 6, f"expected 6 tiers, got {len(RARITY_TIERS)}"
 
-    # (b) every background is distinct
-    bgs = [t["bg"] for t in RARITY_TIERS.values()]
-    assert len(set(bgs)) == 6, f"rarity backgrounds collide: {bgs}"
+    # (b) every core is distinct, and the derived pill bg/border exist
+    cores = [t["core"] for t in RARITY_TIERS.values()]
+    assert len(set(cores)) == 6, f"rarity cores collide: {cores}"
+    for t in RARITY_TIERS.values():
+        assert t["bg"].startswith("rgba(") and t["border"].startswith("rgba(")
 
-    # (c) NO rarity background may equal ANY deal-badge background. The two
-    # systems are read in different columns and must never share a colour. This
-    # is now a hard zero — the three historical overlaps (Uncommon/Strong,
-    # Common/Fair, Ubiquitous/Above) were resolved by the TCG-ramp recolour.
+    # (c) rarity pills are TRANSLUCENT, deal chips are FILLED — no rendered
+    # rarity background may equal a deal background, and the one hue the two
+    # systems must never share at all is Legendary purple vs Exceptional.
     deal_bgs = {d["bg"] for d in DEAL_BADGES.values()}
-    collisions = {name: t["bg"] for name, t in RARITY_TIERS.items()
-                  if t["bg"] in deal_bgs}
-    assert not collisions, f"rarity bg collides with a deal badge: {collisions}"
-
-    # The regression that started all this: violet-600 belongs EXCLUSIVELY to the
-    # Exceptional deal badge and must never be a rarity colour again.
-    assert "#7c3aed" not in bgs, "violet-600 leaked back into the rarity ladder"
+    assert not any(t["bg"] in deal_bgs for t in RARITY_TIERS.values())
     assert DEAL_BADGES["exceptional"]["bg"] == "#7c3aed"
+    assert "#7c3aed" not in cores, "violet-600 leaked back into the rarity ladder"
+    assert RARITY_TIERS["Legendary"]["core"] != DEAL_BADGES["exceptional"]["bg"], \
+        "Legendary and Exceptional must stay distinguishable"
 
-    # (d) the specific final (TCG-ramp) values
-    assert RARITY_TIERS["Ubiquitous"]["bg"] == "#475569"   # slate-600
-    assert RARITY_TIERS["Common"]["bg"] == "#15803d"       # green-700
-    assert RARITY_TIERS["Uncommon"]["bg"] == "#0369a1"     # sky-700
-    assert RARITY_TIERS["Rare"]["bg"] == "#4338ca"         # indigo-700
-    assert RARITY_TIERS["Legendary"]["bg"] == "#a21caf"    # fuchsia-700
-    assert RARITY_TIERS["Mythic"]["bg"] == "#c2410c"       # orange-700
+    # (d) the specific rebrand cores — oklch(0.66 0.20 H) ladder
+    assert RARITY_TIERS["Mythic"]["core"] == "#e93d82"       # H 340 pink
+    assert RARITY_TIERS["Legendary"]["core"] == "#a855f7"    # H 300 purple
+    assert RARITY_TIERS["Rare"]["core"] == "#3b82f6"         # H 260 blue
+    assert RARITY_TIERS["Uncommon"]["core"] == "#14b8a6"     # H 200 teal
+    assert RARITY_TIERS["Common"]["core"] == "#22c55e"       # H 150 green
+    assert RARITY_TIERS["Ubiquitous"]["core"] == "#9ba1a6"   # neutral
 
-    # ladder order + range bar carries the green/sky/fuchsia stops
+    # ladder order + range bar carries the green/teal/purple stops
     assert TIER_ORDER[0] == "Mythic" and TIER_ORDER[-1] == "Ubiquitous"
-    for stop in ("#15803d", "#0369a1", "#a21caf"):
+    for stop in ("#22c55e", "#14b8a6", "#a855f7"):
         assert stop in RANGE_BAR_GRADIENT, f"{stop} missing from range bar"
-    assert "#7c3aed" not in RANGE_BAR_GRADIENT
+    assert "#9ba1a6" not in RANGE_BAR_GRADIENT   # gray tier omitted from the ramp
 
 
 def test_rarity_colors_not_duplicated_outside_theme():
-    """No rarity hex may be hard-coded anywhere but theme.py."""
+    """No rarity-exclusive hex may be hard-coded anywhere but theme.py."""
     import os, re
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     from theme import RARITY_TIERS
-    # hexes unique to rarity (exclude ones shared with the deal-badge system)
-    shared = {"#374151", "#065f46", "#1d4ed8"}   # also deal-badge backgrounds
-    rarity_only = {t["bg"] for t in RARITY_TIERS.values()} - shared
+    # Cores unique to rarity. The rebrand shares hues across systems by design:
+    # #a855f7 (accent/gem), #3b82f6 (link/Strong), #22c55e (down/Fair/CB) are
+    # legitimately everywhere — only the exclusive cores are policed.
+    shared = {"#a855f7", "#3b82f6", "#22c55e"}
+    rarity_only = {t["core"] for t in RARITY_TIERS.values()} - shared
     offenders = []
     for sub in ("templates", "analytics", "scoring", "normalize"):
         d = os.path.join(root, sub)

@@ -12,6 +12,12 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   **REVIEW GATE: no merge to `main` until Mike has reviewed the batch (Claude drives a local
   preview so he can click through) and given an explicit "ship it" — generally end of day.**
 - Brand, UI, `templates/`, `static/` — locked; visual/brand changes only at Mike's direction.
+  **The brand system is `BRANDBOOK.md`** (2026-07-19 rebrand: blue #2563eb + purple accent,
+  oklch rarity ladder, translucent-vs-filled treatment rule). Colours live in
+  `tokens/fangtrack.css` + `tokens/fangtrack.tokens.json`; rarity/deal colours ONLY in
+  `theme.py`. Never invent a hex — derive it per BRANDBOOK.md §0 and keep the parity tests
+  (`tests/test_tokens.py`, `tests/test_core.py`) green. Emails follow BRANDBOOK.md §13 via
+  `render_email()` + `templates/email/`.
 - Crawl etiquette: **≥2s between requests to the same vendor**, sequential per vendor,
   no parallel-hammering, existing rotating UAs only — no evasion beyond that.
 - `models.Availability` values are canonical ("in_stock"/"out_of_stock"/…). Never invent new ones.
@@ -22,6 +28,9 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   caches on a request. The cron builds + persists them (`cache_blob`); the web only loads them.
 
 ## Conventions
+- Design/brand: `BRANDBOOK.md` is the reference for ANY visual work (colors, type, badges,
+  components, emails, voice). New colours are DERIVED (oklch formula + treatment rule), not
+  picked. Token changes bump the `?v=` on base.html's `/tokens/fangtrack.css` link.
 - Backend: SQLite default; Postgres when `DATABASE_URL` set (`database/pg.py` adapter).
   Raw sqlite3 style (`?`, PRAGMA, sqlite3.Row). Keep SQL portable — the adapter only
   translates a bounded set of SQLite-isms (no `INSERT OR REPLACE`; use DELETE+INSERT).
@@ -56,6 +65,20 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-19 — FULL REBRAND (Mike-approved in chat, dedicated design session): adopted the
+  FangTrack Design project palette. Primary #1a73e8→#2563eb (+#3b82f6 links), purple #a855f7
+  promoted to accent, zinc neutrals (#0a0a0b/#141417/#1c1c21/#2a2a31/#f4f4f5/#a1a1aa), fire
+  #ff6b00→#f97316. NEW rarity system in theme.py: cores on oklch(0.66 0.20 H) ladder
+  (pink→purple→blue→teal→green→gray), pills translucent (core@15% bg, @35% border); deal
+  badges FILLED (solid core). Hues now shared across systems BY DESIGN (treatment
+  disambiguates) — except Exceptional 💎💎 keeps exclusive violet #7c3aed (NOT #a855f7 as the
+  Design draft had) so Legendary can never be confused with it. Tokens: tokens/fangtrack.css
+  (+.tokens.json) served at /tokens/fangtrack.css, linked by base.html; tests/test_tokens.py
+  enforces parity, test_core.py rewritten to the new invariants. ~640 mechanical hex swaps
+  across all templates. PNG logo assets are monochrome white silhouettes (pixel-scanned) —
+  rebrand-proof, no re-export needed. Branded multipart email infra added same day
+  (render_email + templates/email/, /admin/email-preview/<name>); welcome copy APPROVED by
+  Mike + wired into /register (best-effort, never blocks signup).
 - 2026-07-19 — Deep security pass. FIXED: arbitrary-file-read (`/settings` + `/digest` now
   `@admin_required`; `digest_path` no longer user-writable); SECRET_KEY hardening (prod-like env
   with no key uses an EPHEMERAL random key, never the repo fallback — not a hard raise because the
@@ -94,4 +117,4 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 - OPEN ITEMS: Shopify blocks Render's datacenter IP (only ~6/29 vendors crawl) → residential
   rotating proxy pending (thesis-critical); Crawler tab 500 for admin (diagnose); move Mike's
   collection from mrs2200 → mike@fangtrack.com; free Postgres expires ~90d (plan paid tier +
-  backups); wire welcome email into signup + HTML emails + nurture campaign.
+  backups); nurture campaign (welcome email + HTML emails DONE 2026-07-19).

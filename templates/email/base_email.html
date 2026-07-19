@@ -1,0 +1,93 @@
+{#  FangTrack branded email shell — table layout, fully inline styles.
+    All colour/type values are injected as `T` (tokens/fangtrack.tokens.json)
+    by render_email() in app.py — no hex is hard-coded here, so the token
+    files stay the single source of truth.
+
+    Blocks a child template fills:
+      preheader — hidden inbox-preview line (plain text, ~90 chars)
+      content   — the body, as <p class-free inline-styled> rows
+    Optional context:
+      cta_url / cta_label — renders the single primary button when set.
+
+    Email constraints honoured: 600px max, explicit bg+color on every element
+    (dark-mode inversion safety), color-scheme dark, text wordmark first.  #}
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>{{ subject or 'FangTrack' }}</title>
+</head>
+<body style="margin:0; padding:0; background:{{ T.color.surface.base }};" bgcolor="{{ T.color.surface.base }}">
+
+{# Hidden preheader — shows in the inbox preview, not the open email #}
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+  {% block preheader %}{% endblock %}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background:{{ T.color.surface.base }};" bgcolor="{{ T.color.surface.base }}">
+  <tr>
+    <td align="center" style="padding:28px 12px;">
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:600px; width:100%;">
+
+        <!-- ── Header: text wordmark (survives image blocking) ─────────── -->
+        <tr>
+          <td style="padding:0 8px 18px; font-family:{{ T.type.family }};">
+            <span style="font-size:22px; font-weight:900; letter-spacing:-0.02em;">
+              <span style="color:#ffffff;">FANG</span><span style="color:{{ T.color.accent.primary }};">TRACK</span>
+            </span>
+            <span style="font-size:16px;">&nbsp;🕷️</span>
+          </td>
+        </tr>
+
+        <!-- ── Card ─────────────────────────────────────────────────────── -->
+        <tr>
+          <td style="background:{{ T.color.surface.raised }}; border:1px solid {{ T.color.surface.border }};
+                     border-radius:10px; padding:28px 26px;"
+              bgcolor="{{ T.color.surface.raised }}">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-family:{{ T.type.family }}; font-size:14px; line-height:1.7;
+                           color:{{ T.color.text.primary }};">
+                  {% block content %}{% endblock %}
+                </td>
+              </tr>
+              {% if cta_url %}
+              <tr>
+                <td align="left" style="padding-top:22px;">
+                  <a href="{{ cta_url }}"
+                     style="display:inline-block; background:{{ T.color.accent.primary }};
+                            color:{{ T.color.surface.base }}; font-family:{{ T.type.family }};
+                            font-size:14px; font-weight:700; letter-spacing:.02em;
+                            padding:11px 24px; border-radius:6px; text-decoration:none;">
+                    {{ cta_label or 'Open FangTrack' }}</a>
+                </td>
+              </tr>
+              {% endif %}
+            </table>
+          </td>
+        </tr>
+
+        <!-- ── Footer ───────────────────────────────────────────────────── -->
+        <tr>
+          <td style="padding:20px 8px 0; font-family:{{ T.type.family }}; font-size:12px;
+                     line-height:1.7; color:{{ T.color.text.dim }}; text-align:center;">
+            FangTrack — private market intelligence tool<br>
+            <a href="{{ site_url }}/transparency" style="color:{{ T.color.text.muted }};">What is FangTrack?</a>
+            &nbsp;·&nbsp;
+            <a href="mailto:mike@fangtrack.com" style="color:{{ T.color.text.muted }};">mike@fangtrack.com</a><br>
+            © FangTrack 2026
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

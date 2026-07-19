@@ -1,0 +1,126 @@
+{
+  "meta": {
+    "name": "FangTrack design tokens",
+    "version": "2.0.0",
+    "rebrand": "2026-07-19 — Mike-approved full rebrand from the FangTrack Design project: blue-dominant (#2563eb) + purple accent (#a855f7), zinc neutrals, oklch rarity ladder. One deviation from the Design draft, per Mike's sign-off: the Exceptional deal badge keeps its exclusive violet #7c3aed instead of #a855f7 so Legendary rarity and Exceptional can never be confused.",
+    "sources_of_truth": {
+      "rarity_and_deal_badges": "theme.py — RARITY_TIERS / DEAL_BADGES. The values are MIRRORED here for tooling; tests/test_tokens.py fails the suite if they drift. Change them in theme.py, never here.",
+      "everything_else": "This file. tokens/fangtrack.css and the email templates consume these values."
+    },
+    "pairing_rule": "Rarity tier = one CORE colour on the ladder oklch(0.66 0.20 H). The pill derives from the core: bg = core @15% alpha (10% light theme), text = oklch(.78 .14 H) (.45 light), border = core @35% (25% light). Deal grades are the OPPOSITE treatment — FILLED chips (solid core bg; white text on dark cores, near-black on light cores) — so the two systems never read alike even where they share a hue.",
+    "escalation_logic": "Rarity hue ladder, rarest -> most common: H 340 pink -> 300 purple -> 260 blue -> 200 teal -> 150 green -> neutral gray. A 7th tier extends the ladder at the hot end (H ~25 orange-red) with the same formula.",
+    "hue_sharing": "Hues are meaning-families shared across systems by design: purple #a855f7 = Legendary/accent/private-seller, blue #3b82f6 = Rare/Strong/link, green #22c55e = Common/Fair/price-down-good. Treatment (translucent pill vs filled chip vs plain text) is what disambiguates, plus the Exceptional-violet exception.",
+    "theme_note": "The web product ships dark-only. The light block is for emails/new surfaces; values marked derived await the full Design-project files."
+  },
+  "color": {
+    "surface": {
+      "base":        "#0a0a0b",
+      "raised":      "#141417",
+      "card":        "#1c1c21",
+      "hover":       "#17171a",
+      "nav":         "#0e0e10",
+      "border":      "#2a2a31",
+      "divider":     "#232327",
+      "row_divider": "#1c1c21"
+    },
+    "text": {
+      "primary": "#f4f4f5",
+      "soft":    "#e4e4e7",
+      "quiet":   "#d4d4d8",
+      "muted":   "#a1a1aa",
+      "dim":     "#71717a",
+      "dimmer":  "#52525b",
+      "dimmest": "#3f3f46"
+    },
+    "accent": {
+      "primary":        "#2563eb",
+      "primary_hover":  "#1d4ed8",
+      "primary_soft":   "rgba(37,99,235,.15)",
+      "on_primary":     "#ffffff",
+      "link":           "#3b82f6",
+      "accent":         "#a855f7",
+      "accent_strong":  "#9333ea",
+      "accent_soft":    "rgba(168,85,247,.15)",
+      "fire":           "#f97316",
+      "gem":            "#a855f7"
+    },
+    "semantic": {
+      "down_good": "#22c55e",
+      "up_bad":    "#ef4444"
+    },
+    "flash": {
+      "ok_bg":  "#064e3b", "ok_border":  "#059669", "ok_text":  "#d1fae5",
+      "err_bg": "#450a0a", "err_border": "#b91c1c", "err_text": "#fecaca"
+    }
+  },
+  "rarity": {
+    "_mirror_of": "theme.py RARITY_TIERS — do not edit here. bg/border derive from core @15%/@35%.",
+    "Mythic":     { "core": "#e93d82", "text": "#f9a8d4", "hue": 340 },
+    "Legendary":  { "core": "#a855f7", "text": "#d8b4fe", "hue": 300 },
+    "Rare":       { "core": "#3b82f6", "text": "#93c5fd", "hue": 260 },
+    "Uncommon":   { "core": "#14b8a6", "text": "#5eead4", "hue": 200 },
+    "Common":     { "core": "#22c55e", "text": "#86efac", "hue": 150 },
+    "Ubiquitous": { "core": "#9ba1a6", "text": "#d4d4d8", "hue": null }
+  },
+  "deal": {
+    "_mirror_of": "theme.py DEAL_BADGES — do not edit here. Filled chips, unlike translucent rarity pills.",
+    "fire":        { "bg": "#f97316", "text": "#ffffff", "glyph": "🔥" },
+    "exceptional": { "bg": "#7c3aed", "text": "#f4f4f5", "glyph": "💎💎" },
+    "strong":      { "bg": "#3b82f6", "text": "#ffffff", "glyph": "💎" },
+    "fair":        { "bg": "#22c55e", "text": "#0a0a0b", "glyph": "👍" },
+    "above":       { "bg": "#a1a1aa", "text": "#0a0a0b", "glyph": "👎" }
+  },
+  "momentum": {
+    "heating": { "bg": "#7f1d1d", "text": "#fecaca", "glyph": "▲" },
+    "cooling": { "bg": "#064e3b", "text": "#a7f3d0", "glyph": "▼" },
+    "steady":  { "bg": "#1f2937", "text": "#a1a1aa", "glyph": "→" }
+  },
+  "source_markers": {
+    "_note": "Text-only, no background. Dimmed variant + ° suffix = inferred, not stated. Never let a guess look like a fact.",
+    "cb": { "stated": "#22c55e", "inferred": "#166534" },
+    "wc": { "stated": "#ef4444", "inferred": "#b91c1c" },
+    "ltc": { "stated": "#fbbf24" },
+    "unstated": { "stated": "#52525b" }
+  },
+  "chips": {
+    "discount":       { "bg": "#064e3b", "text": "#6ee7b7" },
+    "sale_flag":      { "text": "#fbbf24" },
+    "private_seller": { "text": "#a855f7", "glyph": "👤" },
+    "admin":          { "bg": "#2a1a3a", "text": "#a855f7" },
+    "owned":          { "text": "#2563eb", "glyph": "✓" },
+    "female":         { "text": "#f9a8d4", "glyph": "♀" },
+    "male":           { "text": "#93c5fd", "glyph": "♂" }
+  },
+  "type": {
+    "family": "system-ui, -apple-system, sans-serif",
+    "base_px": 14,
+    "scale_px": {
+      "kpi": 26, "panel_value": 22, "page_title": 20, "stat_value": 19,
+      "stat_value_sm": 15, "body": 13, "secondary": 12, "caption": 11, "micro": 10
+    },
+    "rules": {
+      "numerics": "font-variant-numeric: tabular-nums, always",
+      "micro_labels": "UPPERCASE, letter-spacing .06-.1em",
+      "page_title_weight": 900,
+      "species_names": "always italic, colour accent.primary"
+    }
+  },
+  "radius_px": {
+    "ft_scale": { "sm": 6, "md": 8, "lg": 12 },
+    "legacy": { "card": 10, "inner_cell": 8, "row_hover": 7, "control": 6, "pill": 20, "badge": 4 }
+  },
+  "space_px": { "card_pad": 20, "stat_card_pad": "16 20", "cell_pad": "8 12", "th_pad": "10 12", "page_pad": "24 20", "nav_h": 52, "content_max": 1600 },
+  "light": {
+    "_note": "Emails/new surfaces only; neutrals DERIVED (zinc-light) pending the full Design-project files. Soft variants drop to 10% alpha, borders to 25%.",
+    "surface": {
+      "base": "#fafafa", "raised": "#ffffff", "card": "#f4f4f5", "hover": "#eef0f3",
+      "nav": "#ffffff", "border": "#e4e4e7", "divider": "#ececef", "row_divider": "#f0f0f2"
+    },
+    "text": {
+      "primary": "#18181b", "soft": "#27272a", "quiet": "#3f3f46",
+      "muted": "#52525b", "dim": "#a1a1aa", "dimmer": "#71717a", "dimmest": "#8f8f98"
+    },
+    "accent": { "primary": "#2563eb", "primary_hover": "#1d4ed8", "link": "#3b82f6", "accent": "#a855f7", "fire": "#ea580c", "gem": "#9333ea" },
+    "semantic": { "down_good": "#16a34a", "up_bad": "#dc2626" }
+  }
+}
