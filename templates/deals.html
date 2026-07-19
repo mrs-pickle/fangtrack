@@ -267,6 +267,14 @@
   }
   .deals-table { width:100%; min-width:1180px; }
   .deals-table th { position:sticky; top:0; background:#141417; z-index:2; }
+  @media (max-width: 768px) {
+    /* Keep the deals table a real <table> on mobile. The global responsive rule
+       turns every table into display:block for horizontal scroll, but that
+       breaks position:sticky on the <th> (headers stop sticking). The
+       .deals-scroll wrapper already scrolls both directions, so we don't need
+       display:block here — overriding it back keeps the sticky column headers. */
+    .deals-table { display:table !important; }
+  }
   @media (max-width: 640px) {
     .deals-fullbleed { padding:0 8px; }
   }
