@@ -65,6 +65,19 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-19 — CRAWLER + DATA-QUALITY batch (on `dev`, reviewed, HELD for Mike's ship word).
+  (1) Residential rotating proxy wired: `FANGTRACK_PROXY_URL` → `vendors/base.py` httpx `proxy=`
+  (unset = direct), + `_throttle` jitter (2s floor + 0–1.5s). Local full scan through IPRoyal =
+  29/29 vendors healthy, ~7.1k listings (was ~6/29, 3,645 on Render's datacenter IP). Also removed
+  the hard-coded `Accept-Encoding: …br` header (CDNs returned undecodable brotli → JSON fails).
+  (2) Per-vendor WRITE-GUARD in `run_multi_vendor_pipeline`: a run that collapses vs its last good
+  (>=10 → <20%, not truncated) is finished status='rejected' (excluded from the snapshot) so the
+  site keeps last good data + health shows 'down'; rejects once then accepts a confirmed low.
+  (3) Honest dashboard health: `_dashboard_header_meta` classifies each ACTIVE scanner's latest run
+  healthy/partial/down (was always "all healthy"). (4) Vendor QA on /sellers now admin-only.
+  (5) SIZE FIX (all crawlers): `extract_size_from_title`/`parse_size` now read mixed numbers
+  ("3 1/2\"" → 3.5, not 1/2); backfilled locally, self-corrects on next crawl. (6) Deals sticky
+  headers restored on mobile. Monitoring live: Sentry (web+cron) + UptimeRobot. tester/12345 seed.
 - 2026-07-19 — FULL REBRAND (Mike-approved in chat, dedicated design session): adopted the
   FangTrack Design project palette. Primary #1a73e8→#2563eb (+#3b82f6 links), purple #a855f7
   promoted to accent, zinc neutrals (#0a0a0b/#141417/#1c1c21/#2a2a31/#f4f4f5/#a1a1aa), fire
@@ -114,7 +127,9 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 - 2026-07-19 — Dev-safety pipeline: `dev` branch + `main`=prod; CI (`.github/workflows/ci.yml`,
   pytest on push) gates merges; Sentry ready (set `SENTRY_DSN` env to enable). Workflow in
   `WORKFLOW.md`. Reason: yesterday's 15+ reactive prod pushes broke the live site repeatedly.
-- OPEN ITEMS: Shopify blocks Render's datacenter IP (only ~6/29 vendors crawl) → residential
-  rotating proxy pending (thesis-critical); Crawler tab 500 for admin (diagnose); move Mike's
-  collection from mrs2200 → mike@fangtrack.com; free Postgres expires ~90d (plan paid tier +
-  backups); nurture campaign (welcome email + HTML emails DONE 2026-07-19).
+- OPEN ITEMS: SHIP the `dev` batch (rebrand + tokens + emails + onboarding + tester seed + proxy
+  + write-guard + honest health + admin-gated QA + size/mobile fixes) — reviewed + green, HELD for
+  Mike's explicit ship word; on ship: merge dev→main, resume the suspended cron, run ONE watched
+  prod crawl (repopulates caches + is the "beats datacenter block" proof), seed tester/12345 on prod.
+  Then: move Mike's collection mrs2200 → mike@fangtrack.com; nurture campaign (reminder set Aug);
+  paid Postgres + backups before ~mid-Oct expiry (reminder set Sep). Crawler-500 FIXED; proxy DONE.
