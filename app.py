@@ -94,6 +94,10 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=bool(os.environ.get("FANGTRACK_HTTPS")) or _is_prod,
 )
+# Let browsers (and the CDN) cache static files for a day instead of re-fetching
+# every visit. The token CSS is ?v=-busted and images are stable; a change that
+# must go out immediately is covered by a Cloudflare cache purge.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 86400  # 1 day
 
 # Hand-rolled auth (users, login/register/logout, CSRF, @login_required/@admin_required).
 from auth import (init_auth, login_required, admin_required,

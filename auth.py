@@ -200,6 +200,14 @@ def init_auth(app):
 
     @app.before_request
     def _auth_before():
+        # Static assets (/static, /tokens) are public, GET-only, and never mutate
+        # state. Skip the user-load + CSRF-token write so no `session` cookie rides
+        # on them: a Set-Cookie makes Cloudflare (and any CDN) refuse to cache the
+        # response. Sessions aren't permanent, so with no session write these
+        # responses carry neither Set-Cookie nor Vary: Cookie → edge-cacheable.
+        p = request.path
+        if p.startswith("/static/") or p.startswith("/tokens/"):
+            return
         _load_logged_in_user()
         if "_csrf" not in session:
             session["_csrf"] = secrets.token_hex(16)
