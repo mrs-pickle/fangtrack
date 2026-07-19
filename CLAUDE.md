@@ -48,6 +48,10 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-19 — Email `From` must be a verified-domain address (`noreply@fangtrack.com`, settable via
+  `MAIL_FROM`), NOT the SMTP username. Resend accepts the SMTP session but silently drops mail whose
+  From isn't a verified sender — this is why the first test emails never arrived. `send_email` logs in
+  as `smtp_user` but sends From `mail_from`.
 - 2026-07-18 — Precompute: cron builds all dashboard/species caches → JSON in new `cache_blob`
   table; web is `_WEB_READONLY` and only loads them. Why: ~130s cold build on the request path
   jammed the 1-core health check → restart loop; removes builds from the web entirely.

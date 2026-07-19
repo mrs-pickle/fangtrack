@@ -339,6 +339,9 @@ def load_settings() -> dict:
         "smtp_port": 587,
         "smtp_user": "",
         "smtp_pass": "",
+        # From address must be on the VERIFIED sending domain (not the SMTP
+        # username). Resend/others silently drop mail whose From isn't verified.
+        "mail_from": "FangTrack <noreply@fangtrack.com>",
         "auto_crawl": False,
         "crawl_schedule": "daily",
         "crawl_vendors": "all",
@@ -354,7 +357,7 @@ def load_settings() -> dict:
     # out of the repo. Only override when the env var is actually set.
     _env_map = {
         "SMTP_HOST": "smtp_host", "SMTP_PORT": "smtp_port", "SMTP_USER": "smtp_user",
-        "SMTP_PASS": "smtp_pass", "NOTIFY_EMAIL": "notify_email",
+        "SMTP_PASS": "smtp_pass", "NOTIFY_EMAIL": "notify_email", "MAIL_FROM": "mail_from",
     }
     for env_key, skey in _env_map.items():
         val = os.environ.get(f"FANGTRACK_{env_key}") or os.environ.get(env_key)
@@ -1150,12 +1153,17 @@ def send_email(to_addr: str, subject: str, body: str, settings: dict = None) -> 
     settings = settings or load_settings()
     if not settings.get("smtp_user") or not settings.get("smtp_pass"):
         raise RuntimeError("SMTP is not configured (set FANGTRACK_SMTP_USER / _PASS)")
-    frm = settings["smtp_user"]
-    msg = f"From: {frm}\r\nTo: {to_addr}\r\nSubject: {subject}\r\n\r\n{body}"
+    # The SMTP username (e.g. Resend's "resend") authenticates the session but is
+    # NOT a valid From address. The From/envelope-sender must be on the verified
+    # sending domain, or the provider silently drops the message.
+    from_header = settings.get("mail_from") or "FangTrack <noreply@fangtrack.com>"
+    envelope_from = (from_header.split("<", 1)[1].split(">", 1)[0]
+                     if "<" in from_header and ">" in from_header else from_header)
+    msg = f"From: {from_header}\r\nTo: {to_addr}\r\nSubject: {subject}\r\n\r\n{body}"
     with smtplib.SMTP(settings["smtp_host"], settings["smtp_port"]) as s:
         s.starttls()
-        s.login(frm, settings["smtp_pass"])
-        s.sendmail(frm, [to_addr], msg.encode("utf-8"))
+        s.login(settings["smtp_user"], settings["smtp_pass"])
+        s.sendmail(envelope_from, [to_addr], msg.encode("utf-8"))
 
 
 def _send_email(settings: dict, body: str, hits: list):
