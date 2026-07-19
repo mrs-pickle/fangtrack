@@ -9,9 +9,14 @@ so the schema exists before the first request when served under gunicorn/waitres
 """
 import os
 
+import app as _appmod
 from app import app
 from database.db import get_connection, init_db, init_discount_tables, DB_PATH
 from scoring.watchlist import init_watchlist_tables
+
+# Hosted web process: never build the heavy dashboard caches on a request (it jams
+# the health check → restart loop). Serve the cron-built blobs instead.
+_appmod._WEB_READONLY = True
 
 
 def _init_schema():
@@ -44,6 +49,13 @@ def _init_schema():
 
 
 _init_schema()
+
+# Load the cron-built cache blobs into memory so the first request is instant.
+# Safe + cheap (one SELECT + json.loads); no heavy build happens in the web.
+try:
+    _appmod.hydrate_caches(force=True)
+except Exception as _e:
+    pass
 
 # NOTE: we deliberately do NOT warm the caches in a background thread at boot.
 # On Render's 0.5-CPU box that build saturates the CPU during startup, so Render's

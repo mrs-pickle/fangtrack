@@ -211,6 +211,16 @@ def _run_pipeline_and_followups(results, t0):
     except Exception as e:
         log.warning(f"Watchlist check skipped: {e}")
 
+    # Build + persist the dashboard/species caches so the (read-only) web can load
+    # them without ever doing the heavy build on a request. This is what keeps the
+    # hosted web instance from restart-looping under real traffic.
+    try:
+        import app as _app
+        _app.warm_and_persist()
+        log.info("Dashboard caches built + persisted for the web")
+    except Exception as e:
+        log.warning(f"warm_and_persist skipped: {e}")
+
     log.info(f"=== Scheduled full crawl done in {(time.time()-t0)/60:.1f} min ===")
 
 

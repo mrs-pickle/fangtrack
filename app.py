@@ -117,6 +117,13 @@ def _security_headers(resp):
     return resp
 
 
+# When True (set by wsgi for the hosted web process) the request-serving code
+# NEVER builds the heavy dashboard caches on a request — it loads the cron-built
+# blobs via hydrate_caches(). Building live pegs the single worker's core, starves
+# the 5s health check, and Render restart-loops the instance. The CRON (and local
+# dev) leave this False and build normally, then persist the blobs.
+_WEB_READONLY = False
+
 # ── Market analytics (StockX/Keepa/TCG microstructure layer) ────────────────
 _market_cache = {"data": None, "ts": 0}
 
@@ -127,6 +134,9 @@ def get_market_stats(force=False) -> dict:
     now = time.time()
     if not force and _market_cache["data"] is not None and (now - _market_cache["ts"]) < _CACHE_TTL:
         return _market_cache["data"]
+    if _WEB_READONLY and not force:
+        hydrate_caches()
+        return _market_cache["data"] if _market_cache["data"] is not None else {}
     try:
         from analytics.market import species_market_stats
         data = species_market_stats(DB_PATH)
@@ -148,10 +158,17 @@ _summary_cache = {"data": None, "ts": 0}
 _rarity_legend_cache = {"data": None, "ts": 0}
 
 
+_EMPTY_MOVERS = {"fire": [], "drops": [], "back_in_stock": [], "heating": [], "cooling": [], "stats": {}}
+_EMPTY_INTEL = {"price_action": {}, "coverage": {}, "standouts": [], "new_this_crawl": 0}
+
+
 def _cached_movers(snap, force=False) -> dict:
     now = time.time()
     if not force and _movers_cache["data"] is not None and (now - _movers_cache["ts"]) < _CACHE_TTL:
         return _movers_cache["data"]
+    if _WEB_READONLY and not force:
+        hydrate_caches()
+        return _movers_cache["data"] if _movers_cache["data"] is not None else dict(_EMPTY_MOVERS)
     try:
         from analytics.market import market_movers
         movers = market_movers(snap, DB_PATH, limit=25)
@@ -169,6 +186,9 @@ def _cached_intel(snap, force=False) -> dict:
     now = time.time()
     if not force and _intel_cache["data"] is not None and (now - _intel_cache["ts"]) < _CACHE_TTL:
         return _intel_cache["data"]
+    if _WEB_READONLY and not force:
+        hydrate_caches()
+        return _intel_cache["data"] if _intel_cache["data"] is not None else dict(_EMPTY_INTEL)
     try:
         from analytics.market import market_intelligence
         intel = market_intelligence(DB_PATH, snap, get_owned_keys(DB_PATH))
@@ -186,6 +206,9 @@ def _cached_crawl_summary(force=False) -> list:
     now = time.time()
     if not force and _summary_cache["data"] is not None and (now - _summary_cache["ts"]) < _CACHE_TTL:
         return _summary_cache["data"]
+    if _WEB_READONLY and not force:
+        hydrate_caches()
+        return _summary_cache["data"] or []
     full = get_crawl_summary(DB_PATH) or []
     _summary_cache["data"] = full
     _summary_cache["ts"] = now
@@ -199,6 +222,9 @@ def _cached_rarity_legend(force=False) -> list:
     now = time.time()
     if not force and _rarity_legend_cache["data"] is not None and (now - _rarity_legend_cache["ts"]) < _CACHE_TTL:
         return _rarity_legend_cache["data"]
+    if _WEB_READONLY and not force:
+        hydrate_caches()
+        return _rarity_legend_cache["data"] or []
     try:
         from analytics.market import rarity_tier_legend
         legend = rarity_tier_legend(DB_PATH)
@@ -408,6 +434,13 @@ def get_snapshot(force=False) -> list:
     now = time.time()
     if not force and _snapshot_cache["data"] and (now - _snapshot_cache["ts"]) < _CACHE_TTL:
         return _snapshot_cache["data"]
+
+    # Hosted web: never build on a request — load the cron-built blob and serve
+    # that (or empty if the cron hasn't populated it yet). Building here would jam
+    # the health check and restart-loop the instance.
+    if _WEB_READONLY and not force:
+        hydrate_caches()
+        return _snapshot_cache["data"] or []
 
     # Only one thread builds the snapshot at a time. Whoever loses the race waits
     # here, then finds the fresh cache on the re-check below instead of rebuilding.
@@ -675,6 +708,9 @@ def get_species_catalog(db_path=DB_PATH) -> list:
     now = time.time()
     if _species_cache["data"] and (now - _species_cache["ts"]) < _CACHE_TTL:
         return _species_cache["data"]
+    if _WEB_READONLY:
+        hydrate_caches()
+        return _species_cache["data"] or []
     from normalize.livestock import GENUS_SET
     from normalize.common_names_map import pick_common
     cat = []
@@ -726,6 +762,9 @@ def get_species_browse(db_path=DB_PATH) -> list:
     now = time.time()
     if _browse_cache["data"] and (now - _browse_cache["ts"]) < _CACHE_TTL:
         return _browse_cache["data"]
+    if _WEB_READONLY:
+        hydrate_caches()
+        return _browse_cache["data"] or []
     from normalize.genus_meta import origin, price_band
     from normalize.traits import traits_for
     stats = get_market_stats()
@@ -758,6 +797,95 @@ def get_species_browse(db_path=DB_PATH) -> list:
     _browse_cache["data"] = out
     _browse_cache["ts"] = now
     return out
+
+
+# ── Persisted cache blobs (built by the cron, loaded by the web) ─────────────
+# The dashboard/species builds are CPU+DB-heavy (~130s cold on the hosted Postgres)
+# and jam the single web worker's health check when run on a request. So the CRON
+# builds these caches and persists them here as JSON; the WEB loads them (fast) and
+# never builds on the request path (see _WEB_READONLY + hydrate_caches).
+_CACHE_REGISTRY = {
+    "snapshot":      _snapshot_cache,
+    "market_stats":  _market_cache,
+    "movers":        _movers_cache,
+    "intel":         _intel_cache,
+    "summary":       _summary_cache,
+    "rarity_legend": _rarity_legend_cache,
+    "species":       _species_cache,
+    "browse":        _browse_cache,
+}
+_hydrated = {"ts": 0}
+_HYDRATE_TTL = 300   # re-pull the blobs from the DB at most every 5 min
+
+
+def _ensure_cache_blob_table(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS cache_blob (
+        name TEXT PRIMARY KEY, payload TEXT, built_at TEXT)""")
+
+
+def persist_caches():
+    """Write every populated in-memory cache to cache_blob (called by the cron after
+    a force-build). JSON so the web can load it cheaply."""
+    conn = get_connection(DB_PATH)
+    try:
+        _ensure_cache_blob_table(conn)
+        stamp = datetime.now().isoformat()
+        for name, cache in _CACHE_REGISTRY.items():
+            if cache.get("data") is None:
+                continue
+            payload = json.dumps(cache["data"], default=str)
+            # Portable upsert (the pg adapter only translates INSERT OR IGNORE, not
+            # OR REPLACE): delete the old row, then insert the fresh blob.
+            conn.execute("DELETE FROM cache_blob WHERE name = ?", (name,))
+            conn.execute(
+                "INSERT INTO cache_blob (name, payload, built_at) VALUES (?,?,?)",
+                (name, payload, stamp))
+        conn.commit()
+        logger.info("persist_caches: wrote %d cache blob(s)",
+                    sum(1 for c in _CACHE_REGISTRY.values() if c.get("data") is not None))
+    finally:
+        conn.close()
+
+
+def hydrate_caches(force=False):
+    """Load the cron-built blobs into the in-memory caches. Cheap (one SELECT +
+    json.loads); throttled so we re-read the DB at most every _HYDRATE_TTL so a
+    fresh crawl's data is picked up without hammering the DB each request."""
+    now = time.time()
+    if not force and (now - _hydrated["ts"]) < _HYDRATE_TTL:
+        return
+    _hydrated["ts"] = now
+    try:
+        conn = get_connection(DB_PATH)
+        try:
+            _ensure_cache_blob_table(conn)
+            rows = conn.execute("SELECT name, payload FROM cache_blob").fetchall()
+        finally:
+            conn.close()
+        for r in rows:
+            cache = _CACHE_REGISTRY.get(r["name"])
+            if cache is not None:
+                cache["data"] = json.loads(r["payload"])
+                cache["ts"] = now
+    except Exception as e:
+        logger.warning(f"cache hydrate failed: {e}")
+
+
+def warm_and_persist():
+    """CRON entrypoint: build every dashboard/species cache from current DB data and
+    persist the blobs for the web to load. Runs in the (non-health-checked) cron
+    process, so the heavy build is fine here. Idempotent."""
+    from vendors import REGISTRY
+    snap = [l for l in get_snapshot(force=True) if l.get("vendor_key") in REGISTRY]
+    get_market_stats(force=True)
+    _cached_movers(snap, force=True)
+    _cached_intel(snap, force=True)
+    _cached_crawl_summary(force=True)
+    _cached_rarity_legend(force=True)
+    get_species_catalog()      # _WEB_READONLY is False in the cron → builds
+    get_species_browse()
+    persist_caches()
+    logger.info("warm_and_persist: all dashboard caches built + persisted")
 
 
 def run_crawl_thread(vendor_keys: list[str]):
@@ -850,6 +978,12 @@ def run_crawl_thread(vendor_keys: list[str]):
         _rarity_legend_cache["data"] = None
         snap = get_snapshot(force=True)
         get_market_stats(force=True)
+        # Rebuild + persist the rest of the dashboard caches so the read-only web
+        # (and future boots) load fresh blobs instead of stale ones.
+        try:
+            warm_and_persist()
+        except Exception as e:
+            logger.warning(f"warm_and_persist after crawl skipped: {e}")
         init_watchlist_tables(DB_PATH)
         hits = check_watchlist(snap, DB_PATH)
         owned_keys = get_owned_keys(DB_PATH)
