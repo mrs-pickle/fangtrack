@@ -136,7 +136,7 @@ def _security_headers(resp):
     # posts, and <base> hijacking. Defense-in-depth (stored-XSS risk is already low).
     resp.headers.setdefault("Content-Security-Policy",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+        "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
@@ -177,6 +177,44 @@ def get_market_stats(force=False) -> dict:
     _market_cache["data"] = data
     _market_cache["ts"] = now
     return data
+
+
+# Species-CARD analytics. These were recomputed on EVERY /species/<key> load —
+# compute_size_class_rarity (~0.9s, whole-DB scan) + inferred_sales (~1.4s) = ~2.3s
+# of CPU per card on top of render. That per-request burn is what made cards take
+# 5s AND spiked the 1-CPU box enough to time out the health check → restarts. They
+# only change on a crawl, so memoize them to the crawl TTL like everything else.
+_scr_cache = {"data": None, "ts": 0}
+_sales_cache = {"data": None, "ts": 0}
+
+
+def get_size_class_rarity(force=False) -> dict:
+    now = time.time()
+    if not force and _scr_cache["data"] is not None and (now - _scr_cache["ts"]) < _CACHE_TTL:
+        return _scr_cache["data"]
+    try:
+        from scoring.rarity import compute_size_class_rarity
+        _scr_cache["data"] = compute_size_class_rarity(DB_PATH)
+    except Exception as e:
+        logger.warning(f"size-class rarity cache failed: {e}")
+        _scr_cache["data"] = {}
+    _scr_cache["ts"] = now
+    return _scr_cache["data"]
+
+
+def get_inferred_sales(force=False) -> dict:
+    """Inferred recent sales for ALL species; look up per-species from the dict."""
+    now = time.time()
+    if not force and _sales_cache["data"] is not None and (now - _sales_cache["ts"]) < _CACHE_TTL:
+        return _sales_cache["data"]
+    try:
+        from analytics.market import inferred_sales
+        _sales_cache["data"] = inferred_sales(DB_PATH)
+    except Exception as e:
+        logger.warning(f"inferred-sales cache failed: {e}")
+        _sales_cache["data"] = {}
+    _sales_cache["ts"] = now
+    return _sales_cache["data"]
 
 
 # Dashboard analytics that only change on a crawl. Recomputing them on every
@@ -2396,8 +2434,7 @@ def species_detail(species_key):
     from normalize.common_names_map import pick_common
     _candidates = list({h.get("common_name") for h in history if h.get("common_name")})
     common = pick_common(species_key, _candidates)
-    from scoring.rarity import compute_size_class_rarity
-    scr = compute_size_class_rarity(DB_PATH)
+    scr = get_size_class_rarity()   # cached: was a ~0.9s whole-DB scan per card
 
     # Market microstructure (StockX-style stat strip / range bar / Market Price)
     stats = get_market_stats().get(species_key) or {}
@@ -2405,8 +2442,7 @@ def species_detail(species_key):
     rarity_score = stats.get("rarity_score")
     # Inferred recent sales (honest sold-price proxy)
     try:
-        from analytics.market import inferred_sales
-        sales = inferred_sales(DB_PATH, only_key=species_key).get(species_key, [])
+        sales = get_inferred_sales().get(species_key, [])   # cached: was ~1.4s per card
     except Exception:
         sales = []
     if _hide_priv:

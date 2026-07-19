@@ -6,31 +6,24 @@
 <title>{% block title %}FangTrack Pro{% endblock %}</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/fangtrack_icon_128.png') }}">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-  theme: { extend: { colors: {
-    ft: {
-      base:    '#0a0a0b',
-      surface: '#141417',
-      card:    '#1c1c21',
-      border:  '#2a2a31',
-      text:    '#f4f4f5',
-      muted:   '#a1a1aa',
-      teal:    '#2563eb',
-      fire:    '#f97316',
-      gem:     '#a855f7',
-      up:      '#ef4444',
-      down:    '#22c55e',
-    }
-  }}}
-}
-</script>
 <!-- FangTrack colour system — design tokens shared with the emails.
      Source: tokens/fangtrack.css (+ tokens/fangtrack.tokens.json). -->
 <link rel="stylesheet" href="/tokens/fangtrack.css?v=2">
 <style>
 * { box-sizing: border-box; }
+
+/* ── Utility classes — replaces the Tailwind Play CDN, which downloaded the
+   whole framework and JIT-compiled CSS in the browser on EVERY page load (a
+   multi-second render tax + the mobile jank). The site only ever used the ~17
+   layout utilities below; these are their static equivalents. If a template
+   needs a new utility, add it here. */
+.flex{display:flex}.flex-col{flex-direction:column}.grid{display:grid}
+.items-center{align-items:center}.items-start{align-items:flex-start}
+.justify-between{justify-content:space-between}
+.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}
+.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}
+.p-3{padding:.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}
+.shadow{box-shadow:0 1px 3px 0 rgb(0 0 0/.1),0 1px 2px -1px rgb(0 0 0/.1)}
 body { background:#0a0a0b; color:#f4f4f5; font-family:system-ui,-apple-system,sans-serif; font-size:14px; margin:0; }
 
 /* ── Rarity — GENERATED from theme.py. Do NOT hard-code a rarity hex here. ──
@@ -318,9 +311,13 @@ function checkCrawlStatus(){
         if(el.dataset.origLabel) el.textContent = el.dataset.origLabel;
       }
     });
-  }).catch(()=>{});
+    // Adaptive: poll fast (3s) only while a crawl is actually running; otherwise
+    // idle at 60s. Crawls happen ~once a day, so constant 3s polling was pure waste.
+    scheduleCrawlStatus(d.active ? 3000 : 60000);
+  }).catch(()=>{ scheduleCrawlStatus(60000); });
 }
-setInterval(checkCrawlStatus,3000);
+let _crawlStatusTimer;
+function scheduleCrawlStatus(ms){ clearTimeout(_crawlStatusTimer); _crawlStatusTimer=setTimeout(checkCrawlStatus, ms); }
 checkCrawlStatus();
 
 function checkAlerts(){
@@ -331,7 +328,8 @@ function checkAlerts(){
     else { b.style.display='none'; }
   }).catch(()=>{});
 }
-setInterval(checkAlerts,15000);
+// Unread alerts only change after a crawl (≈once a day), so check ONCE on load —
+// no 15s polling loop (that hammered the server and the phone battery for nothing).
 checkAlerts();
 
 function toggleHidePrivate(on){

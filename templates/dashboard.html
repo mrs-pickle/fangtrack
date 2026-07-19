@@ -7,7 +7,7 @@
   <div>
     <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0; color:#f4f4f5;">Dashboard</h1>
     <div style="font-size:12px; color:#71717a; margin-top:4px;">
-      Last crawl <span style="color:#a1a1aa;">{{ last_crawl or '—' }}</span> · {{ vendors_live }} vendors ·
+      <span style="color:#a1a1aa;">{{ last_crawl or '—' }}</span> · {{ vendors_live }} vendors ·
       {% if crawl_health == 'ok' %}<span style="color:#22c55e;">all healthy</span>{% else %}{% if health_counts.healthy %}<span style="color:#22c55e;">{{ health_counts.healthy }} healthy</span>{% endif %}{% if health_counts.partial %}{% if health_counts.healthy %} · {% endif %}<span style="color:#f59e0b;">{{ health_counts.partial }} partial</span>{% endif %}{% if health_counts.down %}{% if health_counts.healthy or health_counts.partial %} · {% endif %}<span style="color:#ef4444;">{{ health_counts.down }} down</span>{% endif %}{% endif %}
     </div>
   </div>

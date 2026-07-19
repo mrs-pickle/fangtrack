@@ -92,11 +92,16 @@ class BaseScraper(ABC):
             timeout=self.TIMEOUT,
             follow_redirects=True,
             http2=False,
+            # Pin ONE long-lived connection per vendor. The residential proxy hands
+            # out a fresh IP per CONNECTION, so a paginated catalog that reopens
+            # connections scatters its pages across different IPs and truncates
+            # (launch crawl: underground_reptiles 951->59). One connection = one IP
+            # for the whole vendor; the 10-min keepalive survives the 2s+jitter gaps.
+            limits=httpx.Limits(max_connections=1, max_keepalive_connections=1,
+                                keepalive_expiry=600),
         )
-        # Route through a residential rotating proxy when configured. Shopify's
-        # products.json blocks datacenter IPs (Render), so FANGTRACK_PROXY_URL
-        # points the crawler at a rotating residential gateway. Local dev with
-        # the var unset connects directly, unchanged.
+        # Route through the residential proxy when configured (Shopify's
+        # products.json blocks Render's datacenter IP). Unset = direct, unchanged.
         proxy_url = os.environ.get("FANGTRACK_PROXY_URL", "").strip()
         if proxy_url:
             client_kwargs["proxy"] = proxy_url
