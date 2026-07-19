@@ -27,9 +27,10 @@ def get_speed_report(db_path, batch_window_seconds: int = 3600) -> dict | None:
     A "batch" = all finished runs whose start is within `batch_window_seconds` of the most
     recent finish — i.e. one crawl, whether its vendors ran in parallel (overlapping) or
     sequentially (back-to-back)."""
-    import sqlite3
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
+    # Use the app's pg-aware connection helper — a raw sqlite3.connect(db_path) tries to open
+    # the Postgres path as a local SQLite file on prod (no crawl_runs table → 500 on /history).
+    from database.db import get_connection
+    conn = get_connection(db_path)
     rows = conn.execute("""
         SELECT cr.vendor_key AS vendor_key, v.vendor_name AS vendor_name,
                cr.started_at AS started_at, cr.finished_at AS finished_at
