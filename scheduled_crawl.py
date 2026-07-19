@@ -9,21 +9,26 @@ crawl). Mirrors app.run_crawl_thread but with no web state.
 """
 import sys, os, asyncio, logging, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# Create logs/ BEFORE configuring the FileHandler below — on a fresh cron
-# filesystem the dir doesn't exist yet, and the handler is built at import time
-# (before main()'s makedirs), so without this the whole cron crashes on startup.
-os.makedirs("logs", exist_ok=True)
 for _s in (sys.stdout, sys.stderr):
     try:
         _s.reconfigure(encoding="utf-8", errors="replace")
     except (AttributeError, ValueError):
         pass
 
+# stdout always (Render captures it). The file handler is best-effort: on a fresh
+# cron filesystem logs/ may not exist / be writable, and a hard FileHandler there
+# crashed the whole cron on startup. Never let logging kill the run.
+_handlers = [logging.StreamHandler(sys.stdout)]
+try:
+    os.makedirs("logs", exist_ok=True)
+    _handlers.append(logging.FileHandler("logs/scheduled_crawl.log", mode="a", encoding="utf-8"))
+except Exception:
+    pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout),
-              logging.FileHandler("logs/scheduled_crawl.log", mode="a", encoding="utf-8")],
+    handlers=_handlers,
 )
 log = logging.getLogger("scheduled_crawl")
 
