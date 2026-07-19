@@ -11,12 +11,16 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.pop("DATABASE_URL", None)
-os.environ["FANGTRACK_DB_PATH"] = os.path.join(tempfile.mkdtemp(), "guard_test.sqlite")
 
 from pathlib import Path
 import pipeline
-from database.db import get_all_active_listings, get_connection, DB_PATH
+from database.db import get_all_active_listings, get_connection, init_db
 
+# Fully isolated, explicitly-initialised DB. Do NOT reuse the module-global
+# database.db.DB_PATH — under the full pytest suite another test binds it first,
+# so relying on it makes this order-dependent (it was pointing at a non-DB file).
+_DB = Path(tempfile.mkdtemp()) / "guard_test.sqlite"
+init_db(_DB)
 _XLSX = Path(tempfile.mkdtemp()) / "out.xlsx"
 
 SPECIES = [
@@ -44,15 +48,15 @@ def _listings(vk, n):
 
 def _run(vk, n, truncated=False):
     row = (vk, vk.title(), _listings(vk, n), None, None, truncated)
-    pipeline.run_multi_vendor_pipeline([row], DB_PATH, _XLSX)
+    pipeline.run_multi_vendor_pipeline([row], _DB, _XLSX)
 
 
 def _snap_count(vk):
-    return sum(1 for r in get_all_active_listings(DB_PATH) if r.get("vendor_key") == vk)
+    return sum(1 for r in get_all_active_listings(_DB) if r.get("vendor_key") == vk)
 
 
 def _last_status(vk):
-    conn = get_connection(DB_PATH)
+    conn = get_connection(_DB)
     r = conn.execute("SELECT status FROM crawl_runs WHERE vendor_key=? ORDER BY id DESC LIMIT 1",
                      (vk,)).fetchone()
     conn.close()
