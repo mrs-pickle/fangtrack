@@ -1411,7 +1411,10 @@ def dashboard():
     # never appear here (nor in its counts, movers, or coverage); they live on the
     # Deals filter and species cards for signed-in users.
     from vendors import REGISTRY
-    snap = [l for l in get_snapshot() if l.get("vendor_key") in REGISTRY]
+    from analytics.market import BANNED_MOVER_VENDORS
+    snap = [l for l in get_snapshot()
+            if l.get("vendor_key") in REGISTRY
+            and l.get("vendor_key") not in BANNED_MOVER_VENDORS]
     fire   = [l for l in snap if l.get("is_fire_deal")]
     gem2   = [l for l in snap if l.get("deal_rating") == "💎💎" and not l.get("is_fire_deal")]
     gem1   = [l for l in snap if l.get("deal_rating") == "💎"]
@@ -1453,7 +1456,10 @@ def movers_all():
     tile (all-time lows, biggest drops, restocks, heating). Reuses the same
     cached mover data the dashboard shows, just uncapped (dashboard shows [:5])."""
     from vendors import REGISTRY
-    snap = [l for l in get_snapshot() if l.get("vendor_key") in REGISTRY]
+    from analytics.market import BANNED_MOVER_VENDORS
+    snap = [l for l in get_snapshot()
+            if l.get("vendor_key") in REGISTRY
+            and l.get("vendor_key") not in BANNED_MOVER_VENDORS]
     movers = _cached_movers(snap)
     head = _dashboard_header_meta()
     return render_template("movers.html", movers=movers, days_history=head["days"])

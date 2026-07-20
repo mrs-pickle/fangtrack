@@ -422,6 +422,14 @@ def inferred_sales(db_path: Path = DB_PATH, only_key: str | None = None) -> dict
     return out
 
 
+# Vendors banned from the front-page movers. Urban Tarantulas lists volatile
+# premium "display specimens" and repeatedly inflates then cuts, so their
+# "biggest drop" / all-time-low tiles are noise, not real market signal
+# (Mike's call, 2026-07-20). They still appear normally on /deals + species
+# cards — this only keeps them out of the dashboard movers.
+BANNED_MOVER_VENDORS = {"urban_tarantulas"}
+
+
 def market_movers(snapshot: list, db_path: Path = DB_PATH, limit: int = 8) -> dict:
     """Front-page "market movers": biggest drops, back-in-stock, fresh fire
     deals, and heating/cooling species. `snapshot` is the annotated live
@@ -434,19 +442,22 @@ def market_movers(snapshot: list, db_path: Path = DB_PATH, limit: int = 8) -> di
     # must be filtered explicitly, and legacy private keys may lack the priv_
     # prefix so we check the authoritative vendors table too.
     _priv = private_seller_keys(db_path)
-    def _is_priv(l):
+    def _excluded(l):
         vk = l.get("vendor_key") or ""
-        return bool(l.get("is_private")) or vk in _priv or vk.startswith("priv_")
+        return (bool(l.get("is_private")) or vk in _priv or vk.startswith("priv_")
+                or vk in BANNED_MOVER_VENDORS)
 
     # Fresh fire deals (all-time-low delivered cost, right now)
-    fire = sorted([l for l in snapshot if l.get("is_fire_deal") and not _is_priv(l)],
+    fire = sorted([l for l in snapshot if l.get("is_fire_deal") and not _excluded(l)],
                   key=lambda l: l.get("landed_cost") or l.get("price_usd") or 9e9)[:limit]
 
     # Biggest drops vs the previous crawl for the same vendor.
-    drops = _biggest_drops(db_path, limit)
+    drops = [d for d in _biggest_drops(db_path, limit + 10)
+             if d.get("vendor_key") not in BANNED_MOVER_VENDORS][:limit]
 
     # Back in stock: present+in-stock now, was out/absent in the previous run.
-    back = _back_in_stock(db_path, snapshot, limit)
+    back = [l for l in _back_in_stock(db_path, snapshot, limit + 10)
+            if not _excluded(l)][:limit]
 
     # Heating / cooling species (needs multi-date history; empty until then).
     heating = sorted([(k, s) for k, s in stats.items() if s.get("trend") == "heating"],
