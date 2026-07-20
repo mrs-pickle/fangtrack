@@ -65,6 +65,28 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-19 — SHIPPED perf batch + CDN + PROXY-FROM-RENDER FIXED (thesis-critical). Merged to prod:
+  (a) perf batch (dropped Tailwind Play CDN → static utility CSS; memoized species-card analytics
+  5s+→~1.2s warm; polling tamed: alerts once-on-load, crawl-status 3s active/60s idle; proxy
+  keepalive `httpx.Limits(max_connections=1, keepalive=600)` = one IP per vendor). (b) Static assets
+  CDN-cacheable: the CSRF `before_request` wrote `session["_csrf"]` on EVERY request, so a Set-Cookie
+  (+`Vary: Cookie`) rode on `/static` + `/tokens` → Cloudflare refused to cache. Fix: skip user-load
+  + CSRF write for `/static`+`/tokens` paths (public, GET-only); `SEND_FILE_MAX_AGE_DEFAULT=1d`.
+  (c) THE PROXY BUG: `FANGTRACK_PROXY_URL` on the **cron** was the whole cURL command
+  (`curl -v -x http://…`), not a URL → httpx "Unknown scheme" → every proxied vendor died → only 3
+  non-proxy vendors returned (the recurring "3-vendor crawl"). Mike fixed the env to the clean URL;
+  then a 407 (Proxy Auth) surfaced from a paste typo — corrected against IPRoyal's CONNECTION panel
+  (`http://<user>:<pass>@geo.iproyal.com:12321`, 1.99GB traffic left, Authenticated mode). Watched
+  prod crawl then RECOVERED: 27/29 vendors, ~3,644 IN-STOCK (~7k raw pre-sold-out-filter); Underground
+  all 65 pages (950 raw→57 in-stock); the 2 "down" are benign (fanghub=FB/IG drops always 0;
+  feared_to_fascinated=429 rate-limited that run, write-guard kept last-good). NOTE: in-stock ~3,644 is
+  the real healthy number — the "7.1k" in the older entry below was RAW (pre-filter). CLOUDFLARE cutover
+  is LIVE (Porkbun NS → amos/tia.ns.cloudflare.com; SSL Full); cache rule added for `/static`+`/tokens`
+  but edge still `cf-cache-status: DYNAMIC` post-fix+purge (Dev Mode off) — likely fresh-zone lag,
+  REVISIT (re-check HIT; else CF support). Proxy password was printed to Render/Sentry logs by the
+  "Unknown scheme" error — rotate the IPRoyal pw when convenient. `tools/move_collection.py` (dry-run
+  migration, mrs2200→mike@fangtrack.com) deployed but NOT YET RUN — blocked from prod Render shell by
+  the safety classifier; needs Mike to run it (or grant shell access). Daily cron unchanged: 09:00 UTC.
 - 2026-07-19 — CRAWLER + DATA-QUALITY batch (on `dev`, reviewed, HELD for Mike's ship word).
   (1) Residential rotating proxy wired: `FANGTRACK_PROXY_URL` → `vendors/base.py` httpx `proxy=`
   (unset = direct), + `_throttle` jitter (2s floor + 0–1.5s). Local full scan through IPRoyal =

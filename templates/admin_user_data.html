@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% block title %}{{ u.display_name or u.email }} · {{ kind }} — Admin{% endblock %}
+{% block content %}
+<div style="margin:0 0 8px;"><a href="/admin/users" style="font-size:12px; color:#2563eb; text-decoration:none;">← All users</a></div>
+<div style="display:flex; align-items:baseline; gap:10px; margin:0 0 18px; flex-wrap:wrap;">
+  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">{{ u.display_name or u.email }} · {{ kind }}</h1>
+  <span style="font-size:11px; font-weight:700; color:#a855f7; background:#2a1a3a; padding:2px 8px; border-radius:4px;">ADMIN</span>
+</div>
+<div style="font-size:12px; color:#71717a; margin-bottom:16px;">{{ u.email }}{% if u.first_name or u.last_name %} · 🔒 {{ u.first_name or '' }} {{ u.last_name or '' }}{% endif %}</div>
+
+{% if items %}
+<div class="card deals-table" style="padding:0; overflow-x:auto;">
+  <table style="width:100%;">
+    <thead><tr>{% for col in items[0].keys() %}<th>{{ col|replace('_',' ')|title }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for it in items %}
+    <tr>{% for col in items[0].keys() %}<td style="color:#a1a1aa;">{{ it[col] if it[col] not in (None, '') else '—' }}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div style="font-size:12px; color:#52525b; margin-top:12px;">{{ items|length }} row{{ '' if items|length == 1 else 's' }} · read-only</div>
+{% else %}
+<div class="card" style="text-align:center; padding:40px; color:#52525b;">This user's {{ kind|lower }} is empty.</div>
+{% endif %}
+{% endblock %}

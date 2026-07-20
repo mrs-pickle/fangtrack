@@ -46,6 +46,7 @@ def init_db(db_path: Path = DB_PATH) -> None:
         vendor_name TEXT NOT NULL,
         base_url    TEXT,
         platform    TEXT,
+        user_id     INTEGER,   -- owner of a private_seller upload; NULL for website vendors
         created_at  TEXT DEFAULT (datetime('now'))
     );
 
@@ -135,6 +136,9 @@ def init_db(db_path: Path = DB_PATH) -> None:
     CREATE INDEX IF NOT EXISTS idx_ph_key ON price_history(scientific_name_key, sex, vendor_key);
     CREATE INDEX IF NOT EXISTS idx_ph_observed ON price_history(observed_at);
     CREATE INDEX IF NOT EXISTS idx_ph_vendor ON price_history(vendor_key);
+    -- crawl_runs is scanned per dashboard hit (latest run per vendor + status counts).
+    CREATE INDEX IF NOT EXISTS idx_cr_vendor ON crawl_runs(vendor_key);
+    CREATE INDEX IF NOT EXISTS idx_cr_status ON crawl_runs(status, id);
 
     -- Created at boot (were previously created lazily inside routes, so a fresh
     -- Postgres deploy lacked them → /submit and the source-policy admin 500'd).
@@ -163,6 +167,9 @@ def init_db(db_path: Path = DB_PATH) -> None:
     cr_cols = {r[1] for r in cur.execute("PRAGMA table_info(crawl_runs)")}
     if "truncated" not in cr_cols:
         cur.execute("ALTER TABLE crawl_runs ADD COLUMN truncated INTEGER DEFAULT 0")
+    v_cols = {r[1] for r in cur.execute("PRAGMA table_info(vendors)")}
+    if "user_id" not in v_cols:   # private-seller ownership (per-user isolation)
+        cur.execute("ALTER TABLE vendors ADD COLUMN user_id INTEGER")
 
     conn.commit()
     conn.close()
@@ -170,12 +177,17 @@ def init_db(db_path: Path = DB_PATH) -> None:
 
 
 def upsert_vendor(vendor_key: str, vendor_name: str, base_url: str, platform: str,
-                  db_path: Path = DB_PATH) -> None:
+                  db_path: Path = DB_PATH, user_id: int = None) -> None:
     conn = get_connection(db_path)
     conn.execute("""
-        INSERT OR IGNORE INTO vendors (vendor_key, vendor_name, base_url, platform)
-        VALUES (?, ?, ?, ?)
-    """, (vendor_key, vendor_name, base_url, platform))
+        INSERT OR IGNORE INTO vendors (vendor_key, vendor_name, base_url, platform, user_id)
+        VALUES (?, ?, ?, ?, ?)
+    """, (vendor_key, vendor_name, base_url, platform, user_id))
+    # Claim ownership on first import (private sellers). Only fills an unowned row
+    # so one user can never hijack another's already-owned vendor_key.
+    if user_id is not None:
+        conn.execute("UPDATE vendors SET user_id=? WHERE vendor_key=? AND user_id IS NULL",
+                     (user_id, vendor_key))
     conn.commit()
     conn.close()
 

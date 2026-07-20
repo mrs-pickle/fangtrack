@@ -120,20 +120,26 @@ def test_sale_label_annotation():
     assert mine[0].get("sale_pct") == 20
 
 
-# ── private sellers are account-only ──────────────────────────────────────────
-def test_private_sellers_hidden_from_anonymous():
+# ── private sellers are PER-USER private (visible only to the owner) ──────────
+def test_private_seller_visible_only_to_owner():
     from database.db import upsert_vendor, insert_crawl_run, save_listings
     from models import Listing, CrawlResult
     _reset()
-    upsert_vendor("secretguy", "Secret Private Seller", "", "private_seller")
+    # Owner (A) and a different registered user (B).
+    ca = app.test_client(); _register(ca, "owner@x.com")
+    cb = app.test_client(); _register(cb, "other@x.com")
+    conn = get_connection(DB_PATH)
+    a_id = conn.execute("SELECT id FROM users WHERE email='owner@x.com'").fetchone()["id"]
+    conn.close()
+
+    # A private-seller list OWNED by A.
+    upsert_vendor("secretguy", "Secret Private Seller", "", "private_seller", user_id=a_id)
     cr = CrawlResult(vendor_key="secretguy", vendor_name="Secret Private Seller")
     cr.status = "complete"
     rid = insert_crawl_run(cr, DB_PATH)
     save_listings([Listing(vendor="Secret Private Seller", vendor_key="secretguy",
                            scientific_name="Aphonopelma chalchodes", price_usd=40,
                            availability="in_stock")], rid, DB_PATH)
-    # Stamp the canonical key so the listing lands on the species card (the deal
-    # pipeline does this normally; save_listings alone leaves it blank).
     conn = get_connection(DB_PATH)
     conn.execute("UPDATE price_history SET scientific_name_key='aphonopelma chalchodes' "
                  "WHERE vendor_key='secretguy'")
@@ -141,16 +147,18 @@ def test_private_sellers_hidden_from_anonymous():
     conn.close()
     appmod._snapshot_cache["data"] = None
 
-    # Anonymous: the private seller must NOT appear on the species card.
-    anon = app.test_client().get("/species/aphonopelma chalchodes").get_data(as_text=True)
-    assert "secretguy" not in anon, "private seller leaked to a logged-out visitor"
-
-    # Signed-in (first user = admin): the private seller IS visible.
+    url = "/species/aphonopelma chalchodes"
+    # Anonymous: never.
+    assert "secretguy" not in app.test_client().get(url).get_data(as_text=True), \
+        "private seller leaked to a logged-out visitor"
+    # Another logged-in user (NOT the owner): never — this is the trust boundary.
     appmod._snapshot_cache["data"] = None
-    c = app.test_client()
-    _register(c, "owner@x.com")
-    seen = c.get("/species/aphonopelma chalchodes").get_data(as_text=True)
-    assert "secretguy" in seen, "private seller should be visible once signed in"
+    assert "secretguy" not in cb.get(url).get_data(as_text=True), \
+        "private seller leaked to a non-owner user"
+    # The OWNER: visible.
+    appmod._snapshot_cache["data"] = None
+    assert "secretguy" in ca.get(url).get_data(as_text=True), \
+        "owner should see their own private seller"
 
 
 # ── livestock filter: art prints must not pass ────────────────────────────────

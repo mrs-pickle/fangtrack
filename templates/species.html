@@ -39,10 +39,10 @@
 </details>
 {% endif %}
 
-<div style="display:grid; grid-template-columns:210px 1fr; gap:20px; align-items:start;">
+<div class="species-layout" style="display:grid; grid-template-columns:210px 1fr; gap:20px; align-items:start;">
 
   <!-- ── Facet rail ─────────────────────────────────────────────────────── -->
-  <aside class="card" style="padding:16px; position:sticky; top:64px;">
+  <aside class="card species-facets" style="padding:16px; position:sticky; top:64px;">
     {% macro facet_group(title, param, options, active_val) %}
       {% if options %}
       <div style="margin-bottom:16px;">

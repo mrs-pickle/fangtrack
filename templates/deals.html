@@ -98,6 +98,16 @@
      fills a wide monitor (nothing clipped) and only scrolls sideways on a screen
      narrower than its min-width. Ready to drop straight onto the public web. -->
 <div class="deals-fullbleed">
+<!-- Always-visible source legend (the CB/WC marker's meaning was hover-only, dead
+     on touch). Info only — provenance carries no weight in the deal score. -->
+<div style="font-size:11px; color:#71717a; margin:0 0 8px; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:center;">
+  <b style="color:#a1a1aa; text-transform:uppercase; letter-spacing:.06em; font-size:10px;">Source</b>
+  <span><span style="color:#22c55e; font-weight:700;">CB</span> captive-bred</span>
+  <span><span style="color:#ef4444; font-weight:700;">WC</span> wild-caught</span>
+  <span><span style="color:#fbbf24; font-weight:700;">LTC</span> long-term captive</span>
+  <span><span style="color:#71717a; font-weight:700;">°</span> unconfirmed</span>
+  <span style="color:#52525b;">— info only, no effect on the deal score</span>
+</div>
 <div class="deals-scroll">
 <table class="deals-table">
   <thead><tr>
@@ -273,7 +283,15 @@
        breaks position:sticky on the <th> (headers stop sticking). The
        .deals-scroll wrapper already scrolls both directions, so we don't need
        display:block here — overriding it back keeps the sticky column headers. */
-    .deals-table { display:table !important; }
+    .deals-table { display:table !important; min-width:0 !important; }
+    /* Hide low-priority columns on phones (kept on desktop): 90-Day spark(9),
+       Free Ship(12), Source degree(14), Hist Low(15). Keeps the core
+       Deal/Species/Ask/Market/Landed/Vendor/Buy comparison usable without a
+       triple-width horizontal scroll. */
+    .deals-table th:nth-child(9),  .deals-table td:nth-child(9),
+    .deals-table th:nth-child(12), .deals-table td:nth-child(12),
+    .deals-table th:nth-child(14), .deals-table td:nth-child(14),
+    .deals-table th:nth-child(15), .deals-table td:nth-child(15) { display:none; }
   }
   @media (max-width: 640px) {
     .deals-fullbleed { padding:0 8px; }

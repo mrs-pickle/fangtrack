@@ -302,10 +302,11 @@ def get_species_price_history(species_key: str,
             ph.notes
         FROM price_history ph
         LEFT JOIN vendors v ON v.vendor_key = ph.vendor_key
-        WHERE ph.scientific_name_key LIKE ?
+        WHERE ph.scientific_name_key = ?
           AND ph.price_usd > 0
     """
-    params = [f"%{species_key}%"]
+    params = [species_key]   # exact match uses idx_ph_key (was a leading-wildcard
+                             # LIKE = full scan of the biggest table on every /species hit)
 
     if sex:
         query += " AND ph.sex = ?"

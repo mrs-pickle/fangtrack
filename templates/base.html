@@ -130,25 +130,42 @@ input:focus, select:focus { border-color:#2563eb; }
 ::-webkit-scrollbar-thumb { background:#26262b; border-radius:5px; border:2px solid #0e0e10; }
 ::-webkit-scrollbar-thumb:hover { background:#3f3f46; }
 
-/* ── Mobile / responsive ─────────────────────────────────────────────────────
-   The app is inline-style heavy, so these override common inline layouts with
-   !important where needed. Phones are the primary social-recruited audience. */
+/* ── Responsive breakpoint system ────────────────────────────────────────────
+   ONE place for mobile rules (the app is inline-style heavy, so !important is
+   used to override inline layouts). Phones are the primary audience.
+   Breakpoints: 768 (phone/tablet), 640 (small phone), 560 (KPI reflow).
+   Reusable utilities any template can opt into:
+     .hide-sm      → hidden ≤768px (low-priority table columns/cells)
+     .mobile-first → order:-1 ≤768px (float an add-form above its long list)
+     .species-layout / .species-facets → collapse the Species browse facet rail */
 @media (max-width:768px){
   .navwrap { overflow-x:auto; gap:2px !important; padding:0 10px !important; -webkit-overflow-scrolling:touch; }
   .navwrap::-webkit-scrollbar { height:0; }         /* hide the nav scrollbar */
-  .nav-link { padding:6px 9px; font-size:12px; white-space:nowrap; }
+  .nav-link { padding:9px 11px; font-size:12px; white-space:nowrap; min-height:40px; display:inline-flex; align-items:center; }
   .wrap { padding:16px 12px !important; }
   /* Wide tables scroll horizontally instead of breaking the layout. */
   table { display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
-  th, td { padding:7px 9px; }
+  th, td { padding:9px 10px; }
   /* Collapse multi-column grids to a single column on phones. */
   .grid, .kpi-strip { grid-template-columns:1fr !important; }
   .card { padding:14px; }
   h1 { font-size:18px !important; }
+  /* iOS zooms the whole page when a focused field is <16px — kill that jank
+     across every form (was 13px base / 15px on login-register). */
+  input, select, textarea { font-size:16px !important; }
+  /* Tap targets: honor the ~44px touch guideline for primary controls. */
+  .btn { min-height:44px; }
+  /* Reusable mobile utilities. */
+  .hide-sm { display:none !important; }
+  .mobile-first { order:-1 !important; }
+  /* Species browse: the facet rail is an inline grid (210px 1fr) with no .grid
+     class, so it needs an explicit collapse + un-sticky on phones. */
+  .species-layout { grid-template-columns:1fr !important; }
+  .species-facets { position:static !important; max-height:none !important; top:auto !important; }
 }
 @media (max-width:560px){
-  /* Keep the KPI tiles two-up (their own rule handles this; reassert over .grid). */
-  .kpi-strip { grid-template-columns:repeat(2,1fr) !important; }
+  /* Keep KPI tiles + stat strips two-up (readable) instead of one tall stack. */
+  .kpi-strip, .stat-strip-2 { grid-template-columns:repeat(2,1fr) !important; }
 }
 </style>
 </head>
@@ -183,7 +200,8 @@ input:focus, select:focus { border-color:#2563eb; }
     <a href="/alerts" class="nav-link {% if request.path.startswith('/alerts') %}active{% endif %}" style="position:relative;{% if not current_user %} color:#a855f7;{% endif %}">Alerts<span id="alert-badge" style="display:none; position:absolute; top:-2px; right:-4px; background:#f97316; color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; line-height:15px; text-align:center; border-radius:8px; padding:0 3px;"></span></a>
     <a href="/collection"class="nav-link {% if request.path.startswith('/collection') %}active{% endif %}">Collection</a>
     <a href="/sellers"   class="nav-link {% if request.path.startswith('/sellers') or request.path.startswith('/vendors') %}active{% endif %}">Vendors</a>
-    {% if current_user and current_user.is_admin %}<a href="/history" class="nav-link {% if request.path.startswith('/history') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Crawler</a>{% endif %}
+    {% if current_user and current_user.is_admin %}<a href="/history" class="nav-link {% if request.path.startswith('/history') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Crawler</a>
+    <a href="/admin/users" class="nav-link {% if request.path.startswith('/admin/users') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Users</a>{% endif %}
     <a href="/submit"    class="nav-link {% if request.path.startswith('/submit') %}active{% endif %}">Submit</a>
 
     <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
@@ -191,9 +209,10 @@ input:focus, select:focus { border-color:#2563eb; }
       <a href="/leaderboard" class="nav-link {% if request.path.startswith('/leaderboard') or request.path.startswith('/u/') %}active{% endif %}">🏆 Leaderboard</a>
       <a href="/transparency" class="nav-link {% if request.path.startswith('/transparency') %}active{% endif %}" style="color:#f97316; font-weight:700;">What is FangTrack?</a>
       {% if current_user %}
-        <a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}">⚙</a>
+        <a href="/account" class="nav-link {% if request.path.startswith('/account') %}active{% endif %}" title="Your account · name · privacy">{{ current_user.display_name or 'Account' }}</a>
+        {% if current_user.is_admin %}<a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}" style="color:#a855f7;" title="Admin settings">⚙</a>{% endif %}
         <form method="post" action="/logout" style="display:inline; margin:0;">
-          <button type="submit" class="nav-link" title="{{ current_user.email }}" style="background:none; border:none; padding:0; font:inherit; cursor:pointer; color:inherit;">{{ current_user.display_name or 'Account' }} · Sign out</button>
+          <button type="submit" class="nav-link" title="{{ current_user.email }}" style="background:none; border:none; padding:0; font:inherit; cursor:pointer; color:inherit;">Sign out</button>
         </form>
       {% else %}
         <a href="/login" class="nav-link {% if request.path.startswith('/login') %}active{% endif %}">Sign in</a>

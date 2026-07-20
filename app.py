@@ -375,6 +375,19 @@ def _apply_private_pref(listings: list) -> list:
     return listings
 
 
+def _visible_to_user(listings: list) -> list:
+    """PER-USER private-seller isolation — the security boundary. A private-seller
+    listing is visible ONLY to the account that uploaded it; website/public
+    listings are visible to everyone. Logged-out visitors and OTHER logged-in
+    users never see someone else's private sellers (that would leak their sources
+    and muddy the market view). Apply to every price view built from the shared
+    snapshot: deals, species detail, collection valuation."""
+    uid = current_user_id()
+    return [l for l in listings
+            if not l.get("is_private")
+            or (uid is not None and l.get("private_owner") == uid)]
+
+
 @app.context_processor
 def inject_helpers():
     """Expose analytics presentation helpers to every template."""
@@ -393,9 +406,17 @@ def inject_theme():
             "TIER_ORDER": theme.TIER_ORDER}
 
 
+# Only these pages actually render the #species-datalist autocomplete. Injecting
+# the full ~1k-species <option> list into EVERY response (login, privacy, etc.)
+# bloated the DOM on every navigation for no reason.
+_SPECIES_PICKER_ENDPOINTS = {"species_search", "alerts", "collection"}
+
+
 @app.context_processor
 def inject_all_species():
-    """Expose the species list to every template for autocomplete datalists."""
+    """Species list for autocomplete datalists — only on pages that have one."""
+    if request.endpoint not in _SPECIES_PICKER_ENDPOINTS:
+        return {"all_species": []}
     try:
         return {"all_species": get_species_list(DB_PATH)}
     except Exception:
@@ -586,10 +607,15 @@ def _build_snapshot(now: float) -> list:
         key = l.get("scientific_name_key", "")
         l["owned"] = key in owned
 
-    # Flag private-seller listings so the UI can separate them from websites.
+    # Flag private-seller listings + their owner so the per-user visibility filter
+    # (_visible_to_user) can hide a private seller from everyone except the account
+    # that uploaded it. private_owner is None for website vendors.
     private = get_private_seller_keys(DB_PATH)
+    owners = get_private_owner_map(DB_PATH)
     for l in snapshot:
-        l["is_private"] = l.get("vendor_key") in private
+        vk = l.get("vendor_key")
+        l["is_private"] = vk in private
+        l["private_owner"] = owners.get(vk)
 
     # ── Deal codes + free shipping (native, first-class) ────────────────────
     # Attach the vendor's best active discount code and its "with code" price,
@@ -761,6 +787,21 @@ def get_private_seller_keys(db_path=DB_PATH) -> set:
         return keys
     except Exception:
         return set()
+
+
+def get_private_owner_map(db_path=DB_PATH) -> dict:
+    """{vendor_key: owner_user_id} for every private-seller upload. Drives the
+    per-user visibility filter: a private seller is shown ONLY to the account
+    that uploaded it. A NULL owner (legacy import not yet claimed) stays hidden
+    from everyone until the migration assigns it."""
+    try:
+        conn = get_connection(db_path)
+        rows = conn.execute(
+            "SELECT vendor_key, user_id FROM vendors WHERE platform='private_seller'").fetchall()
+        conn.close()
+        return {r["vendor_key"]: r["user_id"] for r in rows}
+    except Exception:
+        return {}
 
 
 # Cached canonical species catalog (drives search, dropdown, browse tiles).
@@ -1301,7 +1342,9 @@ def tokens_css():
     :root block)."""
     resp = send_from_directory(os.path.join(app.root_path, "tokens"),
                                "fangtrack.css", mimetype="text/css")
-    resp.headers["Cache-Control"] = "public, max-age=3600"
+    # Immutable + 1yr: the link is ?v=-busted (base.html bumps it on token edits),
+    # so browsers/CDN can hold it forever and never revalidate.
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return resp
 
 
@@ -1359,9 +1402,29 @@ def dashboard():
         vendors_live=vendors_live)
 
 
+@app.route("/movers")
+def movers_all():
+    """Full market-movers lists — the 'All N →' target for each dashboard mover
+    tile (all-time lows, biggest drops, restocks, heating). Reuses the same
+    cached mover data the dashboard shows, just uncapped (dashboard shows [:5])."""
+    from vendors import REGISTRY
+    snap = [l for l in get_snapshot() if l.get("vendor_key") in REGISTRY]
+    movers = _cached_movers(snap)
+    head = _dashboard_header_meta()
+    return render_template("movers.html", movers=movers, days_history=head["days"])
+
+
+_header_meta_cache = {"data": None, "ts": 0}
+
+
 def _dashboard_header_meta() -> dict:
     """Last-crawl time, distinct crawl-day depth, and health for the header +
-    the Market-Movers empty-state progress counters."""
+    the Market-Movers empty-state progress counters. Crawl-derived → only changes
+    on a crawl, so memoize with the shared TTL (was 2 uncached crawl_runs scans on
+    every landing-page hit)."""
+    now = time.time()
+    if _header_meta_cache["data"] is not None and (now - _header_meta_cache["ts"]) < _CACHE_TTL:
+        return _header_meta_cache["data"]
     out = {"last_crawl": None, "days": 0, "health": "ok",
            "health_counts": {"healthy": 0, "partial": 0, "down": 0}}
     try:
@@ -1413,12 +1476,14 @@ def _dashboard_header_meta() -> dict:
             out["health"] = " · ".join(bits)
     except Exception:
         pass
+    _header_meta_cache["data"] = out
+    _header_meta_cache["ts"] = now
     return out
 
 
 @app.route("/deals")
 def deals():
-    snap = get_snapshot()
+    snap = _visible_to_user(get_snapshot())   # per-user private-seller isolation
     sex_filter   = request.args.get("sex", "")
     deal_filter  = request.args.get("deal", "")
     vendor_filter= request.args.get("vendor", "")
@@ -1634,8 +1699,10 @@ def _collection_valued(items: list) -> tuple[list, dict]:
     from normalize.species_canonical import canonical_species
     from normalize.common_names_map import best_common
     # Group current in-stock listings by species key for like-for-like comparisons.
+    # Visible-only: a user's valuation may use their own private sellers, never
+    # another user's.
     listings_by_key = {}
-    for l in get_snapshot():
+    for l in _visible_to_user(get_snapshot()):
         k = l.get("scientific_name_key") or ""
         if k and l.get("price_usd"):
             listings_by_key.setdefault(k, []).append(l)
@@ -2015,6 +2082,13 @@ def _ensure_profile_cols(conn):
         conn.execute("ALTER TABLE users ADD COLUMN is_public INTEGER DEFAULT 0")
     if "handle" not in have:
         conn.execute("ALTER TABLE users ADD COLUMN handle TEXT")
+    # Real name — PRIVATE (not asked at signup, never shown publicly; the
+    # leaderboard/public profile keep showing display_name). Only the user + an
+    # admin can see it.
+    if "first_name" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
+    if "last_name" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
     conn.commit()
 
 
@@ -2127,6 +2201,86 @@ def public_profile(handle):
                            portfolio=portfolio, stats=stats)
 
 
+@app.route("/account")
+@login_required
+def account():
+    """User account page (distinct from the admin-only /settings site config).
+    Where a registered user manages their real name — private — and finds their
+    profile/leaderboard settings."""
+    return render_template("account.html")
+
+
+@app.route("/account/name", methods=["POST"])
+@login_required
+def account_name():
+    """Save the user's real first/last name. PRIVATE — never shown publicly; the
+    leaderboard/public profile keep using display_name. Only the user + an admin
+    can see it. Not collected at signup by design."""
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    fn = (request.form.get("first_name") or "").strip()[:60] or None
+    ln = (request.form.get("last_name") or "").strip()[:60] or None
+    conn.execute("UPDATE users SET first_name=?, last_name=? WHERE id=?",
+                 (fn, ln, current_user_id()))
+    conn.commit()
+    conn.close()
+    flash("Name saved.", "success")
+    return redirect(url_for("account"))
+
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    """Admin overview of all users — name, email, joined, and per-user data counts.
+    Read-only. NEVER selects password_hash. PII: admin-only, not cached/blobbed."""
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    users = [dict(r) for r in conn.execute("""
+        SELECT u.id, u.email, u.display_name, u.first_name, u.last_name,
+               u.is_admin, u.is_public, u.handle, u.created_at,
+               (SELECT COUNT(*) FROM collection c WHERE c.user_id=u.id) AS collection_count,
+               (SELECT COUNT(*) FROM watchlist w WHERE w.user_id=u.id)  AS watchlist_count,
+               (SELECT COUNT(*) FROM vendors v WHERE v.platform='private_seller' AND v.user_id=u.id) AS private_seller_count
+        FROM users u
+        ORDER BY u.created_at DESC, u.id DESC
+    """).fetchall()]
+    conn.close()
+    return render_template("admin_users.html", users=users)
+
+
+def _admin_user_or_404(conn, uid):
+    u = conn.execute("SELECT id, email, display_name, first_name, last_name "
+                     "FROM users WHERE id=?", (uid,)).fetchone()
+    if not u:
+        conn.close()
+        abort(404)
+    return dict(u)
+
+
+@app.route("/admin/users/<int:uid>/collection")
+@admin_required
+def admin_user_collection(uid):
+    conn = get_connection(DB_PATH)
+    u = _admin_user_or_404(conn, uid)
+    items = [dict(r) for r in conn.execute(
+        "SELECT species_display, sex, quantity, size_notes, price_paid, acquired_date, "
+        "source, notes FROM collection WHERE user_id=? ORDER BY species_display", (uid,)).fetchall()]
+    conn.close()
+    return render_template("admin_user_data.html", u=u, kind="Collection", items=items)
+
+
+@app.route("/admin/users/<int:uid>/watchlist")
+@admin_required
+def admin_user_watchlist(uid):
+    conn = get_connection(DB_PATH)
+    u = _admin_user_or_404(conn, uid)
+    items = [dict(r) for r in conn.execute(
+        "SELECT species_display, sex, min_size, max_size, max_price, max_landed, notes "
+        "FROM watchlist WHERE user_id=? ORDER BY species_display", (uid,)).fetchall()]
+    conn.close()
+    return render_template("admin_user_data.html", u=u, kind="Watchlist", items=items)
+
+
 @app.route("/profile/save", methods=["POST"])
 @login_required
 def profile_save():
@@ -2153,6 +2307,37 @@ def profile_save():
     flash("Public profile updated." + (f" Live at /u/{handle}" if is_public and handle else ""),
           "success")
     return redirect(url_for("settings"))
+
+
+@app.route("/collection/share", methods=["POST"])
+@login_required
+def collection_share():
+    """One-click opt-in (from the Collection page) to share the collection on the
+    public leaderboard. OFF by default — a collection is private unless the owner
+    explicitly shares it. Auto-assigns a handle so sharing is a single click."""
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    share = request.form.get("share") == "on"
+    if share:
+        row = conn.execute("SELECT handle, display_name, email FROM users WHERE id=?",
+                           (current_user_id(),)).fetchone()
+        handle = row["handle"]
+        if not handle:   # auto-generate a unique handle from name/email
+            base = _slugify_handle(row["display_name"] or (row["email"] or "").split("@")[0]) or "keeper"
+            handle, n = base, 1
+            while conn.execute("SELECT 1 FROM users WHERE handle=? AND id!=?",
+                               (handle, current_user_id())).fetchone():
+                n += 1; handle = f"{base}-{n}"
+        conn.execute("UPDATE users SET is_public=1, handle=? WHERE id=?", (handle, current_user_id()))
+        msg = f"Your collection is now on the leaderboard — public at /u/{handle}."
+    else:
+        conn.execute("UPDATE users SET is_public=0 WHERE id=?", (current_user_id(),))
+        msg = "Your collection is private — off the leaderboard."
+    conn.commit()
+    conn.close()
+    _leaderboard_cache["data"] = None
+    flash(msg, "success")
+    return redirect(url_for("collection"))
 
 
 def _vendor_qa_list():
@@ -2200,8 +2385,8 @@ def sellers():
     for r in get_crawl_summary(DB_PATH):   # newest-first; keep the newest
         last_crawl.setdefault(r["vendor_key"], r)
 
-    # Private sellers (imported lists) — separate from website crawlers, and
-    # account-only: never shown to logged-out visitors.
+    # Private sellers (imported lists) are PER-USER private: each account sees only
+    # the sellers it uploaded — never another user's, never logged-out visitors'.
     from auth import current_user
     private_sellers = []
     if current_user() is not None:
@@ -2209,9 +2394,9 @@ def sellers():
         try:
             private_sellers = [dict(r) for r in conn.execute("""
                 SELECT vendor_key, vendor_name, base_url AS contact
-                FROM vendors WHERE platform = 'private_seller'
+                FROM vendors WHERE platform = 'private_seller' AND user_id = ?
                 ORDER BY vendor_name
-            """).fetchall()]
+            """, (current_user_id(),)).fetchall()]
         except Exception:
             private_sellers = []
         conn.close()
@@ -2245,15 +2430,20 @@ def sellers_crawl():
 
 
 @app.route("/sellers/delete/<vendor_key>", methods=["POST"])
-@admin_required
+@login_required
 def sellers_delete(vendor_key):
-    """Delete an imported private-seller list (only private sellers, never a
-    website vendor)."""
+    """Delete an imported private-seller list. Only the OWNER (or an admin) may
+    delete it; never a website vendor."""
     from vendors import REGISTRY
     if vendor_key in REGISTRY:
         flash("That's a website vendor and can't be deleted.", "error")
         return redirect(url_for("sellers"))
     conn = get_connection(DB_PATH)
+    _own = conn.execute("SELECT user_id FROM vendors WHERE vendor_key=?", (vendor_key,)).fetchone()
+    _u = current_user()
+    if not (_u and (_u["is_admin"] or (_own and _own["user_id"] == current_user_id()))):
+        conn.close()
+        abort(403)
     runs = [r["id"] for r in conn.execute(
         "SELECT id FROM crawl_runs WHERE vendor_key=?", (vendor_key,)).fetchall()]
     if runs:
@@ -2270,22 +2460,24 @@ def sellers_delete(vendor_key):
 
 
 @app.route("/sellers/import", methods=["POST"])
-@admin_required
+@login_required
 def sellers_import():
+    # Private-seller import is available to ANY registered user. What they upload
+    # is theirs alone (owned by their user_id, visible only to them).
     seller_name = request.form.get("seller_name","").strip()
     raw_text    = request.form.get("raw_text","").strip()
     if not seller_name or not raw_text:
         flash("Seller name and list text are required", "error")
         return redirect(url_for("sellers"))
     try:
-        # Check if this is a versioned update
+        # Check if this is a versioned update — scoped to THIS user's own sellers.
         conn = get_connection(DB_PATH)
         prev = conn.execute("""
             SELECT COUNT(*) as n, MAX(observed_at) as last_seen
             FROM price_history ph
             JOIN vendors v ON ph.vendor_key = v.vendor_key
-            WHERE v.vendor_name = ? AND v.platform = 'private_seller'
-        """, (seller_name,)).fetchone()
+            WHERE v.vendor_name = ? AND v.platform = 'private_seller' AND v.user_id = ?
+        """, (seller_name, current_user_id())).fetchone()
         is_update = (prev["n"] or 0) > 0
         conn.close()
 
@@ -2296,7 +2488,8 @@ def sellers_import():
             return redirect(url_for("sellers"))
 
         contact = request.form.get("contact", "").strip()
-        count = insert_listings(listings, seller_name, db_path=DB_PATH, contact=contact)
+        count = insert_listings(listings, seller_name, db_path=DB_PATH,
+                                contact=contact, user_id=current_user_id())
         _snapshot_cache["data"] = None  # invalidate
 
         if is_update:
@@ -2419,7 +2612,13 @@ def species_search():
 @app.route("/species/<path:species_key>")
 def species_detail(species_key):
     history = get_species_price_history(species_key, db_path=DB_PATH)
-    snap = get_snapshot()
+    # Per-user private-seller isolation: hide every private seller the current
+    # user doesn't own from BOTH the price-history chart and the live listings.
+    _hidden_priv = {vk for vk, owner in get_private_owner_map(DB_PATH).items()
+                    if owner != current_user_id()}
+    if _hidden_priv:
+        history = [h for h in history if h.get("vendor_key") not in _hidden_priv]
+    snap = _visible_to_user(get_snapshot())
     current = [l for l in snap if (l.get("scientific_name_key") or "") == species_key]
     current = _apply_private_pref(current)
     # Private sellers are account-only: scrub them from EVERY data path on this
@@ -2455,12 +2654,22 @@ def species_detail(species_key):
     genus = species_key.split()[0] if species_key.split() else ""
     from normalize.traits import trait_badges
     traits = trait_badges(species_key)
+    # Downsample the inline chart payload — the SVG is ~760px wide, so hundreds of
+    # points aren't visible. Evenly decimate (keep the last point) to bound the
+    # inline JSON + client parse for heavily-traded species. `history` stays full
+    # for the all-time-low fallback + common-name candidates above.
+    chart_history = history
+    if len(history) > 400:
+        step = len(history) / 400.0
+        idxs = sorted({int(i * step) for i in range(400)} | {len(history) - 1})
+        chart_history = [history[i] for i in idxs]
     return render_template("species_detail.html",
                            traits=traits,
                            species_key=species_key,
                            display=_display_from_key(species_key),
                            common=common,
                            history=history,
+                           chart_history=chart_history,
                            current=current,
                            size_class_rarity=scr,
                            stats=stats,
