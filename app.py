@@ -1483,16 +1483,23 @@ def _dashboard_header_meta() -> dict:
         row = conn.execute("""SELECT MAX(started_at) mx,
                                      COUNT(DISTINCT DATE(started_at)) days
                               FROM crawl_runs WHERE status IN ('complete','partial')""").fetchone()
-        # Honest scanner health from each vendor's LATEST run:
-        #   healthy = completed and actually returned products
-        #   partial = crawl truncated (429/rate-limit mid-pagination)
-        #   down    = failed/skipped, or "completed" but returned zero
-        # ("all healthy" was misleading — a blocked vendor that returned nothing
-        # still logged status='complete'/0 products and never showed as a problem.)
+        # Honest scanner health from each vendor's latest run that ACTUALLY SERVES
+        # DATA (status complete/partial) — the exact runs the live snapshot + Vendor
+        # QA read, so the three surfaces agree:
+        #   healthy = latest serving run completed
+        #   partial = latest serving run was truncated (429 mid-pagination)
+        #   down    = the vendor has NO successful run at all
+        # A later 'rejected' (write-guard kept last-good data) or 'skipped' run must
+        # NOT flip a vendor to "down": the site is still serving its last good data,
+        # so Crawl History / QA show it "complete" — the dashboard now matches. (The
+        # write-guard already rejects genuine collapses, so a complete run counts as
+        # healthy without second-guessing its product count — that was flagging
+        # fanghub, a legitimately-empty social seller, as "down".)
         rows = conn.execute("""
-            SELECT cr.vendor_key AS vk, cr.status AS status, cr.products_found AS pf
+            SELECT cr.vendor_key AS vk, cr.status AS status
             FROM crawl_runs cr
-            JOIN (SELECT vendor_key, MAX(id) AS mid FROM crawl_runs GROUP BY vendor_key) m
+            JOIN (SELECT vendor_key, MAX(id) AS mid FROM crawl_runs
+                  WHERE status IN ('complete','partial') GROUP BY vendor_key) m
               ON cr.id = m.mid
         """).fetchall()
         conn.close()
@@ -1506,15 +1513,20 @@ def _dashboard_header_meta() -> dict:
             active = set(REGISTRY.keys())
         except Exception:
             active = None
-        healthy = partial = down = 0
+        good = {}
         for r in rows:
             if active is not None and r["vk"] not in active:
                 continue
-            st = (r["status"] or "").lower()
-            pf = r["pf"] or 0
+            good[r["vk"]] = (r["status"] or "").lower()
+        healthy = partial = down = 0
+        # Every ACTIVE scanner is counted: one with no complete/partial run at all
+        # is genuinely down; the rest are healthy/partial per their latest good run.
+        scanners = active if active is not None else set(good.keys())
+        for vk in scanners:
+            st = good.get(vk)
             if st == "partial":
                 partial += 1
-            elif st == "complete" and pf > 0:
+            elif st == "complete":
                 healthy += 1
             else:
                 down += 1
