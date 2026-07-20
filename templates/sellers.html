@@ -25,7 +25,7 @@
     </div>
 
     {% if private_sellers %}
-    <div style="font-size:10px; color:#52525b; margin-top:20px; margin-bottom:6px;">👤 PRIVATE SELLERS — click to view listings</div>
+    <div style="font-size:10px; color:#52525b; margin-top:20px; margin-bottom:6px;">👤 YOUR PRIVATE SELLERS — private to your account · click to view</div>
     <div style="max-height:220px; overflow-y:auto;">
     {% for s in private_sellers %}
     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid #2a2a31;" onmouseover="this.style.background='#1c1c21'" onmouseout="this.style.background=''">
@@ -40,10 +40,15 @@
     {% endif %}
   </div>
 
-  <!-- Private seller import -->
+  <!-- Private seller import — registered users only; uploads are private to the account -->
+  {% if current_user %}
   <div class="card">
-    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">Import Private Seller List</div>
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">Add Your Private Seller List</div>
+    <div style="padding:9px 12px; background:#141417; border-radius:8px; font-size:12px; color:#a1a1aa; border:1px solid #2a2a31; margin-bottom:14px;">
+      🔒 <b style="color:#e4e4e7;">Private to your account.</b> Sellers you add here are visible only to you — never shared with other users, never shown publicly, and kept off the market view. They stay with your account.
+    </div>
     <form action="/sellers/import" method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
       <div>
         <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">SELLER NAME</label>
         <input name="seller_name" required placeholder='e.g. "Eric Madrid" or "FB Seller July 26"' style="width:100%; box-sizing:border-box;">
@@ -64,6 +69,13 @@
       <button class="btn btn-primary" style="justify-content:center;">Import List</button>
     </form>
   </div>
+  {% else %}
+  <div class="card" style="display:flex; flex-direction:column; justify-content:center; text-align:center; gap:8px;">
+    <div style="font-size:13px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.06em;">Private Seller Lists</div>
+    <div style="font-size:13px; color:#a1a1aa;">🔒 Track sellers who aren't on any website — Facebook groups, private breeders, local contacts. Your lists stay <b style="color:#e4e4e7;">private to your account</b>.</div>
+    <div><a href="/register" class="btn btn-primary" style="display:inline-flex;">Sign up to add private sellers</a></div>
+  </div>
+  {% endif %}
 </div>
 
 <!-- ── Vendor QA (does our data match the vendor's live site?) — ADMIN ONLY ── -->

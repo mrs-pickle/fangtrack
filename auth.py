@@ -97,6 +97,17 @@ def init_auth_tables(db_path=DB_PATH):
     # never creates. Lets us grant admin without direct DB access. Idempotent.
     for _ae in [e.strip().lower() for e in os.environ.get("FANGTRACK_ADMIN_EMAILS", "").split(",") if e.strip()]:
         conn.execute("UPDATE users SET is_admin=1 WHERE lower(email)=? AND is_admin=0", (_ae,))
+    # One-time migration: legacy private sellers (imported before per-user isolation,
+    # user_id IS NULL) belonged to the admin who curated them — assign them to the
+    # first admin so they become that account's private sellers. Idempotent (only
+    # touches unowned rows). With no admin yet, they stay hidden from everyone (safe).
+    try:
+        _admin = conn.execute("SELECT id FROM users WHERE is_admin=1 ORDER BY id LIMIT 1").fetchone()
+        if _admin:
+            conn.execute("UPDATE vendors SET user_id=? "
+                         "WHERE platform='private_seller' AND user_id IS NULL", (_admin["id"],))
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 

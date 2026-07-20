@@ -375,6 +375,19 @@ def _apply_private_pref(listings: list) -> list:
     return listings
 
 
+def _visible_to_user(listings: list) -> list:
+    """PER-USER private-seller isolation — the security boundary. A private-seller
+    listing is visible ONLY to the account that uploaded it; website/public
+    listings are visible to everyone. Logged-out visitors and OTHER logged-in
+    users never see someone else's private sellers (that would leak their sources
+    and muddy the market view). Apply to every price view built from the shared
+    snapshot: deals, species detail, collection valuation."""
+    uid = current_user_id()
+    return [l for l in listings
+            if not l.get("is_private")
+            or (uid is not None and l.get("private_owner") == uid)]
+
+
 @app.context_processor
 def inject_helpers():
     """Expose analytics presentation helpers to every template."""
@@ -586,10 +599,15 @@ def _build_snapshot(now: float) -> list:
         key = l.get("scientific_name_key", "")
         l["owned"] = key in owned
 
-    # Flag private-seller listings so the UI can separate them from websites.
+    # Flag private-seller listings + their owner so the per-user visibility filter
+    # (_visible_to_user) can hide a private seller from everyone except the account
+    # that uploaded it. private_owner is None for website vendors.
     private = get_private_seller_keys(DB_PATH)
+    owners = get_private_owner_map(DB_PATH)
     for l in snapshot:
-        l["is_private"] = l.get("vendor_key") in private
+        vk = l.get("vendor_key")
+        l["is_private"] = vk in private
+        l["private_owner"] = owners.get(vk)
 
     # ── Deal codes + free shipping (native, first-class) ────────────────────
     # Attach the vendor's best active discount code and its "with code" price,
@@ -761,6 +779,21 @@ def get_private_seller_keys(db_path=DB_PATH) -> set:
         return keys
     except Exception:
         return set()
+
+
+def get_private_owner_map(db_path=DB_PATH) -> dict:
+    """{vendor_key: owner_user_id} for every private-seller upload. Drives the
+    per-user visibility filter: a private seller is shown ONLY to the account
+    that uploaded it. A NULL owner (legacy import not yet claimed) stays hidden
+    from everyone until the migration assigns it."""
+    try:
+        conn = get_connection(db_path)
+        rows = conn.execute(
+            "SELECT vendor_key, user_id FROM vendors WHERE platform='private_seller'").fetchall()
+        conn.close()
+        return {r["vendor_key"]: r["user_id"] for r in rows}
+    except Exception:
+        return {}
 
 
 # Cached canonical species catalog (drives search, dropdown, browse tiles).
@@ -1430,7 +1463,7 @@ def _dashboard_header_meta() -> dict:
 
 @app.route("/deals")
 def deals():
-    snap = get_snapshot()
+    snap = _visible_to_user(get_snapshot())   # per-user private-seller isolation
     sex_filter   = request.args.get("sex", "")
     deal_filter  = request.args.get("deal", "")
     vendor_filter= request.args.get("vendor", "")
@@ -1646,8 +1679,10 @@ def _collection_valued(items: list) -> tuple[list, dict]:
     from normalize.species_canonical import canonical_species
     from normalize.common_names_map import best_common
     # Group current in-stock listings by species key for like-for-like comparisons.
+    # Visible-only: a user's valuation may use their own private sellers, never
+    # another user's.
     listings_by_key = {}
-    for l in get_snapshot():
+    for l in _visible_to_user(get_snapshot()):
         k = l.get("scientific_name_key") or ""
         if k and l.get("price_usd"):
             listings_by_key.setdefault(k, []).append(l)
@@ -2212,8 +2247,8 @@ def sellers():
     for r in get_crawl_summary(DB_PATH):   # newest-first; keep the newest
         last_crawl.setdefault(r["vendor_key"], r)
 
-    # Private sellers (imported lists) — separate from website crawlers, and
-    # account-only: never shown to logged-out visitors.
+    # Private sellers (imported lists) are PER-USER private: each account sees only
+    # the sellers it uploaded — never another user's, never logged-out visitors'.
     from auth import current_user
     private_sellers = []
     if current_user() is not None:
@@ -2221,9 +2256,9 @@ def sellers():
         try:
             private_sellers = [dict(r) for r in conn.execute("""
                 SELECT vendor_key, vendor_name, base_url AS contact
-                FROM vendors WHERE platform = 'private_seller'
+                FROM vendors WHERE platform = 'private_seller' AND user_id = ?
                 ORDER BY vendor_name
-            """).fetchall()]
+            """, (current_user_id(),)).fetchall()]
         except Exception:
             private_sellers = []
         conn.close()
@@ -2257,15 +2292,20 @@ def sellers_crawl():
 
 
 @app.route("/sellers/delete/<vendor_key>", methods=["POST"])
-@admin_required
+@login_required
 def sellers_delete(vendor_key):
-    """Delete an imported private-seller list (only private sellers, never a
-    website vendor)."""
+    """Delete an imported private-seller list. Only the OWNER (or an admin) may
+    delete it; never a website vendor."""
     from vendors import REGISTRY
     if vendor_key in REGISTRY:
         flash("That's a website vendor and can't be deleted.", "error")
         return redirect(url_for("sellers"))
     conn = get_connection(DB_PATH)
+    _own = conn.execute("SELECT user_id FROM vendors WHERE vendor_key=?", (vendor_key,)).fetchone()
+    _u = current_user()
+    if not (_u and (_u["is_admin"] or (_own and _own["user_id"] == current_user_id()))):
+        conn.close()
+        abort(403)
     runs = [r["id"] for r in conn.execute(
         "SELECT id FROM crawl_runs WHERE vendor_key=?", (vendor_key,)).fetchall()]
     if runs:
@@ -2282,22 +2322,24 @@ def sellers_delete(vendor_key):
 
 
 @app.route("/sellers/import", methods=["POST"])
-@admin_required
+@login_required
 def sellers_import():
+    # Private-seller import is available to ANY registered user. What they upload
+    # is theirs alone (owned by their user_id, visible only to them).
     seller_name = request.form.get("seller_name","").strip()
     raw_text    = request.form.get("raw_text","").strip()
     if not seller_name or not raw_text:
         flash("Seller name and list text are required", "error")
         return redirect(url_for("sellers"))
     try:
-        # Check if this is a versioned update
+        # Check if this is a versioned update — scoped to THIS user's own sellers.
         conn = get_connection(DB_PATH)
         prev = conn.execute("""
             SELECT COUNT(*) as n, MAX(observed_at) as last_seen
             FROM price_history ph
             JOIN vendors v ON ph.vendor_key = v.vendor_key
-            WHERE v.vendor_name = ? AND v.platform = 'private_seller'
-        """, (seller_name,)).fetchone()
+            WHERE v.vendor_name = ? AND v.platform = 'private_seller' AND v.user_id = ?
+        """, (seller_name, current_user_id())).fetchone()
         is_update = (prev["n"] or 0) > 0
         conn.close()
 
@@ -2308,7 +2350,8 @@ def sellers_import():
             return redirect(url_for("sellers"))
 
         contact = request.form.get("contact", "").strip()
-        count = insert_listings(listings, seller_name, db_path=DB_PATH, contact=contact)
+        count = insert_listings(listings, seller_name, db_path=DB_PATH,
+                                contact=contact, user_id=current_user_id())
         _snapshot_cache["data"] = None  # invalidate
 
         if is_update:
@@ -2431,7 +2474,13 @@ def species_search():
 @app.route("/species/<path:species_key>")
 def species_detail(species_key):
     history = get_species_price_history(species_key, db_path=DB_PATH)
-    snap = get_snapshot()
+    # Per-user private-seller isolation: hide every private seller the current
+    # user doesn't own from BOTH the price-history chart and the live listings.
+    _hidden_priv = {vk for vk, owner in get_private_owner_map(DB_PATH).items()
+                    if owner != current_user_id()}
+    if _hidden_priv:
+        history = [h for h in history if h.get("vendor_key") not in _hidden_priv]
+    snap = _visible_to_user(get_snapshot())
     current = [l for l in snap if (l.get("scientific_name_key") or "") == species_key]
     current = _apply_private_pref(current)
     # Private sellers are account-only: scrub them from EVERY data path on this

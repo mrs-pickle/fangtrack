@@ -249,19 +249,25 @@ def parse_with_regex(text: str) -> list[dict]:
 
 def insert_listings(listings: list[dict], seller_name: str,
                     seller_key: str = None, db_path=DB_PATH,
-                    dry_run: bool = False, contact: str = "") -> int:
+                    dry_run: bool = False, contact: str = "",
+                    user_id: int = None) -> int:
     """Insert parsed listings into price_history.
 
-    `contact` (email / phone / FB handle) is stored on the vendor record so a
-    buyer viewing the seller's listings knows how to reach them — important for
-    the hosted, multi-user product where private lists are shared.
+    `contact` (email / phone / FB handle) is stored on the vendor record so the
+    owner viewing their own seller's listings knows how to reach them.
+
+    `user_id` is the owner. Private-seller lists are PER-USER private: a user's
+    imports are visible only to that account. The vendor_key is namespaced by
+    user_id (`priv_<uid>_<slug>`) so two users importing the same seller name
+    can't collide onto one shared vendor row.
     """
     if not listings:
         return 0
 
     if seller_key is None:
-        seller_key = re.sub(r'[^a-z0-9_]', '_', seller_name.lower().strip())
-        seller_key = re.sub(r'_+', '_', seller_key).strip('_')
+        slug = re.sub(r'[^a-z0-9_]', '_', seller_name.lower().strip())
+        slug = re.sub(r'_+', '_', slug).strip('_')
+        seller_key = f"priv_{user_id}_{slug}" if user_id is not None else slug
 
     if not dry_run:
         init_db(db_path)
@@ -271,6 +277,7 @@ def insert_listings(listings: list[dict], seller_name: str,
             base_url=contact or "",   # contact info reuses the base_url column
             platform="private_seller",
             db_path=db_path,
+            user_id=user_id,
         )
 
     now = datetime.now(timezone.utc).isoformat()
