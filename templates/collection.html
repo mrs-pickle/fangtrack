@@ -17,7 +17,7 @@
 
 <!-- Portfolio value (TCGplayer Collection Tracker) -->
 {% if items %}
-<div class="grid gap-3 mb-5" style="grid-template-columns:repeat(5,1fr);">
+<div class="grid gap-3 mb-5 stat-strip-2" style="grid-template-columns:repeat(5,1fr);">
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Portfolio Value</div><div style="font-size:26px;font-weight:800;color:#34d399;">${{ "%.0f"|format(portfolio.total_value) }}</div><div style="font-size:10px;color:#52525b;">at today's market price</div></div>
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Animals</div><div style="font-size:26px;font-weight:800;">{{ portfolio.animals }}</div><div style="font-size:10px;color:#52525b;">{{ portfolio.holdings }} holdings</div></div>
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Species</div><div style="font-size:26px;font-weight:800;">{{ portfolio.species }}</div><div style="font-size:10px;color:#52525b;">distinct</div></div>
@@ -83,7 +83,7 @@
     </div>
     {% endif %}
   </div>
-  <div>
+  <div class="mobile-first">
     <div class="card" style="position:sticky; top:80px;">
       <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">Add to Collection</div>
       <form action="/collection/add" method="post" class="flex flex-col gap-3">

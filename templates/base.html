@@ -130,25 +130,42 @@ input:focus, select:focus { border-color:#2563eb; }
 ::-webkit-scrollbar-thumb { background:#26262b; border-radius:5px; border:2px solid #0e0e10; }
 ::-webkit-scrollbar-thumb:hover { background:#3f3f46; }
 
-/* ── Mobile / responsive ─────────────────────────────────────────────────────
-   The app is inline-style heavy, so these override common inline layouts with
-   !important where needed. Phones are the primary social-recruited audience. */
+/* ── Responsive breakpoint system ────────────────────────────────────────────
+   ONE place for mobile rules (the app is inline-style heavy, so !important is
+   used to override inline layouts). Phones are the primary audience.
+   Breakpoints: 768 (phone/tablet), 640 (small phone), 560 (KPI reflow).
+   Reusable utilities any template can opt into:
+     .hide-sm      → hidden ≤768px (low-priority table columns/cells)
+     .mobile-first → order:-1 ≤768px (float an add-form above its long list)
+     .species-layout / .species-facets → collapse the Species browse facet rail */
 @media (max-width:768px){
   .navwrap { overflow-x:auto; gap:2px !important; padding:0 10px !important; -webkit-overflow-scrolling:touch; }
   .navwrap::-webkit-scrollbar { height:0; }         /* hide the nav scrollbar */
-  .nav-link { padding:6px 9px; font-size:12px; white-space:nowrap; }
+  .nav-link { padding:9px 11px; font-size:12px; white-space:nowrap; min-height:40px; display:inline-flex; align-items:center; }
   .wrap { padding:16px 12px !important; }
   /* Wide tables scroll horizontally instead of breaking the layout. */
   table { display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
-  th, td { padding:7px 9px; }
+  th, td { padding:9px 10px; }
   /* Collapse multi-column grids to a single column on phones. */
   .grid, .kpi-strip { grid-template-columns:1fr !important; }
   .card { padding:14px; }
   h1 { font-size:18px !important; }
+  /* iOS zooms the whole page when a focused field is <16px — kill that jank
+     across every form (was 13px base / 15px on login-register). */
+  input, select, textarea { font-size:16px !important; }
+  /* Tap targets: honor the ~44px touch guideline for primary controls. */
+  .btn { min-height:44px; }
+  /* Reusable mobile utilities. */
+  .hide-sm { display:none !important; }
+  .mobile-first { order:-1 !important; }
+  /* Species browse: the facet rail is an inline grid (210px 1fr) with no .grid
+     class, so it needs an explicit collapse + un-sticky on phones. */
+  .species-layout { grid-template-columns:1fr !important; }
+  .species-facets { position:static !important; max-height:none !important; top:auto !important; }
 }
 @media (max-width:560px){
-  /* Keep the KPI tiles two-up (their own rule handles this; reassert over .grid). */
-  .kpi-strip { grid-template-columns:repeat(2,1fr) !important; }
+  /* Keep KPI tiles + stat strips two-up (readable) instead of one tall stack. */
+  .kpi-strip, .stat-strip-2 { grid-template-columns:repeat(2,1fr) !important; }
 }
 </style>
 </head>
