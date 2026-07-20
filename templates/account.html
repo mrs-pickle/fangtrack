@@ -1,0 +1,44 @@
+{% extends "base.html" %}{% block title %}Account — FangTrack Pro{% endblock %}
+{% block content %}
+<h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0 0 20px;">Account</h1>
+
+<div class="grid gap-6" style="grid-template-columns:1fr 1fr; align-items:start;">
+
+  <!-- Real name (private) -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">Your Name</div>
+    <div style="padding:9px 12px; background:#141417; border-radius:8px; font-size:12px; color:#a1a1aa; border:1px solid #2a2a31; margin-bottom:14px;">
+      🔒 <b style="color:#e4e4e7;">Private.</b> Your real name is never shown publicly — the leaderboard and public profiles use your display name. Only you (and an admin) can see this.
+    </div>
+    <form action="/account/name" method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <div class="grid gap-3" style="grid-template-columns:1fr 1fr;">
+        <div>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">FIRST NAME</label>
+          <input name="first_name" value="{{ current_user.first_name or '' }}" maxlength="60" placeholder="First" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">LAST NAME</label>
+          <input name="last_name" value="{{ current_user.last_name or '' }}" maxlength="60" placeholder="Last" style="width:100%; box-sizing:border-box;">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="justify-content:center;">Save name</button>
+    </form>
+  </div>
+
+  <!-- Account info + shortcuts -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.06em;">Details</div>
+    <div style="font-size:13px; color:#a1a1aa; line-height:1.9;">
+      <div>Email · <span style="color:#e4e4e7;">{{ current_user.email }}</span></div>
+      <div>Display name · <span style="color:#e4e4e7;">{{ current_user.display_name or '—' }}</span> <span style="color:#52525b;">(shown publicly)</span></div>
+      <div>Leaderboard · <span style="color:#e4e4e7;">{% if current_user.is_public %}🏆 shared{% else %}🔒 private{% endif %}</span></div>
+    </div>
+    <div style="border-top:1px solid #2a2a31; margin-top:16px; padding-top:16px; display:flex; flex-direction:column; gap:8px;">
+      <a href="/collection" style="font-size:13px; color:#2563eb; text-decoration:none;">🕷 Your collection · leaderboard sharing →</a>
+      <a href="/sellers" style="font-size:13px; color:#2563eb; text-decoration:none;">👤 Your private sellers →</a>
+      <a href="/logout" style="font-size:13px; color:#ef4444; text-decoration:none;">Sign out →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -2082,6 +2082,13 @@ def _ensure_profile_cols(conn):
         conn.execute("ALTER TABLE users ADD COLUMN is_public INTEGER DEFAULT 0")
     if "handle" not in have:
         conn.execute("ALTER TABLE users ADD COLUMN handle TEXT")
+    # Real name — PRIVATE (not asked at signup, never shown publicly; the
+    # leaderboard/public profile keep showing display_name). Only the user + an
+    # admin can see it.
+    if "first_name" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
+    if "last_name" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
     conn.commit()
 
 
@@ -2192,6 +2199,86 @@ def public_profile(handle):
         it["common"] = COMMON_NAMES.get(it.get("species_key") or "", "")
     return render_template("public_profile.html", owner=dict(u), items=items,
                            portfolio=portfolio, stats=stats)
+
+
+@app.route("/account")
+@login_required
+def account():
+    """User account page (distinct from the admin-only /settings site config).
+    Where a registered user manages their real name — private — and finds their
+    profile/leaderboard settings."""
+    return render_template("account.html")
+
+
+@app.route("/account/name", methods=["POST"])
+@login_required
+def account_name():
+    """Save the user's real first/last name. PRIVATE — never shown publicly; the
+    leaderboard/public profile keep using display_name. Only the user + an admin
+    can see it. Not collected at signup by design."""
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    fn = (request.form.get("first_name") or "").strip()[:60] or None
+    ln = (request.form.get("last_name") or "").strip()[:60] or None
+    conn.execute("UPDATE users SET first_name=?, last_name=? WHERE id=?",
+                 (fn, ln, current_user_id()))
+    conn.commit()
+    conn.close()
+    flash("Name saved.", "success")
+    return redirect(url_for("account"))
+
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    """Admin overview of all users — name, email, joined, and per-user data counts.
+    Read-only. NEVER selects password_hash. PII: admin-only, not cached/blobbed."""
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    users = [dict(r) for r in conn.execute("""
+        SELECT u.id, u.email, u.display_name, u.first_name, u.last_name,
+               u.is_admin, u.is_public, u.handle, u.created_at,
+               (SELECT COUNT(*) FROM collection c WHERE c.user_id=u.id) AS collection_count,
+               (SELECT COUNT(*) FROM watchlist w WHERE w.user_id=u.id)  AS watchlist_count,
+               (SELECT COUNT(*) FROM vendors v WHERE v.platform='private_seller' AND v.user_id=u.id) AS private_seller_count
+        FROM users u
+        ORDER BY u.created_at DESC, u.id DESC
+    """).fetchall()]
+    conn.close()
+    return render_template("admin_users.html", users=users)
+
+
+def _admin_user_or_404(conn, uid):
+    u = conn.execute("SELECT id, email, display_name, first_name, last_name "
+                     "FROM users WHERE id=?", (uid,)).fetchone()
+    if not u:
+        conn.close()
+        abort(404)
+    return dict(u)
+
+
+@app.route("/admin/users/<int:uid>/collection")
+@admin_required
+def admin_user_collection(uid):
+    conn = get_connection(DB_PATH)
+    u = _admin_user_or_404(conn, uid)
+    items = [dict(r) for r in conn.execute(
+        "SELECT species_display, sex, quantity, size_notes, price_paid, acquired_date, "
+        "source, notes FROM collection WHERE user_id=? ORDER BY species_display", (uid,)).fetchall()]
+    conn.close()
+    return render_template("admin_user_data.html", u=u, kind="Collection", items=items)
+
+
+@app.route("/admin/users/<int:uid>/watchlist")
+@admin_required
+def admin_user_watchlist(uid):
+    conn = get_connection(DB_PATH)
+    u = _admin_user_or_404(conn, uid)
+    items = [dict(r) for r in conn.execute(
+        "SELECT species_display, sex, min_size, max_size, max_price, max_landed, notes "
+        "FROM watchlist WHERE user_id=? ORDER BY species_display", (uid,)).fetchall()]
+    conn.close()
+    return render_template("admin_user_data.html", u=u, kind="Watchlist", items=items)
 
 
 @app.route("/profile/save", methods=["POST"])

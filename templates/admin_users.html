@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}Users — Admin — FangTrack{% endblock %}
+{% block content %}
+<div style="display:flex; align-items:baseline; gap:10px; margin:0 0 18px; flex-wrap:wrap;">
+  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">Users</h1>
+  <span style="font-size:11px; font-weight:700; color:#a855f7; background:#2a1a3a; padding:2px 8px; border-radius:4px;">ADMIN</span>
+  <span style="font-size:12px; color:#71717a;">{{ users|length }} account{{ '' if users|length == 1 else 's' }}</span>
+</div>
+
+<div class="card deals-table" style="padding:0; overflow-x:auto;">
+  <table style="width:100%;">
+    <thead><tr>
+      <th>Name</th><th>Email</th><th>Joined</th><th>Flags</th>
+      <th>Collection</th><th>Watchlist</th><th>Private sellers</th>
+    </tr></thead>
+    <tbody>
+    {% for u in users %}
+    <tr>
+      <td>
+        <span style="color:#e4e4e7; font-weight:600;">{{ u.display_name or '—' }}</span>
+        {% if u.first_name or u.last_name %}<div style="font-size:11px; color:#71717a;">🔒 {{ u.first_name or '' }} {{ u.last_name or '' }}</div>{% endif %}
+        {% if u.handle %}<div style="font-size:11px;"><a href="/u/{{ u.handle }}" style="color:#2563eb; text-decoration:none;">/u/{{ u.handle }} →</a></div>{% endif %}
+      </td>
+      <td style="color:#a1a1aa;">{{ u.email }}</td>
+      <td style="color:#71717a; font-size:12px;">{{ (u.created_at or '')[:10] }}</td>
+      <td style="font-size:11px;">
+        {% if u.is_admin %}<span style="color:#a855f7; font-weight:700;">ADMIN</span>{% endif %}
+        {% if u.is_public %}<span style="color:#22c55e;">🏆 public</span>{% else %}<span style="color:#52525b;">private</span>{% endif %}
+      </td>
+      <td>{% if u.collection_count %}<a href="/admin/users/{{ u.id }}/collection" style="color:#2563eb; text-decoration:none;">{{ u.collection_count }} →</a>{% else %}<span style="color:#52525b;">0</span>{% endif %}</td>
+      <td>{% if u.watchlist_count %}<a href="/admin/users/{{ u.id }}/watchlist" style="color:#2563eb; text-decoration:none;">{{ u.watchlist_count }} →</a>{% else %}<span style="color:#52525b;">0</span>{% endif %}</td>
+      <td style="color:{{ '#e4e4e7' if u.private_seller_count else '#52525b' }};">{{ u.private_seller_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div style="font-size:11px; color:#52525b; margin-top:12px;">Read-only. Private sellers and real names are shown here for support only — they are never exposed to other users.</div>
+{% endblock %}
