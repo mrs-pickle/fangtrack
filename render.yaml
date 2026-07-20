@@ -21,7 +21,12 @@ services:
     # for rarity/trends, and two workers doing that at once OOM'd the instance. One
     # worker + threads also means a single SHARED snapshot cache (no per-worker dupes).
     # --max-requests recycles the worker periodically to release accumulated memory.
-    startCommand: "gunicorn wsgi:app --workers 1 --threads 4 --timeout 120 --max-requests 500 --max-requests-jitter 50 --bind 0.0.0.0:$PORT"
+    # 1 worker (see memory note above) but 8 threads: bot crawlers (ClaudeBot &c.)
+    # hammer heavy pages (/species/*, /history) and a burst can tie up every thread
+    # on slow free-Postgres I/O, starving the /healthz probe → 5s-timeout flap +
+    # Render "server failure" alert (2026-07-20 incident). More threads = the probe
+    # can still find a free one. Memory has huge headroom (~15% of 2GB) so this is safe.
+    startCommand: "gunicorn wsgi:app --workers 1 --threads 8 --timeout 120 --max-requests 500 --max-requests-jitter 50 --bind 0.0.0.0:$PORT"
     healthCheckPath: /healthz
     envVars:
       - key: FANGTRACK_SECRET_KEY

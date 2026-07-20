@@ -1349,6 +1349,37 @@ def healthz():
     return {"status": "ok"}, 200
 
 
+# robots.txt — curb the bot-crawler load that saturates the 1-worker box
+# (2026-07-20 flap). Keeps every content page indexable (/, /species,
+# /species/<name>, /deals, /genus/*, /about) but waves mass crawlers off the
+# heavy/duplicate surfaces: faceted query URLs (sort/page/filter variants of the
+# same content), the 420KB /history dump, the JSON /api endpoints, and the
+# private/admin areas. Crawl-delay throttles the rate on the pages they DO take.
+# This is advisory-only: it never blocks a signed-in human or a purpose-built
+# agent, only well-behaved crawlers.
+_ROBOTS_TXT = """User-agent: *
+Crawl-delay: 10
+Disallow: /*?
+Disallow: /history
+Disallow: /api/
+Disallow: /admin/
+Disallow: /account
+Disallow: /collection
+Disallow: /watchlist
+Disallow: /settings
+Disallow: /login
+Disallow: /register
+Allow: /
+"""
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    resp = app.response_class(_ROBOTS_TXT, mimetype="text/plain")
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 @app.route("/tokens/fangtrack.css")
 def tokens_css():
     """Design-token stylesheet, served from tokens/ so the token files stay a
