@@ -65,6 +65,48 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-19 — DATA-QUALITY fixes (on `dev`, HELD for Mike's ship word). (1) COLLECTION-UPLOAD pg bug:
+  `_insert_collection_rows` used `WHERE user_id IS ?` → the pg adapter emits invalid `IS $1` → every
+  logged-in collection upload 500'd on prod. `user_id` is always the current (non-null) user here, so
+  `= ?` is correct AND portable. Grepped: no other `IS ?` left. (2) SIZE picked the ADULT grow-size
+  from body text: Great Basin's $8 T. vagans sling showed "5-6\"" mined from "grow to be a moderate
+  size of about 5-6 inches". `extract_size_from_description` step-3 guard only blocked
+  `full grown|adult size|matures|max size` — missed the prose forms. Added `_ADULT_SIZE_CTX`
+  (adds `grows to|grow to be|can grow/reach|reach(es)|leg span|ultimate size`); when the only size
+  sits in that context we return None (Unknown) rather than stamp the species' adult leg span on a
+  sling. Also fixed a latent step-1 bleed (a "Current Size: 3/4\" Full Grown Size: 5-6\"" window ran
+  past the label and `extract_size_from_title` took the LAST token = 5-6\"; now takes the FIRST token
+  in the labelled window). Great Basin's true per-specimen sizes live only in Wix variant OPTIONS the
+  bulk GraphQL doesn't fetch → they become Unknown, which is honest (tracked: size-gap vendors). Stale
+  5-6\" rows self-correct on the next crawl (scraper re-derives size_text). Tests: test_size.py +2
+  (adult-grow-size never grabbed; labelled current-size still wins). (3) Urban G. actaeon "$9061 vs
+  $2350" — NOT a bug: the vendor genuinely asked a premium on a 5\" female "DISPLAY specimen" (variant
+  literally titled "…F'in wow!"), since dropped to $2350; the daily crawl already re-caught it at
+  $1774. `market_price` is a TRIMMED median (drops single hi+lo) so the premium never polluted it — it
+  can only surface as all-time/90d HIGH (a true fact). Left analytics untouched (no silent change
+  before the review gate). Added `tools/inspect_listing.py` (read-only snapshot inspector, mirrors
+  data_qa.py). NOTE: also need to log the SHIPPED trust+admin+speed+mobile batch below.
+- 2026-07-19 — SHIPPED trust + admin + speed + mobile batch (merged dev→main, live as 886e29d).
+  (a) TRUST: private sellers are now per-user private — a `vendors.user_id` owner column + request-time
+  `_visible_to_user()` filter so a private_seller upload is visible ONLY to its uploader (closes the
+  cross-user source-leak IDOR); `/sellers` import is `@login_required` (was admin) and stamps
+  `user_id`; delete is owner-or-admin. Collection gained an opt-in leaderboard toggle (`/collection/share`,
+  private by default). (b) ADMIN: custom `/admin/users` panel (name, email, links to each user's
+  collection + watchlist; never selects password_hash) + registered-users count + metrics strip.
+  (c) ACCOUNT: `/account` + `/account/name` let a user set first/last name in settings (NOT asked at
+  signup); display name stays public, real name private (leaderboard shows display name). (d) SPEED
+  1-6: species price-history LIKE→indexed equality; species picker scoped to 3 endpoints; header-meta
+  memoized; species_detail chart downsampled ≤400 pts; tokens `Cache-Control: immutable`. Species
+  detail 1.8s→0.7s (-62%), landing -23%. (e) MOBILE 1-6: breakpoint tokens (.hide-sm/.mobile-first/
+  .species-layout/.stat-strip-2), 16px inputs (no iOS zoom), 44px tap targets, source legend on deals,
+  nth-child column hiding. GOTCHA that cost a failed deploy (a357763): a SEMICOLON inside a SQL `--`
+  comment in db.py's vendors CREATE TABLE broke the pg adapter's `split_script` (it splits on `;` but
+  does NOT skip `--` comments) → CREATE split mid-statement → Postgres syntax error at boot → "Exited
+  with status 1". SQLite parsed it fine so all 66 tests (SQLite-only) passed. Fix (886e29d): removed
+  the semicolon. LESSON: never put `;` in an inline SQL comment; the split_script comment-blindness is
+  a known adapter limit. Post-migration: 28 healthy / 1 down, migrations applied clean, no errors.
+  CLOUDFLARE: origin headers now perfect (public/immutable, no Set-Cookie/Vary:Cookie) but edge still
+  `cf-cache-status: DYNAMIC` after purge + Dev-Mode-off → concluded CF-side, needs a support ticket.
 - 2026-07-19 — SHIPPED perf batch + CDN + PROXY-FROM-RENDER FIXED (thesis-critical). Merged to prod:
   (a) perf batch (dropped Tailwind Play CDN → static utility CSS; memoized species-card analytics
   5s+→~1.2s warm; polling tamed: alerts once-on-load, crawl-status 3s active/60s idle; proxy

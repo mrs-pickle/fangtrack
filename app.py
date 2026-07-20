@@ -2022,7 +2022,7 @@ def _insert_collection_rows(conn, rows: list[dict], skip_existing_keys: bool = F
     """Insert parsed collection rows for a user. Returns (added, skipped)."""
     _ensure_collection_cols(conn)
     existing = {r["species_key"] for r in conn.execute(
-        "SELECT species_key FROM collection WHERE user_id IS ?", (user_id,))}
+        "SELECT species_key FROM collection WHERE user_id = ?", (user_id,))}
     added = skipped = 0
     for r in rows:
         if skip_existing_keys and r["species_key"] in existing:

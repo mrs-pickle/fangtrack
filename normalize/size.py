@@ -234,13 +234,30 @@ def derive_size(size_text, *sources):
     return size_text, None, None, None
 
 
+# Phrases that signal a FULL-GROWN / ultimate size rather than the size of the
+# specimen actually being sold. Kept broad on purpose: when the only size in a
+# body sits in one of these contexts, returning None (Unknown) beats stamping a
+# listing — often a $8 sling — with the species' adult leg span. Covers the
+# label forms ("Adult Size:", "Full Grown Size:") AND the prose forms
+# ("grows to 6\"", "grow to be about 5-6 inches", "can reach 6\"", "leg span").
+_ADULT_SIZE_CTX = re.compile(
+    r'full[\s-]?grown|fully\s+grown|adult\s*(?:size|leg\s*span)|'
+    r'matures?\s*(?:to|at|size)|max(?:imum)?\s*size|ultimate\s*size|'
+    r'grows?\s*(?:up\s*)?to|grow\s*to\s*be|can\s*(?:grow|reach|get)|'
+    r'reach(?:es)?\b|leg\s*span',
+    re.I,
+)
+
+
 def extract_size_from_description(text: Optional[str]) -> Optional[str]:
     """Pull the CURRENT size out of a product description body.
 
     Vendor descriptions often list two sizes — "Current Size: Approximately 3/4\""
     and "Full Grown Size: Approximately 5-6\"" — and we want the *current* one.
     So we prefer a "current size" label, then a plain "size:" line that is NOT a
-    full-grown / adult / mature line, and only then a bare size token.
+    full-grown / adult / mature line, and only then a bare size token — but only
+    when the body has no full-grown / grows-to / leg-span phrasing that would
+    make a bare token ambiguous with the species' adult size.
     """
     if not text:
         return None
@@ -248,25 +265,33 @@ def extract_size_from_description(text: Optional[str]) -> Optional[str]:
     t = _html.unescape(re.sub(r"<[^>]+>", " ", text))
     t = re.sub(r"\s+", " ", t)
 
+    # A labelled window like "Current Size: Approximately 3/4\"" can bleed into the
+    # next field ("… 3/4\" Full Grown Size: 5-6\"") within the char budget. Take the
+    # FIRST size token in the window — right after the label — not the last.
+    def _first_tok(snippet):
+        mm = _SIZE_IN_TITLE.search(snippet or "")
+        return extract_size_from_title(mm.group(0)) if mm else None
+
     # 1. explicit "current size" (or "size now") label
     m = re.search(r'\b(?:current\s*size|size\s*now|approx(?:imate)?\s*size)\s*[:\-]?\s*'
                   r'(?:approx(?:imately)?\.?\s*)?([^<\n.;,]{1,28})', t, re.I)
     if m:
-        tok = extract_size_from_title(m.group(1))
+        tok = _first_tok(m.group(1))
         if tok:
             return tok
-    # 2. a generic "size:" that isn't a full-grown / adult / mature / max line
+    # 2. a generic "size:" that isn't a full-grown / adult / grows-to line
     for m in re.finditer(r'\bsize\s*[:\-]\s*(?:approx(?:imately)?\.?\s*)?([^<\n.;,]{1,28})', t, re.I):
         pre = t[max(0, m.start() - 18):m.start()].lower()
-        if any(w in pre for w in ("full grown", "full-grown", "adult", "mature", "max", "grown")):
+        if any(w in pre for w in ("full grown", "full-grown", "adult", "mature",
+                                  "max", "grown", "grow", "reach", "leg span")):
             continue
-        tok = extract_size_from_title(m.group(1))
+        tok = _first_tok(m.group(1))
         if tok:
             return tok
-    # 3. no size label at all, but if the body never mentions a full-grown/adult
-    # size (so there's no ambiguity), take the FIRST size token it does contain
-    # ("… Field Collected Approximately 3 – 4 Inches").
-    if not re.search(r'full[\s-]?grown|adult\s*size|matures?\s*(?:to|at|size)|max(?:imum)?\s*size', t, re.I):
+    # 3. no size label at all, but if the body never mentions a full-grown / adult
+    # / grows-to / leg-span size (so there's no ambiguity), take the FIRST size
+    # token it does contain ("… Field Collected Approximately 3 – 4 Inches").
+    if not _ADULT_SIZE_CTX.search(t):
         first = _SIZE_IN_TITLE.search(t)
         if first:
             tok = extract_size_from_title(first.group(0))

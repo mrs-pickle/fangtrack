@@ -9,7 +9,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from normalize.size import extract_size_from_title as ex, parse_size as ps
+from normalize.size import (extract_size_from_title as ex, parse_size as ps,
+                            extract_size_from_description as edesc)
 
 
 def test_mixed_number_in_title():
@@ -38,6 +39,27 @@ def test_non_sizes_ignored():
     # A stray number in a name must NOT be read as a size (needs a unit).
     assert ex("Pamphobeteus sp 2") is None
     assert ps("adult") == (None, None, None)
+
+
+def test_description_never_grabs_adult_grow_size():
+    # The bug Mike caught: Great Basin's $8 T. vagans sling showed size 5-6",
+    # mined from "grow to be a moderate size of about 5-6 inches" (the ADULT
+    # grow-size). With no per-specimen size in the body, the honest answer is
+    # None (Unknown), not the species' adult leg span.
+    assert edesc("Tliltocatl vagans grow to be a moderate size of about 5-6 inches.") is None
+    assert edesc('CB/WC: CB Adult Leg Span: 5"-6" Origin: Mexico') is None
+    assert edesc("They can grow up to a solid 6.5 inch leg span.") is None
+    assert edesc("This species reaches 7 inches as an adult.") is None
+
+
+def test_description_current_size_still_extracted():
+    # A labelled current size must still win — even when a full-grown size
+    # follows it inside the same capture window (take the FIRST token, not last).
+    assert edesc('Current Size: Approximately 3/4" Full Grown Size: 5-6"') == '3/4"'
+    assert edesc('Current Size: Approximately 3/4". Full Grown Size: 5-6".') == '3/4"'
+    assert edesc("Care easy. Size: 1.5\" Diet: crickets.") == '1.5"'
+    # No adult-size phrasing anywhere → a bare current-size token is safe to take.
+    assert edesc("Wild caught. Field Collected Approximately 3 - 4 Inches.") == '3.0-4.0"'
 
 
 if __name__ == "__main__":
