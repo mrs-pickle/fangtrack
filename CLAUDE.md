@@ -65,6 +65,27 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-20 — PROD INCIDENT: health-check-timeout flap (NOT a crash), diagnosed + hardened (on
+  `dev`, HELD). Render alerted "HTTP health check failed (timed out after 5s) while running your
+  code" at 6:35 + 7:18 AM CDT, self-recovered each time (SAME instance 2wcft, no restart). Metrics:
+  memory ~15% of 2GB, CPU near-baseline → NOT OOM, NOT a crash, NOT my dev code (still on dev). ROOT
+  CAUSE from live logs: the single gunicorn worker (1-CPU box) gets briefly saturated by BOT-CRAWLER
+  traffic on heavy pages — ClaudeBot (`+claudebot@anthropic.com`) hammering `/species/*` (50-113KB)
+  and `/species?page=*` (~270KB) and `/history` (**420KB**) back-to-back — and at 6:35 that overlapped
+  the daily crawl's Postgres WRITE load, so all 4 request threads were tied up on slow free-PG queries
+  and `/healthz` couldn't answer within Render's 5s window → flagged, then recovered when the DB freed.
+  Also fired 2:17 + 3:28 PM yesterday (non-crawl times) → it's general worker-starvation, not
+  crawl-specific. Verified in Render: `FANGTRACK_DAILY_CRAWL_HOUR` is NOT set on the web (so the
+  in-process crawler is NOT running); `FANGTRACK_PROXY_URL` IS set on the web (unexpected — the web
+  doesn't crawl; harmless but flagged). HARDENING SHIPPED to dev (e03d80e): (1)
+  `_start_daily_crawl_scheduler()` hard-refuses to arm when DATABASE_URL is set (future-misconfig
+  guard — an in-process web crawl would OOM/flap the box). (2) `/healthz` now bypasses the auth
+  `before_request` entirely → pure in-memory 200, no user-load/session/CSRF, a slow DB can never delay
+  the probe (also drops a pointless Set-Cookie on it). +1 test (69 green). OPEN LEVERS (need Mike):
+  (a) gunicorn `--threads 4→8` in render.yaml (memory has huge headroom) for concurrency slack;
+  (b) curb bot load — Cloudflare edge-cache `/species/*` + a rate-limit/Bot-Fight rule (ties into the
+  still-DYNAMIC CF cache ticket), and/or a `robots.txt` Crawl-delay; (c) paid Postgres (#106) for DB
+  headroom. `/history` at 420KB is also a fat page worth capping.
 - 2026-07-19 — DATA-QUALITY fixes (on `dev`, HELD for Mike's ship word). (1) COLLECTION-UPLOAD pg bug:
   `_insert_collection_rows` used `WHERE user_id IS ?` → the pg adapter emits invalid `IS $1` → every
   logged-in collection upload 500'd on prod. `user_id` is always the current (non-null) user here, so
