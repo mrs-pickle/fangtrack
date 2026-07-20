@@ -1163,15 +1163,28 @@ def run_crawl_thread(vendor_keys: list[str]):
 def _start_daily_crawl_scheduler():
     """Optional in-process daily crawl. Enabled by FANGTRACK_DAILY_CRAWL_HOUR (0-23 UTC).
     Uses a date marker + the cross-process crawl lock so it fires once/day even across
-    multiple gunicorn workers. Best with an always-on plan (an idle instance won't wake)."""
+    multiple gunicorn workers. Best with an always-on plan (an idle instance won't wake).
+
+    ONLY for the single-service SQLite-on-a-disk deployment. On the hosted Postgres
+    topology the daily crawl is a dedicated Render cron worker (render.yaml); running an
+    all-vendor crawl inside the 1-CPU/2GB web process spikes memory + saturates the CPU and
+    flaps the health check → Render restart (prod outage 2026-07-20). So we hard-refuse to
+    arm whenever DATABASE_URL is present, even if the hour env var got set by mistake.
+    Returns a short status string (for logging/tests); the value is otherwise unused."""
     raw = os.environ.get("FANGTRACK_DAILY_CRAWL_HOUR")
     if raw is None:
-        return
+        return "off"
+    if os.environ.get("DATABASE_URL"):
+        logger.warning(
+            "FANGTRACK_DAILY_CRAWL_HOUR is set but DATABASE_URL is present — refusing to "
+            "crawl inside the web process (a dedicated cron worker handles the daily crawl). "
+            "Unset FANGTRACK_DAILY_CRAWL_HOUR on the web service to silence this.")
+        return "refused-postgres"
     try:
         target_hour = int(raw)
     except ValueError:
         logger.warning("FANGTRACK_DAILY_CRAWL_HOUR must be 0-23; scheduler off.")
-        return
+        return "invalid"
     import crawl_lock
     marker = Path("logs/.last_daily_crawl")
 
@@ -1193,6 +1206,7 @@ def _start_daily_crawl_scheduler():
 
     threading.Thread(target=_loop, daemon=True).start()
     logger.info(f"Daily crawl scheduler armed for {target_hour}:00 UTC")
+    return "armed"
 
 
 _start_daily_crawl_scheduler()

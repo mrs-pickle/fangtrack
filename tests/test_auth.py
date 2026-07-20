@@ -92,6 +92,17 @@ def test_public_pages_open_anonymously():
         assert c.get(path).status_code == 200, path
 
 
+def test_healthz_is_cookieless_and_bypasses_before_request():
+    # Render's liveness probe must be a pure in-memory 200 with no per-request work:
+    # no session/CSRF cookie write (so a slow DB can't delay it and flap the instance,
+    # the 2026-07-20 outage). A Set-Cookie here means the before_request hook ran.
+    _reset()
+    c = app.test_client()
+    r = c.get("/healthz")
+    assert r.status_code == 200 and r.get_json() == {"status": "ok"}
+    assert "Set-Cookie" not in r.headers, "healthz must not write a session cookie"
+
+
 def test_csrf_blocks_tokenless_post():
     _reset()
     c = app.test_client()

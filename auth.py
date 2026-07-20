@@ -221,8 +221,13 @@ def init_auth(app):
         # on them: a Set-Cookie makes Cloudflare (and any CDN) refuse to cache the
         # response. Sessions aren't permanent, so with no session write these
         # responses carry neither Set-Cookie nor Vary: Cookie → edge-cacheable.
+        #
+        # /healthz is Render's liveness probe: hit every few seconds with no cookie.
+        # Keep it a pure in-memory 200 with zero per-request work (no user-load, no
+        # session/CSRF write) so a slow Postgres can never delay the probe and flap
+        # the instance — the 2026-07-20 outage was health-check timeouts, not a crash.
         p = request.path
-        if p.startswith("/static/") or p.startswith("/tokens/"):
+        if p == "/healthz" or p.startswith("/static/") or p.startswith("/tokens/"):
             return
         _load_logged_in_user()
         if "_csrf" not in session:
