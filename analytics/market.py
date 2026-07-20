@@ -172,22 +172,52 @@ def _days_since(iso: str, now: datetime) -> int | None:
         return None
 
 
+def private_seller_keys(cur_or_db) -> set:
+    """Vendor keys that belong to a per-user PRIVATE seller upload. These must
+    never contribute to the public MARKET analytics (all-time-low, market price,
+    movers, rarity, trends) — they are one user's private data, not "the market".
+    Accepts an open cursor or a db path."""
+    own_conn = None
+    try:
+        if hasattr(cur_or_db, "execute"):
+            cur = cur_or_db
+        else:
+            own_conn = get_connection(cur_or_db)
+            cur = own_conn.cursor()
+        rows = cur.execute(
+            "SELECT vendor_key FROM vendors WHERE platform='private_seller'").fetchall()
+        return {r["vendor_key"] for r in rows}
+    except Exception:
+        return set()
+    finally:
+        if own_conn is not None:
+            own_conn.close()
+
+
 def species_market_stats(db_path: Path = DB_PATH,
                          only_keys: set | None = None) -> dict[str, dict]:
     """Return {species_key: stats_dict} for every canonical species.
 
     `only_keys` optionally restricts the computation to a subset (e.g. the one
     species on a detail page) for speed.
+
+    PRIVATE-SELLER SAFETY: rows from `platform='private_seller'` vendors are
+    excluded — the market stats are the public website market only, so one user's
+    private upload can never move the all-time-low / market price / rarity that
+    everyone sees (the 2026-07-20 trust leak: mrs2200's list surfaced as global
+    all-time-low alerts).
     """
     conn = get_connection(db_path)
     cur = conn.cursor()
+    priv = private_seller_keys(cur)
 
     # Latest run per vendor → defines what is "live" right now.
     cur.execute("""
         SELECT vendor_key, MAX(id) AS mx FROM crawl_runs
         WHERE status IN ('complete','partial') GROUP BY vendor_key
     """)
-    latest_runs = {r["vendor_key"]: r["mx"] for r in cur.fetchall()}
+    latest_runs = {r["vendor_key"]: r["mx"] for r in cur.fetchall()
+                   if r["vendor_key"] not in priv}
     live_run_ids = set(latest_runs.values())
 
     cur.execute("""
@@ -197,7 +227,7 @@ def species_market_stats(db_path: Path = DB_PATH,
         WHERE price_usd > 0 AND scientific_name_key IS NOT NULL
         ORDER BY observed_at ASC
     """)
-    rows = cur.fetchall()
+    rows = [r for r in cur.fetchall() if r["vendor_key"] not in priv]
     conn.close()
 
     now = datetime.now(timezone.utc)
@@ -398,8 +428,18 @@ def market_movers(snapshot: list, db_path: Path = DB_PATH, limit: int = 8) -> di
     snapshot (already carries is_fire_deal / price_trend / is_price_drop)."""
     stats = species_market_stats(db_path)
 
+    # PRIVATE-SELLER SAFETY: never let a per-user private upload appear in the
+    # public movers (all-time-low / drops / restocks). drops/back already require
+    # a product_url (private sellers have none), but the snapshot-based fire list
+    # must be filtered explicitly, and legacy private keys may lack the priv_
+    # prefix so we check the authoritative vendors table too.
+    _priv = private_seller_keys(db_path)
+    def _is_priv(l):
+        vk = l.get("vendor_key") or ""
+        return bool(l.get("is_private")) or vk in _priv or vk.startswith("priv_")
+
     # Fresh fire deals (all-time-low delivered cost, right now)
-    fire = sorted([l for l in snapshot if l.get("is_fire_deal")],
+    fire = sorted([l for l in snapshot if l.get("is_fire_deal") and not _is_priv(l)],
                   key=lambda l: l.get("landed_cost") or l.get("price_usd") or 9e9)[:limit]
 
     # Biggest drops vs the previous crawl for the same vendor.

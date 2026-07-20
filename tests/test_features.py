@@ -161,6 +161,46 @@ def test_private_seller_visible_only_to_owner():
         "owner should see their own private seller"
 
 
+def test_private_seller_never_moves_market_analytics():
+    # Trust-critical (2026-07-20 leak): a private seller's cheap listing must NOT
+    # define a species' all-time-low / market price, nor appear in the public
+    # movers — those are the website market only. Otherwise mrs2200's private list
+    # surfaces as global "all-time-low" alerts everyone can see.
+    from database.db import upsert_vendor, insert_crawl_run, save_listings
+    from models import Listing, CrawlResult
+    from analytics.market import species_market_stats, market_movers, private_seller_keys
+    _reset()
+    key = "trustcheck sp private"   # collision-proof key unique to this test
+    # A website vendor at $100 and a PRIVATE seller at $5 for the same species.
+    for vk, name, plat, price, uid in [
+            ("trust_webshop", "Web Shop", "shopify", 100.0, None),
+            ("priv_9_secret", "Secret List", "private_seller", 5.0, 9)]:
+        upsert_vendor(vk, name, "", plat, user_id=uid)
+        cr = CrawlResult(vendor_key=vk, vendor_name=name); cr.status = "complete"
+        rid = insert_crawl_run(cr, DB_PATH)
+        save_listings([Listing(vendor=name, vendor_key=vk,
+                               scientific_name="Trustcheck sp private", price_usd=price,
+                               availability="in_stock")], rid, DB_PATH)
+    conn = get_connection(DB_PATH)
+    conn.execute("UPDATE price_history SET scientific_name_key=? "
+                 "WHERE vendor_key IN ('trust_webshop','priv_9_secret')", (key,))
+    conn.commit(); conn.close()
+
+    assert "priv_9_secret" in private_seller_keys(DB_PATH)
+    stats = species_market_stats(DB_PATH, only_keys={key})
+    # All-time low must be the website $100, NOT the private $5.
+    assert stats.get(key, {}).get("all_time_low") == 100.0, stats.get(key)
+
+    # market_movers fire list must exclude the private seller even if flagged.
+    snap = [{"vendor_key": "webshop", "scientific_name_key": key,
+             "scientific_name": "Grammostola pulchra", "price_usd": 100.0, "is_fire_deal": True},
+            {"vendor_key": "priv_9_secret", "scientific_name_key": key,
+             "scientific_name": "Grammostola pulchra", "price_usd": 5.0, "is_fire_deal": True,
+             "is_private": True}]
+    fire_vendors = {l.get("vendor_key") for l in market_movers(snap, DB_PATH).get("fire", [])}
+    assert "priv_9_secret" not in fire_vendors, "private seller leaked into movers"
+
+
 # ── livestock filter: art prints must not pass ────────────────────────────────
 def test_art_prints_are_not_livestock():
     from normalize.livestock import is_livestock

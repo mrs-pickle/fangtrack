@@ -129,6 +129,22 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
     emitted = set(_read(EMITTED_FILE, []))
     new_events: list[dict] = []
 
+    # PRIVATE-SELLER SAFETY (trust-critical): market alerts (all-time-low / drops /
+    # back-in-stock) are emitted UNTAGGED = visible to everyone, and saved searches
+    # are matched across the whole snapshot. A per-user private-seller listing must
+    # never surface in either, or one user's private sourcing leaks to all users
+    # (the 2026-07-20 leak: mrs2200's list showed as global all-time-low alerts).
+    # Strip them here so every downstream path (movers + saved-search match) is clean.
+    try:
+        from analytics.market import private_seller_keys
+        _priv = private_seller_keys(db_path) if db_path else set()
+    except Exception:
+        _priv = set()
+    snapshot = [l for l in snapshot
+                if not l.get("is_private")
+                and (l.get("vendor_key") or "") not in _priv
+                and not str(l.get("vendor_key") or "").startswith("priv_")]
+
     def _emit(ev: dict, sig: str):
         if sig in emitted:
             return
@@ -183,6 +199,10 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
                    "title": f"'{s['name']}' → {l.get('scientific_name','')[:36]}",
                    "detail": f"${l.get('price_usd',0):.0f} · {l.get('size_text') or '?'} · {l.get('vendor_key')}",
                    "species_key": l.get("scientific_name_key"),
+                   # Tag with the search owner so the hit is visible ONLY to them
+                   # (an untagged event is global — that leaked one user's searches
+                   # to everyone via load_feed's _visible_to check).
+                   "user_id": s.get("user_id"),
                    "url": l.get("product_url") or ""}, sig)
 
     if new_events:
