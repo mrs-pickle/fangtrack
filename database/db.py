@@ -46,7 +46,7 @@ def init_db(db_path: Path = DB_PATH) -> None:
         vendor_name TEXT NOT NULL,
         base_url    TEXT,
         platform    TEXT,
-        user_id     INTEGER,   -- owner of a private_seller upload; NULL for website vendors
+        user_id     INTEGER,   -- owner of a private_seller upload (NULL for website vendors)
         created_at  TEXT DEFAULT (datetime('now'))
     );
 
