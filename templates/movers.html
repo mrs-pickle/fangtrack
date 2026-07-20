@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Market Movers — FangTrack Pro{% endblock %}
+{% block content %}
+
+<style>
+  .mv-page-card { background:#1c1c21; border:1px solid #2a2a31; border-radius:10px; padding:16px 18px; margin-bottom:16px; scroll-margin-top:72px; }
+  .mv-page-head { font-size:13px; font-weight:700; margin-bottom:12px; display:flex; align-items:baseline; gap:8px; }
+  .mv-page-head .count { color:#52525b; font-weight:400; font-size:12px; }
+  .mover-item { display:block; text-decoration:none; padding:8px 0; border-bottom:1px solid #17171b; }
+  .mover-item:last-child { border-bottom:none; }
+  .mover-name { font-style:italic; color:#2563eb; font-size:13px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mover-common { color:#777; font-style:normal; }
+  .mv-empty { color:#71717a; font-size:12px; padding:6px 0; }
+</style>
+
+<div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; gap:12px; flex-wrap:wrap;">
+  <div>
+    <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0; color:#f4f4f5;">Market Movers</h1>
+    <div style="font-size:12px; color:#71717a; margin-top:4px;">The full lists behind the dashboard tiles — all-time lows, biggest drops, restocks, and heating species.</div>
+  </div>
+  <a href="/" style="font-size:12px; color:#2563eb; text-decoration:none;">← Dashboard</a>
+</div>
+
+<!-- All-Time-Low Deals -->
+<div class="mv-page-card" id="fire">
+  <div class="mv-page-head" style="color:#f97316;">🔥 All-Time-Low Deals <span class="count">({{ movers.fire|length }})</span></div>
+  {% if movers.fire %}
+    {% for l in movers.fire %}
+    <a href="/species/{{ l.scientific_name_key }}" class="mover-item">
+      <div class="mover-name">{{ l.sci_display }}{% if l.common_clean %} <span class="mover-common">({{ l.common_clean }})</span>{% endif %}</div>
+      <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><b style="color:#e4e4e7;">${{ "%.0f"|format(l.price_usd) }}</b>{% if l.size_text %} · {{ l.size_text }}{% endif %}{% if l.landed_cost %} · ${{ "%.0f"|format(l.landed_cost) }} shipped{% endif %} · {{ l.vendor_key }}</div>
+    </a>
+    {% endfor %}
+  {% else %}<div class="mv-empty">No all-time lows right now.</div>{% endif %}
+</div>
+
+<!-- Biggest Price Drops -->
+<div class="mv-page-card" id="drops">
+  <div class="mv-page-head" style="color:#22c55e;">▼ Biggest Price Drops <span class="count">({{ movers.drops|length }})</span></div>
+  {% if movers.drops %}
+    {% for d in movers.drops %}
+    <a href="/species/{{ d.scientific_name_key }}" class="mover-item">
+      <div class="mover-name">{{ d.sci_display }}{% if d.common_clean %} <span class="mover-common">({{ d.common_clean }})</span>{% endif %}</div>
+      <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><s style="color:#71717a;">${{ "%.0f"|format(d.prev_price) }}</s> → <b style="color:#22c55e;">${{ "%.0f"|format(d.new_price) }}</b> <span style="color:#22c55e;">−{{ d.pct|int }}%</span></div>
+    </a>
+    {% endfor %}
+  {% else %}<div class="mv-empty">No price drops in the latest crawl.</div>{% endif %}
+</div>
+
+<!-- Back In Stock -->
+<div class="mv-page-card" id="back">
+  <div class="mv-page-head" style="color:#2563eb;">↺ Back In Stock <span class="count">({{ movers.back_in_stock|length }})</span></div>
+  {% if movers.back_in_stock %}
+    {% for l in movers.back_in_stock %}
+    <a href="/species/{{ l.scientific_name_key }}" class="mover-item">
+      <div class="mover-name">{{ l.sci_display }}{% if l.common_clean %} <span class="mover-common">({{ l.common_clean }})</span>{% endif %}</div>
+      <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><b style="color:#e4e4e7;">${{ "%.0f"|format(l.price_usd) }}</b> · {{ l.vendor_key }}</div>
+    </a>
+    {% endfor %}
+  {% else %}<div class="mv-empty">Nothing restocked in the latest crawl.</div>{% endif %}
+</div>
+
+<!-- Heating Up -->
+<div class="mv-page-card" id="heating">
+  <div class="mv-page-head" style="color:#ef4444;">▲ Heating Up <span class="count">({{ movers.heating|length }})</span></div>
+  {% if movers.heating %}
+    {% for key, st in movers.heating %}
+    <a href="/species/{{ key }}" class="mover-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <div style="min-width:0; flex:1;">
+        <div class="mover-name" style="white-space:normal;">{{ key.split()[0]|capitalize }} {{ key.split()[1:]|join(' ') }}</div>
+        <div style="font-size:12px; color:#a1a1aa;">mkt ${{ "%.0f"|format(st.market_price or 0) }} · <span style="color:#ef4444;">+{{ st.trend_pct|int }}%/mo</span></div>
+      </div>
+      <span style="flex:none;">{{ spark_svg(st.spark, 60, 22)|safe }}</span>
+    </a>
+    {% endfor %}
+  {% else %}<div class="mv-empty">Momentum tags appear after ~2 weeks of daily crawls.</div>{% endif %}
+</div>
+
+{% endblock %}

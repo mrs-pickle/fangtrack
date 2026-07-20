@@ -92,6 +92,7 @@
         <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><s style="color:#71717a;">${{ "%.0f"|format(d.prev_price) }}</s> → <b style="color:#22c55e;">${{ "%.0f"|format(d.new_price) }}</b> <span style="color:#22c55e;">−{{ d.pct|int }}%</span></div>
       </a>
       {% endfor %}
+      <a href="/movers#drops" style="font-size:12px; color:#2563eb; padding-top:10px; text-decoration:none;">All {{ movers.drops|length }} →</a>
     </div>
     {% elif days_history < 2 %}
     {{ empty_state('▼', '#22c55e', 'No price history yet', 'Drops are detected by comparing prices across daily crawls.', 'Unlocks after 2 days of crawls · <b style="color:#e4e4e7">' ~ days_history ~ ' of 2</b>') }}
@@ -111,6 +112,7 @@
         <div style="font-size:12px; color:#a1a1aa; margin-top:2px;"><b style="color:#e4e4e7;">${{ "%.0f"|format(l.price_usd) }}</b> · {{ l.vendor_key }}</div>
       </a>
       {% endfor %}
+      <a href="/movers#back" style="font-size:12px; color:#2563eb; padding-top:10px; text-decoration:none;">All {{ movers.back_in_stock|length }} →</a>
     </div>
     {% elif days_history < 2 %}
     {{ empty_state('↺', '#2563eb', 'Nothing to restock yet', 'Restocks show when a species that sold out reappears at any vendor.', 'Unlocks after 2 days of crawls · <b style="color:#e4e4e7">' ~ days_history ~ ' of 2</b>') }}
@@ -133,6 +135,7 @@
         <span class="spark" style="flex:none;">{{ spark_svg(st.spark, 60, 22)|safe }}</span>
       </a>
       {% endfor %}
+      <a href="/movers#heating" style="font-size:12px; color:#2563eb; padding-top:10px; text-decoration:none;">All {{ movers.heating|length }} →</a>
     </div>
     {% else %}
     {{ empty_state('▲', '#ef4444', 'Momentum needs history', 'Heating / cooling tags appear after ~2 weeks of daily crawls.', 'Day <b style="color:#e4e4e7">' ~ ([days_history, 14]|min) ~ ' of 14</b>') }}

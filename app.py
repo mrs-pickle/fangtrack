@@ -1359,6 +1359,18 @@ def dashboard():
         vendors_live=vendors_live)
 
 
+@app.route("/movers")
+def movers_all():
+    """Full market-movers lists — the 'All N →' target for each dashboard mover
+    tile (all-time lows, biggest drops, restocks, heating). Reuses the same
+    cached mover data the dashboard shows, just uncapped (dashboard shows [:5])."""
+    from vendors import REGISTRY
+    snap = [l for l in get_snapshot() if l.get("vendor_key") in REGISTRY]
+    movers = _cached_movers(snap)
+    head = _dashboard_header_meta()
+    return render_template("movers.html", movers=movers, days_history=head["days"])
+
+
 def _dashboard_header_meta() -> dict:
     """Last-crawl time, distinct crawl-day depth, and health for the header +
     the Market-Movers empty-state progress counters."""
