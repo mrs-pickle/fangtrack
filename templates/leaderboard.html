@@ -6,7 +6,7 @@
 </div>
 <p style="color:#a1a1aa; font-size:13px; margin:0 0 22px;">
   Opt-in rankings across public collections. Make yours public in
-  <a href="/settings" style="color:#2563eb;">Settings</a> to appear here.
+  <a href="/account" style="color:#2563eb;">Settings</a> to appear here.
 </p>
 
 {% macro board_card(title, emoji, rows, field, money=false) %}
@@ -28,7 +28,7 @@
 
 {% if board.count == 0 %}
 <div class="card" style="text-align:center; padding:40px; color:#a1a1aa;">
-  No public collections yet. <a href="/settings" style="color:#2563eb;">Be the first →</a>
+  No public collections yet. <a href="/account" style="color:#2563eb;">Be the first →</a>
 </div>
 {% else %}
 <div class="grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
