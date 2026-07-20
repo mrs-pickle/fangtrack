@@ -200,8 +200,7 @@ input:focus, select:focus { border-color:#2563eb; }
     <a href="/alerts" class="nav-link {% if request.path.startswith('/alerts') %}active{% endif %}" style="position:relative;{% if not current_user %} color:#a855f7;{% endif %}">Alerts<span id="alert-badge" style="display:none; position:absolute; top:-2px; right:-4px; background:#f97316; color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; line-height:15px; text-align:center; border-radius:8px; padding:0 3px;"></span></a>
     <a href="/collection"class="nav-link {% if request.path.startswith('/collection') %}active{% endif %}">Collection</a>
     <a href="/sellers"   class="nav-link {% if request.path.startswith('/sellers') or request.path.startswith('/vendors') %}active{% endif %}">Vendors</a>
-    {% if current_user and current_user.is_admin %}<a href="/history" class="nav-link {% if request.path.startswith('/history') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Crawler</a>
-    <a href="/admin/users" class="nav-link {% if request.path.startswith('/admin/users') %}active{% endif %}" style="color:#a855f7;" title="Admin only">Users</a>{% endif %}
+    {% if current_user and current_user.is_admin %}<a href="/admin" class="nav-link {% if request.path.startswith('/admin') or request.path.startswith('/history') %}active{% endif %}" style="color:#a855f7;" title="Admin only — Users + Crawler">Admin</a>{% endif %}
     <a href="/submit"    class="nav-link {% if request.path.startswith('/submit') %}active{% endif %}">Submit</a>
 
     <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
@@ -209,8 +208,7 @@ input:focus, select:focus { border-color:#2563eb; }
       <a href="/leaderboard" class="nav-link {% if request.path.startswith('/leaderboard') or request.path.startswith('/u/') %}active{% endif %}">🏆 Leaderboard</a>
       <a href="/transparency" class="nav-link {% if request.path.startswith('/transparency') %}active{% endif %}" style="color:#f97316; font-weight:700;">What is FangTrack?</a>
       {% if current_user %}
-        <a href="/account" class="nav-link {% if request.path.startswith('/account') %}active{% endif %}" title="Your account · name · privacy">{{ current_user.display_name or 'Account' }}</a>
-        {% if current_user.is_admin %}<a href="/settings" class="nav-link {% if request.path.startswith('/settings') %}active{% endif %}" style="color:#a855f7;" title="Admin settings">⚙</a>{% endif %}
+        <a href="/account" class="nav-link {% if request.path.startswith('/account') or request.path.startswith('/settings') %}active{% endif %}" title="Your account · settings · privacy">{{ current_user.display_name or 'Account' }}</a>
         <form method="post" action="/logout" style="display:inline; margin:0;">
           <button type="submit" class="nav-link" title="{{ current_user.email }}" style="background:none; border:none; padding:0; font:inherit; cursor:pointer; color:inherit;">Sign out</button>
         </form>

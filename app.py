@@ -2267,10 +2267,13 @@ def public_profile(handle):
 @app.route("/account")
 @login_required
 def account():
-    """User account page (distinct from the admin-only /settings site config).
-    Where a registered user manages their real name — private — and finds their
-    profile/leaderboard settings."""
-    return render_template("account.html")
+    """Account + Settings hub — the single place a user manages their name,
+    password, public profile, alert email, and display prefs. Admins also get the
+    site/market settings here (the old admin-only /settings gear was redundant with
+    this page, so it was removed). load_settings() is global app config; only the
+    admin-gated sections in the template read/write it."""
+    return render_template("account.html", settings=load_settings(),
+                           hide_private=_hide_private())
 
 
 @app.route("/account/name", methods=["POST"])
@@ -2291,11 +2294,9 @@ def account_name():
     return redirect(url_for("account"))
 
 
-@app.route("/admin/users")
-@admin_required
-def admin_users():
-    """Admin overview of all users — name, email, joined, and per-user data counts.
-    Read-only. NEVER selects password_hash. PII: admin-only, not cached/blobbed."""
+def _all_users_admin() -> list:
+    """Admin user list with per-user data counts. Read-only. NEVER selects
+    password_hash. PII: admin-only, never cached/blobbed."""
     conn = get_connection(DB_PATH)
     _ensure_profile_cols(conn)
     users = [dict(r) for r in conn.execute("""
@@ -2308,7 +2309,28 @@ def admin_users():
         ORDER BY u.created_at DESC, u.id DESC
     """).fetchall()]
     conn.close()
-    return render_template("admin_users.html", users=users)
+    return users
+
+
+@app.route("/admin")
+@admin_required
+def admin():
+    """Single admin hub — Users + Crawler on one page (replaces the separate
+    Crawler and Users nav links). Vendor QA + site settings link out from here."""
+    from crawl_report import get_speed_report
+    speed = _crawl_state.get("speed") or get_speed_report(DB_PATH)
+    return render_template("admin.html",
+        users=_all_users_admin(),
+        crawl_runs=get_crawl_summary(DB_PATH),
+        speed=speed,
+        finished_est=_fmt_eastern(speed.get("finished_at")) if speed else "")
+
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    """Kept for deep links; the Users table now lives on the /admin hub too."""
+    return render_template("admin_users.html", users=_all_users_admin())
 
 
 def _admin_user_or_404(conn, uid):
@@ -2941,6 +2963,11 @@ def api_alerts_unread():
 @app.route("/settings", methods=["GET","POST"])
 @admin_required
 def settings():
+    # The settings UI now lives on /account (the gear was redundant with the name
+    # link). Keep this endpoint for the POST (admin site-settings form still targets
+    # it); a GET just redirects to the consolidated page.
+    if request.method == "GET":
+        return redirect(url_for("account"))
     if request.method == "POST":
         # digest_path is NOT user-writable: /digest reads it, so accepting it from a
         # form was an arbitrary-file-read hole. Keep it fixed here.
@@ -2955,8 +2982,8 @@ def settings():
         }
         save_settings(data)
         flash("Settings saved", "success")
-        return redirect(url_for("settings"))
-    return render_template("settings.html", settings=load_settings())
+        return redirect(url_for("account"))
+    return redirect(url_for("account"))
 
 
 

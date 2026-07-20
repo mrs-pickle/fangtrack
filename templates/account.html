@@ -1,6 +1,6 @@
-{% extends "base.html" %}{% block title %}Account — FangTrack Pro{% endblock %}
+{% extends "base.html" %}{% block title %}Account & Settings — FangTrack Pro{% endblock %}
 {% block content %}
-<h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0 0 20px;">Account</h1>
+<h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0 0 20px;">Account &amp; Settings</h1>
 
 <div class="grid gap-6" style="grid-template-columns:1fr 1fr; align-items:start;">
 
@@ -26,7 +26,7 @@
     </form>
   </div>
 
-  <!-- Account info + shortcuts -->
+  <!-- Account details + shortcuts -->
   <div class="card">
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.06em;">Details</div>
     <div style="font-size:13px; color:#a1a1aa; line-height:1.9;">
@@ -35,10 +35,74 @@
       <div>Leaderboard · <span style="color:#e4e4e7;">{% if current_user.is_public %}🏆 shared{% else %}🔒 private{% endif %}</span></div>
     </div>
     <div style="border-top:1px solid #2a2a31; margin-top:16px; padding-top:16px; display:flex; flex-direction:column; gap:8px;">
-      <a href="/collection" style="font-size:13px; color:#2563eb; text-decoration:none;">🕷 Your collection · leaderboard sharing →</a>
+      <a href="/collection" style="font-size:13px; color:#2563eb; text-decoration:none;">🕷 Your collection →</a>
       <a href="/sellers" style="font-size:13px; color:#2563eb; text-decoration:none;">👤 Your private sellers →</a>
-      <a href="/logout" style="font-size:13px; color:#ef4444; text-decoration:none;">Sign out →</a>
+      <button type="button" class="btn btn-ghost" style="align-self:flex-start; margin-top:4px;" onclick="ftTour.start()">🎬 Replay feature tour</button>
     </div>
   </div>
+
+  <!-- Public profile / leaderboard -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">🏆 Public Profile</div>
+    <form action="/profile/save" method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
+        <input type="checkbox" name="is_public" {% if current_user and current_user.is_public %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
+        <span style="font-size:13px; color:#e4e4e7;">Show my collection on the Leaderboard</span>
+      </label>
+      <div>
+        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">HANDLE (your public URL)</label>
+        <div style="display:flex; align-items:center; gap:0;">
+          <span style="color:#71717a; font-size:13px; padding:8px 0 8px 2px;">/u/</span>
+          <input name="handle" value="{{ current_user.handle or '' }}" placeholder="your-name" style="flex:1;">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center;">Save profile</button>
+      <div style="font-size:11px; color:#52525b; line-height:1.6;">
+        Your public page shows species, rarity, and market value — a flex card for sharing.
+        <strong style="color:#a1a1aa;">What you paid stays private.</strong>
+        {% if current_user and current_user.is_public and current_user.handle %}
+        <br>Live at <a href="/u/{{ current_user.handle }}" style="color:#2563eb;">/u/{{ current_user.handle }} →</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Display preferences -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Display</div>
+    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
+      <input type="checkbox" onchange="toggleHidePrivate(this.checked)" {% if hide_private %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
+      <span style="font-size:13px; color:#e4e4e7;">Hide private sellers everywhere (show websites only)</span>
+    </label>
+    <div style="font-size:11px; color:#52525b; margin-top:8px; line-height:1.6;">
+      Applies site-wide — the dashboard, deals, and species cards will show only website-vendor
+      listings and hide imported private-seller lists. Takes effect immediately.
+    </div>
+  </div>
+
+  {% if current_user and current_user.is_admin %}
+  <!-- Admin: site / market settings -->
+  <div class="card" style="grid-column:1 / -1; border-color:#3a2a4a;">
+    <div style="font-size:13px; font-weight:700; color:#a855f7; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">⚙ Site Settings <span style="font-size:10px; background:#2a1a3a; padding:2px 8px; border-radius:4px;">ADMIN</span></div>
+    <form action="/settings" method="post" class="grid gap-4" style="grid-template-columns:1fr 1fr;">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <div>
+        <label style="font-size:10px; color:#a855f7; letter-spacing:.1em; display:block; margin-bottom:4px;">DEFAULT ZIP (shipping estimates)</label>
+        <input name="dest_zip" value="{{ settings.dest_zip }}" placeholder="72712" style="width:140px;">
+      </div>
+      <div>
+        <label style="font-size:10px; color:#a855f7; letter-spacing:.1em; display:block; margin-bottom:4px;">ALERT NOTIFY EMAIL (fire deals + watchlist)</label>
+        <input name="notify_email" type="email" value="{{ settings.notify_email }}" placeholder="you@email.com" style="width:100%; box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1 / -1;">
+        <button class="btn btn-primary" style="justify-content:center;">Save site settings</button>
+        <a href="/admin/discounts" class="btn btn-ghost" style="margin-left:10px;">🏷 Manage discount codes →</a>
+        <a href="/admin" class="btn btn-ghost" style="margin-left:6px;">🛠 Admin (Users + Crawler) →</a>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}
