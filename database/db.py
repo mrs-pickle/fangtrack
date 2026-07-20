@@ -136,6 +136,9 @@ def init_db(db_path: Path = DB_PATH) -> None:
     CREATE INDEX IF NOT EXISTS idx_ph_key ON price_history(scientific_name_key, sex, vendor_key);
     CREATE INDEX IF NOT EXISTS idx_ph_observed ON price_history(observed_at);
     CREATE INDEX IF NOT EXISTS idx_ph_vendor ON price_history(vendor_key);
+    -- crawl_runs is scanned per dashboard hit (latest run per vendor + status counts).
+    CREATE INDEX IF NOT EXISTS idx_cr_vendor ON crawl_runs(vendor_key);
+    CREATE INDEX IF NOT EXISTS idx_cr_status ON crawl_runs(status, id);
 
     -- Created at boot (were previously created lazily inside routes, so a fresh
     -- Postgres deploy lacked them → /submit and the source-policy admin 500'd).

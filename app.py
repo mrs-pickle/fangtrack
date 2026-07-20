@@ -406,9 +406,17 @@ def inject_theme():
             "TIER_ORDER": theme.TIER_ORDER}
 
 
+# Only these pages actually render the #species-datalist autocomplete. Injecting
+# the full ~1k-species <option> list into EVERY response (login, privacy, etc.)
+# bloated the DOM on every navigation for no reason.
+_SPECIES_PICKER_ENDPOINTS = {"species_search", "alerts", "collection"}
+
+
 @app.context_processor
 def inject_all_species():
-    """Expose the species list to every template for autocomplete datalists."""
+    """Species list for autocomplete datalists — only on pages that have one."""
+    if request.endpoint not in _SPECIES_PICKER_ENDPOINTS:
+        return {"all_species": []}
     try:
         return {"all_species": get_species_list(DB_PATH)}
     except Exception:
@@ -1334,7 +1342,9 @@ def tokens_css():
     :root block)."""
     resp = send_from_directory(os.path.join(app.root_path, "tokens"),
                                "fangtrack.css", mimetype="text/css")
-    resp.headers["Cache-Control"] = "public, max-age=3600"
+    # Immutable + 1yr: the link is ?v=-busted (base.html bumps it on token edits),
+    # so browsers/CDN can hold it forever and never revalidate.
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return resp
 
 
@@ -1404,9 +1414,17 @@ def movers_all():
     return render_template("movers.html", movers=movers, days_history=head["days"])
 
 
+_header_meta_cache = {"data": None, "ts": 0}
+
+
 def _dashboard_header_meta() -> dict:
     """Last-crawl time, distinct crawl-day depth, and health for the header +
-    the Market-Movers empty-state progress counters."""
+    the Market-Movers empty-state progress counters. Crawl-derived → only changes
+    on a crawl, so memoize with the shared TTL (was 2 uncached crawl_runs scans on
+    every landing-page hit)."""
+    now = time.time()
+    if _header_meta_cache["data"] is not None and (now - _header_meta_cache["ts"]) < _CACHE_TTL:
+        return _header_meta_cache["data"]
     out = {"last_crawl": None, "days": 0, "health": "ok",
            "health_counts": {"healthy": 0, "partial": 0, "down": 0}}
     try:
@@ -1458,6 +1476,8 @@ def _dashboard_header_meta() -> dict:
             out["health"] = " · ".join(bits)
     except Exception:
         pass
+    _header_meta_cache["data"] = out
+    _header_meta_cache["ts"] = now
     return out
 
 
@@ -2547,12 +2567,22 @@ def species_detail(species_key):
     genus = species_key.split()[0] if species_key.split() else ""
     from normalize.traits import trait_badges
     traits = trait_badges(species_key)
+    # Downsample the inline chart payload — the SVG is ~760px wide, so hundreds of
+    # points aren't visible. Evenly decimate (keep the last point) to bound the
+    # inline JSON + client parse for heavily-traded species. `history` stays full
+    # for the all-time-low fallback + common-name candidates above.
+    chart_history = history
+    if len(history) > 400:
+        step = len(history) / 400.0
+        idxs = sorted({int(i * step) for i in range(400)} | {len(history) - 1})
+        chart_history = [history[i] for i in idxs]
     return render_template("species_detail.html",
                            traits=traits,
                            species_key=species_key,
                            display=_display_from_key(species_key),
                            common=common,
                            history=history,
+                           chart_history=chart_history,
                            current=current,
                            size_class_rarity=scr,
                            stats=stats,
