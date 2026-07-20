@@ -65,6 +65,30 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-20 — UX + TRUST batch (on `dev`, HELD for review). (1) TRUST (critical): mrs2200's
+  private-seller list surfaced in global "all-time-low" alerts on other accounts. Private-seller
+  uploads write real crawl_runs+price_history rows, so species_market_stats (all-time-low/market
+  price) + the snapshot-based fire mover included them, and the alerts engine emitted fire/drop/back
+  events UNTAGGED (=global) off the unfiltered crawl snapshot. Fix: `private_seller_keys()` +
+  exclude platform='private_seller' from species_market_stats & market_movers; alerts strip private
+  sellers from the snapshot before movers+saved-search match, and saved_search events now carry the
+  owner's user_id. (drops/back already excluded them via product_url IS NOT NULL.) Test added.
+  (2) URBAN banned from dashboard movers (inflate-then-cut premium display specimens make fake
+  "biggest drops") — `BANNED_MOVER_VENDORS` in market_movers (covers cron blob+web+alerts) + dashboard
+  snap; still on /deals+species. (3) MOVER tiles: vendor name now links to that exact listing
+  (product_url, new tab) on fire/drops/back, dashboard + /movers. (4) HEALTH: dashboard "N down" now
+  agrees with Crawl History/Vendor QA — classify from each vendor's latest COMPLETE/PARTIAL run (not a
+  later write-guard 'rejected'/'skipped' run); complete=healthy (write-guard already rejects real
+  collapses), so fanghub (legit-empty social) is no longer "down". Cleared 4 local false-downs.
+  (5) ADMIN merge: single `/admin` hub = Users + Crawler (nav dropped separate Crawler+Users links);
+  Vendor QA already admin-gated. (6) SETTINGS consolidated onto `/account` ("Account & Settings"):
+  name + public profile + display prefs for all users, admin-only Site Settings section; header ⚙
+  gear removed; /settings GET→/account. Fixed latent bugs found en route: Run-Crawl + profile forms
+  lacked _csrf (would 400); leaderboard/alerts linked non-admins to admin-only /settings (403).
+  NOTE: settings.html's Change Password posted to a nonexistent /settings/password route — omitted;
+  a real self-service password change is a follow-up. LTC on /deals = legit ("Long-Term Captive"
+  source type in normalize/source_type.py), not a bug — left as-is. INFRA (shipped-ready, see below):
+  gunicorn --threads 4→8 + /robots.txt. All 70 tests green; dashboard/admin/account render-verified.
 - 2026-07-20 — PROD INCIDENT: health-check-timeout flap (NOT a crash), diagnosed + hardened (on
   `dev`, HELD). Render alerted "HTTP health check failed (timed out after 5s) while running your
   code" at 6:35 + 7:18 AM CDT, self-recovered each time (SAME instance 2wcft, no restart). Metrics:
