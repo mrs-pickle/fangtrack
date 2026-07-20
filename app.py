@@ -2202,6 +2202,37 @@ def profile_save():
     return redirect(url_for("settings"))
 
 
+@app.route("/collection/share", methods=["POST"])
+@login_required
+def collection_share():
+    """One-click opt-in (from the Collection page) to share the collection on the
+    public leaderboard. OFF by default — a collection is private unless the owner
+    explicitly shares it. Auto-assigns a handle so sharing is a single click."""
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    share = request.form.get("share") == "on"
+    if share:
+        row = conn.execute("SELECT handle, display_name, email FROM users WHERE id=?",
+                           (current_user_id(),)).fetchone()
+        handle = row["handle"]
+        if not handle:   # auto-generate a unique handle from name/email
+            base = _slugify_handle(row["display_name"] or (row["email"] or "").split("@")[0]) or "keeper"
+            handle, n = base, 1
+            while conn.execute("SELECT 1 FROM users WHERE handle=? AND id!=?",
+                               (handle, current_user_id())).fetchone():
+                n += 1; handle = f"{base}-{n}"
+        conn.execute("UPDATE users SET is_public=1, handle=? WHERE id=?", (handle, current_user_id()))
+        msg = f"Your collection is now on the leaderboard — public at /u/{handle}."
+    else:
+        conn.execute("UPDATE users SET is_public=0 WHERE id=?", (current_user_id(),))
+        msg = "Your collection is private — off the leaderboard."
+    conn.commit()
+    conn.close()
+    _leaderboard_cache["data"] = None
+    flash(msg, "success")
+    return redirect(url_for("collection"))
+
+
 def _vendor_qa_list():
     """Enriched website-vendor list for the QA table: platform, homepage,
     listing counts, latest crawl status. Shared by Sellers + Vendors pages."""
