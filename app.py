@@ -2171,13 +2171,17 @@ def _insert_collection_rows(conn, rows: list[dict], skip_existing_keys: bool = F
         if skip_existing_keys and r["species_key"] in existing:
             skipped += 1
             continue
+        # Positional ? placeholders — the pg adapter translates ?→%s but NOT the
+        # sqlite-only :named style, so named params 500'd every upload on prod
+        # Postgres (worked locally on SQLite). This is the real "uploader broken".
         conn.execute("""
             INSERT INTO collection
               (species_key, species_display, sex, quantity, size_notes, notes,
                price_paid, acquired_date, source, user_id)
-            VALUES (:species_key,:species_display,:sex,:quantity,:size_notes,:notes,
-                    :price_paid,:acquired_date,:source,:user_id)
-        """, {**r, "user_id": user_id})
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, (r["species_key"], r["species_display"], r["sex"], r["quantity"],
+              r["size_notes"], r["notes"], r["price_paid"], r["acquired_date"],
+              r["source"], user_id))
         existing.add(r["species_key"])
         added += 1
     conn.commit()

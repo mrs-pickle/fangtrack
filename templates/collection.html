@@ -124,6 +124,7 @@
         Cost/Price, Date, Vendor/Source, Notes</em> — any reasonable naming works.
       </p>
       <form action="/collection/upload" method="post" enctype="multipart/form-data" class="flex flex-col gap-3">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
         <input type="file" name="file" accept=".csv,.xlsx,.xls,.xlsm" required
                style="width:100%; box-sizing:border-box; font-size:12px; color:#a1a1aa;">
         <label style="font-size:12px; color:#a1a1aa; display:flex; align-items:center; gap:6px;">
