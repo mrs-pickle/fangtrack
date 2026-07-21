@@ -1488,6 +1488,23 @@ def _curated_top_deals(snap, n=12):
     return out
 
 
+def _filter_banned_movers(movers: dict) -> dict:
+    """Belt-and-suspenders: strip BANNED_MOVER_VENDORS (Urban) from the movers at
+    RENDER time. market_movers already excludes them when building, but the movers
+    are served from a cron-built blob that can be stale (built before the ban, or
+    not yet rebuilt) — this makes the ban hold no matter what blob is loaded."""
+    from analytics.market import BANNED_MOVER_VENDORS
+    if not isinstance(movers, dict):
+        return movers
+    out = dict(movers)
+    for col in ("fire", "drops", "back_in_stock"):
+        v = out.get(col)
+        if isinstance(v, list):
+            out[col] = [m for m in v
+                        if not (isinstance(m, dict) and m.get("vendor_key") in BANNED_MOVER_VENDORS)]
+    return out
+
+
 @app.route("/")
 def dashboard():
     # The dashboard is the market overview — site crawls only. Private-seller lists
@@ -1511,7 +1528,7 @@ def dashboard():
     wl_targets = list_targets(DB_PATH, user_id=current_user_id()) if current_user_id() else []
 
     # ── Market movers + intelligence (only change on a crawl → cached) ───────
-    movers = _cached_movers(snap)
+    movers = _filter_banned_movers(_cached_movers(snap))
     stats = get_market_stats()
     intel = _cached_intel(snap)
 
@@ -1543,7 +1560,7 @@ def movers_all():
     snap = [l for l in get_snapshot()
             if l.get("vendor_key") in REGISTRY
             and l.get("vendor_key") not in BANNED_MOVER_VENDORS]
-    movers = _cached_movers(snap)
+    movers = _filter_banned_movers(_cached_movers(snap))
     head = _dashboard_header_meta()
     return render_template("movers.html", movers=movers, days_history=head["days"])
 
