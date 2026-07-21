@@ -81,6 +81,25 @@
     </div>
   </div>
 
+  <!-- Alert preferences -->
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">🔔 Alerts</div>
+    <div style="font-size:12px; color:#a1a1aa; margin-bottom:12px; line-height:1.6;">
+      You always get an alert when a <b style="color:#e4e4e7;">saved search</b> matches. Turn on any
+      market categories below to also be alerted on those — off by default so your inbox stays yours.
+    </div>
+    <form action="/account/alerts" method="post" class="flex flex-col gap-2">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      {% for val, icon, label in [('fire','🔥','All-time-low / fire deals'), ('drops','▼','Price drops'), ('restocks','↺','Back in stock')] %}
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
+        <input type="checkbox" name="cats" value="{{ val }}" {% if val in alert_cats %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
+        <span style="font-size:13px; color:#e4e4e7;">{{ icon }} {{ label }}</span>
+      </label>
+      {% endfor %}
+      <button class="btn btn-primary" style="justify-content:center; margin-top:8px;">Save alert preferences</button>
+    </form>
+  </div>
+
   {% if current_user and current_user.is_admin %}
   <!-- Admin: site / market settings -->
   <div class="card" style="grid-column:1 / -1; border-color:#3a2a4a;">

@@ -221,23 +221,40 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
     return new_events
 
 
-def load_feed(limit: int = 200, user_id=None) -> list:
-    """Alerts visible to this user: global market events (untagged) + this user's
-    saved-search hits. user_id=None returns everything (eval context)."""
-    return [ev for ev in _read(FEED_FILE, []) if _visible_to(ev, user_id)][:limit]
+# Which alert TYPES are "market" categories the user opts into (vs personal
+# saved-search hits, which are always shown to their owner).
+_MARKET_CATEGORY = {"fire": "fire", "price_drop": "drops", "back_in_stock": "restocks"}
 
 
-def mark_all_read(user_id=None) -> None:
+def _shows(ev, user_id, categories) -> bool:
+    """Personal + opt-in model: a personal event (saved-search hit, tagged with a
+    user_id) shows ONLY to its owner; a market event (fire / drop / restock, untagged)
+    shows ONLY to a user who opted into that category. So an empty watchlist + no
+    opt-ins = 0 alerts (the badge means something again)."""
+    owner = ev.get("user_id")
+    if owner is not None:
+        return owner == user_id
+    cat = _MARKET_CATEGORY.get(ev.get("type"))
+    return bool(cat) and cat in (categories or set())
+
+
+def load_feed(limit: int = 200, user_id=None, categories=None) -> list:
+    """This user's saved-search hits + any market categories they opted into."""
+    return [ev for ev in _read(FEED_FILE, [])
+            if _shows(ev, user_id, categories)][:limit]
+
+
+def mark_all_read(user_id=None, categories=None) -> None:
     feed = _read(FEED_FILE, [])
     for ev in feed:
-        if _visible_to(ev, user_id):
+        if _shows(ev, user_id, categories):
             ev["read"] = True
     _write(FEED_FILE, feed)
 
 
-def unread_count(user_id=None) -> int:
+def unread_count(user_id=None, categories=None) -> int:
     return sum(1 for ev in _read(FEED_FILE, [])
-               if not ev.get("read") and _visible_to(ev, user_id))
+               if not ev.get("read") and _shows(ev, user_id, categories))
 
 
 def _maybe_email(settings: dict, events: list) -> None:

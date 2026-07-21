@@ -201,6 +201,23 @@ def test_private_seller_never_moves_market_analytics():
     assert "priv_9_secret" not in fire_vendors, "private seller leaked into movers"
 
 
+def test_alerts_personal_plus_optin(tmp_path, monkeypatch):
+    import analytics.alerts as al
+    monkeypatch.setattr(al, "FEED_FILE", tmp_path / "feed.json")
+    al._write(al.FEED_FILE, [
+        {"type": "fire", "user_id": None},              # market: fire
+        {"type": "price_drop", "user_id": None},        # market: drops
+        {"type": "saved_search", "user_id": 7},         # personal: user 7
+        {"type": "saved_search", "user_id": 9},         # personal: user 9
+    ])
+    # user 7, no opt-in → only their own saved search (not the market firehose)
+    assert al.unread_count(user_id=7, categories=set()) == 1
+    # user 7 opts into fire → their saved search + fire (not drops)
+    assert al.unread_count(user_id=7, categories={"fire"}) == 2
+    # anon / no user → nothing
+    assert al.unread_count(user_id=None, categories=set()) == 0
+
+
 def test_private_seller_fuzzy_snaps_to_existing_species():
     from tools.import_seller import _snap_to_website_species as snap
     web = ["grammostola pulchra", "augacephalus junodi", "tliltocatl vagans"]

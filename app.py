@@ -2232,7 +2232,30 @@ def _ensure_profile_cols(conn):
         conn.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
     if "last_name" not in have:
         conn.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
+    # Opt-in market-alert categories (comma-separated: fire,drops,restocks). Empty
+    # by default → a user only gets alerts for their own saved searches, not the
+    # firehose of every market mover.
+    if "alert_categories" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN alert_categories TEXT DEFAULT ''")
     conn.commit()
+
+
+_VALID_ALERT_CATS = {"fire", "drops", "restocks"}
+
+
+def _user_alert_categories(user_id) -> set:
+    """Market-alert categories this user opted into (empty for anon / no opt-in)."""
+    if not user_id:
+        return set()
+    try:
+        conn = get_connection(DB_PATH)
+        _ensure_profile_cols(conn)
+        row = conn.execute("SELECT alert_categories FROM users WHERE id=?", (user_id,)).fetchone()
+        conn.close()
+        raw = (row["alert_categories"] if row else "") or ""
+        return {c.strip() for c in raw.split(",") if c.strip() in _VALID_ALERT_CATS}
+    except Exception:
+        return set()
 
 
 def _slugify_handle(raw: str) -> str:
@@ -2353,7 +2376,23 @@ def account():
     this page, so it was removed). load_settings() is global app config; only the
     admin-gated sections in the template read/write it."""
     return render_template("account.html", settings=load_settings(),
-                           hide_private=_hide_private())
+                           hide_private=_hide_private(),
+                           alert_cats=_user_alert_categories(current_user_id()))
+
+
+@app.route("/account/alerts", methods=["POST"])
+@login_required
+def account_alerts():
+    """Save which market-alert categories the user opts into. Personal saved-search
+    hits always alert; these toggles add the market firehose only if wanted."""
+    cats = ",".join(sorted(c for c in request.form.getlist("cats") if c in _VALID_ALERT_CATS))
+    conn = get_connection(DB_PATH)
+    _ensure_profile_cols(conn)
+    conn.execute("UPDATE users SET alert_categories=? WHERE id=?", (cats, current_user_id()))
+    conn.commit()
+    conn.close()
+    flash("Alert preferences saved.", "success")
+    return redirect(url_for("account"))
 
 
 @app.route("/account/name", methods=["POST"])
@@ -3003,12 +3042,14 @@ def vendor_detail(vendor_key):
 def alerts():
     from analytics.alerts import load_feed, load_saved_searches, mark_all_read
     uid = current_user_id()
-    feed = load_feed(200, user_id=uid)
+    cats = _user_alert_categories(uid)
+    feed = load_feed(200, user_id=uid, categories=cats)
     searches = load_saved_searches(user_id=uid)
     if request.args.get("read") == "1":
-        mark_all_read(user_id=uid)
+        mark_all_read(user_id=uid, categories=cats)
         return redirect(url_for("alerts"))
-    return render_template("alerts.html", feed=feed, searches=searches)
+    return render_template("alerts.html", feed=feed, searches=searches,
+                           alert_cats=cats)
 
 
 @app.route("/alerts/search/add", methods=["POST"])
@@ -3047,7 +3088,9 @@ def alerts_search_remove(sid):
 def api_alerts_unread():
     try:
         from analytics.alerts import unread_count
-        return jsonify({"unread": unread_count(user_id=current_user_id())})
+        uid = current_user_id()
+        return jsonify({"unread": unread_count(user_id=uid,
+                                               categories=_user_alert_categories(uid))})
     except Exception:
         return jsonify({"unread": 0})
 
