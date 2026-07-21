@@ -34,11 +34,13 @@
   <div>
     {% if items %}
     <div class="card" style="padding:0; overflow-x:auto;">
-      <table data-nosort>
+      {# data-nosort: the global sorter can't handle the interleaved edit rows, so
+         a dedicated sorter below keeps each edit row paired with its display row. #}
+      <table data-nosort id="collection-table">
         <thead><tr><th>Species</th><th>Common name</th><th>Sex</th><th>Qty</th><th>Paid</th><th>Market</th><th>Value</th><th>Gain</th><th>Size</th><th>Source</th><th>Notes</th><th></th></tr></thead>
         <tbody>
         {% for item in items %}
-        <tr>
+        <tr data-item="{{ item.id }}">
           <td><a href="/species/{{ item.species_key|urlencode }}" class="species-name" style="text-decoration:none;">{{ item.species_display }} →</a></td>
           <td style="color:#a1a1aa; font-size:12px;">{{ item.common or '—' }}</td>
           <td>{% if item.sex == 'F' %}<span style="color:#f9a8d4;">♀</span>{% elif item.sex == 'M' %}<span style="color:#93c5fd;">♂</span>{% else %}?{% endif %}</td>
@@ -136,4 +138,51 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Sortable collection table that keeps each hidden edit row paired with its
+// display row (the global sorter can't, hence data-nosort on the table).
+(function(){
+  var table = document.getElementById('collection-table');
+  if(!table || !table.tHead || !table.tBodies.length) return;
+  var tbody = table.tBodies[0], head = table.tHead.rows[0];
+  function val(row, idx){
+    var c = row.cells[idx]; if(!c) return '';
+    return c.dataset.sort !== undefined ? c.dataset.sort : c.textContent.trim();
+  }
+  var num = function(v){ return parseFloat(String(v).replace(/[^0-9.\-]/g, '')); };
+  [].forEach.call(head.cells, function(th, idx){
+    if(idx === head.cells.length - 1) return;   // skip the actions column
+    th.style.cursor = 'pointer'; th.title = 'Click to sort';
+    th.addEventListener('click', function(){
+      var dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+      [].forEach.call(head.cells, function(o){
+        o.removeAttribute('data-dir');
+        var s = o.querySelector('.sort-ind'); if(s) s.remove();
+      });
+      th.setAttribute('data-dir', dir);
+      var ind = document.createElement('span');
+      ind.className = 'sort-ind'; ind.style.marginLeft = '4px';
+      ind.textContent = dir === 'asc' ? '▲' : '▼'; th.appendChild(ind);
+      var rows = [].slice.call(tbody.querySelectorAll('tr[data-item]'));
+      var numeric = rows.length && rows.every(function(r){
+        var v = val(r, idx); return v === '' || v === '—' || v === '?' || !isNaN(num(v));
+      }) && rows.some(function(r){ return !isNaN(num(val(r, idx))); });
+      rows.sort(function(a, b){
+        var x = val(a, idx), y = val(b, idx);
+        if(numeric){ x = isNaN(num(x)) ? -Infinity : num(x); y = isNaN(num(y)) ? -Infinity : num(y); }
+        else { x = x.toLowerCase(); y = y.toLowerCase(); }
+        return (x > y ? 1 : x < y ? -1 : 0) * (dir === 'asc' ? 1 : -1);
+      });
+      rows.forEach(function(r){
+        tbody.appendChild(r);                                   // display row
+        var ed = document.getElementById('edit-' + r.dataset.item);
+        if(ed) tbody.appendChild(ed);                           // its edit row, kept adjacent
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}
