@@ -1684,7 +1684,9 @@ def deals():
     vendors = sorted({l.get("vendor_key","") for l in snap})
     # Paginate 100 per page — keeps the DOM small (so the table scrolls
     # smoothly and the horizontal scrollbar is reachable) and gives real paging.
-    per = 100
+    per = 50   # was 100 → the page rendered a ~445KB DOM (100 rows × sparklines),
+               # slow to parse/paint on mobile even though the server + Brotli were
+               # fast. 50/page ~halves the DOM for a much snappier feel.
     matched_count = len(filtered)
     pages = max(1, (matched_count + per - 1) // per)
     page = request.args.get("page", 1, type=int)
@@ -2814,7 +2816,8 @@ def species_search():
     }.get(sort_by, lambda s: s["display"].lower())
     matched = sorted(matched, key=keyfn, reverse=(direction == "desc"))
 
-    per = 75
+    per = 50   # was 75 → lighter tile grid (each tile carries a sparkline SVG),
+               # snappier browse/paint on mobile.
     total = len(matched)
     pages = max(1, (total + per - 1) // per)
     page = max(1, min(page, pages))
