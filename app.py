@@ -823,12 +823,15 @@ def _display_from_key(key: str) -> str:
     return " ".join([parts[0].capitalize()] + parts[1:])
 
 
-def get_species_catalog(db_path=DB_PATH) -> list:
-    """Every canonical species in the system: {key, display, common, n, min_p}."""
+def get_species_catalog(db_path=DB_PATH, force=False) -> list:
+    """Every canonical species in the system: {key, display, common, n, min_p}.
+    force=True rebuilds from the DB even under _WEB_READONLY — needed so an
+    in-process (admin 'Run Crawl') warm_and_persist actually refreshes this blob
+    instead of re-persisting the stale hydrated copy."""
     now = time.time()
-    if _species_cache["data"] and (now - _species_cache["ts"]) < _CACHE_TTL:
+    if not force and _species_cache["data"] and (now - _species_cache["ts"]) < _CACHE_TTL:
         return _species_cache["data"]
-    if _WEB_READONLY:
+    if _WEB_READONLY and not force:
         hydrate_caches()
         return _species_cache["data"] or []
     from normalize.livestock import GENUS_SET
@@ -884,21 +887,22 @@ def get_species_list(db_path=DB_PATH) -> list:
 _browse_cache = {"data": None, "ts": 0}
 
 
-def get_species_browse(db_path=DB_PATH) -> list:
+def get_species_browse(db_path=DB_PATH, force=False) -> list:
     """Catalog enriched with facet fields (genus, origin, care, price band,
     rarity tier) + market stats (sparkline, market price, trend) for the
-    faceted Species browse and its tiles."""
+    faceted Species browse and its tiles. force=True rebuilds under _WEB_READONLY
+    (see get_species_catalog)."""
     now = time.time()
-    if _browse_cache["data"] and (now - _browse_cache["ts"]) < _CACHE_TTL:
+    if not force and _browse_cache["data"] and (now - _browse_cache["ts"]) < _CACHE_TTL:
         return _browse_cache["data"]
-    if _WEB_READONLY:
+    if _WEB_READONLY and not force:
         hydrate_caches()
         return _browse_cache["data"] or []
     from normalize.genus_meta import origin, price_band
     from normalize.traits import traits_for
     stats = get_market_stats()
     out = []
-    for s in get_species_catalog(db_path):
+    for s in get_species_catalog(db_path, force=force):
         key = s["key"]
         genus = key.split()[0] if key.split() else ""
         st = stats.get(key) or {}
@@ -1014,8 +1018,8 @@ def warm_and_persist():
     _cached_intel(snap, force=True)
     _cached_crawl_summary(force=True)
     _cached_rarity_legend(force=True)
-    get_species_catalog()      # _WEB_READONLY is False in the cron → builds
-    get_species_browse()
+    get_species_catalog(force=True)   # force → rebuilds even on an in-process
+    get_species_browse(force=True)    # (web) Run Crawl, not just the cron
     persist_caches()
     logger.info("warm_and_persist: all dashboard caches built + persisted")
 
