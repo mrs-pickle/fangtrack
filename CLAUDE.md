@@ -11,6 +11,11 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   **Session start: confirm the working branch is `dev` (not `main`) before making changes.**
   **REVIEW GATE: no merge to `main` until Mike has reviewed the batch (Claude drives a local
   preview so he can click through) and given an explicit "ship it" — generally end of day.**
+- **DOCUMENTATION CADENCE (Mike's rule, 2026-07-21): update this Decision log at least every
+  24 hours AND after every big decision set / ship.** Each entry: what changed, WHY, the
+  gotcha, and prod status. Don't let a session end undocumented (we lapsed 07-20→07-21 and had
+  to reconstruct 72h). Claude proactively reminds Mike to do this when a work batch wraps or a
+  day rolls over; a daily scheduled reminder also fires. Memory: [[documentation-cadence]].
 - Brand, UI, `templates/`, `static/` — locked; visual/brand changes only at Mike's direction.
   **The brand system is `BRANDBOOK.md`** (2026-07-19 rebrand: blue #2563eb + purple accent,
   oklch rarity ladder, translucent-vs-filled treatment rule). Colours live in
@@ -65,7 +70,62 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
-- 2026-07-20 — UX + TRUST batch (on `dev`, HELD for review). (1) TRUST (critical): mrs2200's
+- 2026-07-21 — SPECIES/COLLECTION polish + canonicalization (SHIPPED, dev→main). Follow-ups after
+  Mike click-through. (1) Collection table now SORTABLE by any column — the global sorter can't
+  handle the interleaved hidden edit rows, so a dedicated sorter in collection.html keeps each edit
+  row paired to its display row on reorder. (2) UPLOADER read no sizes: `_COL_ALIASES["size"]` only
+  matched headers containing "size"; broadened to leg span/legspan/DLS/length/current size/cm/…
+  (size is stored as a free-text note, so wider header matching was all it needed). (3) DEDUP: one
+  dropdown entry per trade-name species — Phormictopus sp. "Dominican Purple" had fragmented into
+  3 keys (dropped "sp"/dropped genus). Added KEY_ALIASES collapsing them to `phormictopus sp
+  dominican` (Holothele sp. Dominican blue dwarf stays distinct). ROOT GAP: canonicalize_key ran on
+  NEW rows (db.record) but nothing re-canonicalized HISTORICAL rows on prod (tools/migrate_key_
+  aliases.py is raw sqlite3 — can't touch Postgres). Added portable `_apply_key_aliases()` (pg
+  adapter) wired into the crawl completion so fragments self-heal every crawl. (4) IN-STOCK toggle:
+  confirmed #141 already matches Mike's spec (ON = in-stock only; OFF/default = all WEBSITE species
+  incl out-of-stock with history, private sellers excluded) — no change. Note: "Dominican Purple
+  not in stock" was NOT a bug — the in-stock copies are private sellers (hidden from non-owners) +
+  the website copy (Juices) is sold out; Fear Not's wasn't in the last crawl.
+- 2026-07-21 — BIG UX+TRUST+PERF batch SHIPPED (dev→main, live as 8780a42 + follow-ups 29199c3,
+  7a2cfe7). Preflight-gated (73 tests, pg-portability scan, compiles) then Mike "ship it". (a) TOP
+  DEALS rebuilt: `_curated_top_deals()` — tarantulas only (traits.TARANTULA_GENUS_DEFAULTS), in-stock,
+  ONE per species, ranked by deal-grade+rarity, round-robined across price tiers (no more 4 curly-
+  hairs / all $10 slings); rows show sex ♀/♂ + vendor links to the EXACT listing. (b) OWNED ✓ leak:
+  the owned flag was baked into the SHARED snapshot from the global collection → logged-out visitors
+  saw the admin's checkmarks; moved to per-request `_req_owned()` (empty for anon), also stripped
+  from the shared intel blob. (c) FEEDER roaches: bulk "(25 count)" packs with no invert genus now
+  denied by the livestock filter (Josh's Orange Head Roaches were showing as deals). (d) SPECIES:
+  facet counts are now INTERSECTION-aware (Advanced+$250+ shows the real 4, not the global 63);
+  In-Stock-Only toggle above Origin (live>0). (e) PRIVATE-SELLER RULE (Mike's call): private lists
+  NEVER create species pages — get_species_catalog is WEBSITE-ONLY (killed the augacephalus/
+  phormictopus-sp 404s + the private leak into the public catalog; full-site scan → 0 404s); private
+  imports fuzzy-CONNECT to the nearest existing species (difflib ≥0.9, so typos link but distinct
+  species never merge). (f) ALERTS rebuilt to PERSONAL + opt-in categories (Mike's pick): saved-
+  search hits always alert their owner; market events (fire/drops/restocks) only if the user opted
+  in (users.alert_categories, toggles on /account) — empty watchlist+no opt-in = 0 alerts (was 94).
+  (g) UPLOADER: the collection INSERT used sqlite-only :named params → 500 on prod Postgres (the real
+  "uploader broken", separate from the earlier IS ?→= ? fix); converted to positional ?. CSRF was a
+  red herring — base.html JS stamps _csrf into every form. (h) SLOWNESS: server+Brotli were fast
+  (0.3-0.6s, 30-40KB wire); the DECOMPRESSED DOM was heavy (/deals 445KB @100 rows), so deals 100→50
+  and species 75→50 per page. (i) URBAN still-showing-on-drops: ban code was correct but the movers
+  are served from a stale cron BLOB → added `_filter_banned_movers()` at RENDER time so the ban holds
+  regardless of blob freshness (drops now empty because Urban WAS the whole list). (j) CACHE-REBUILD
+  GAP: get_species_catalog/browse had no `force=` and short-circuit under _WEB_READONLY, so an
+  in-process (admin Run Crawl) warm_and_persist re-persisted the STALE catalog; added force= +
+  warm_and_persist(force=True). GENERAL LESSON: on the read-only web, any cache accessor that
+  warm_and_persist rebuilds MUST accept force= or it re-persists stale data (get_snapshot already
+  did; catalog/browse didn't).
+- 2026-07-20 — PROD INCIDENT + HARDENING SHIPPED (live in ba6c873): recurring "HTTP health check
+  timed out after 5s" flaps (6:35/7:18/8:05 AM CDT), self-recovered each time — NOT a crash/OOM (mem
+  ~15%, CPU low). Root cause from live logs: single gunicorn worker saturated by BOT crawlers
+  (ClaudeBot hammering /species/* 50-113KB, /species?page 270KB, /history 420KB) starving the 5s
+  health probe; worst when overlapping the daily crawl's PG writes. FIXES: gunicorn --threads 4→8
+  (validated — the in-process Run-Crawl on 07-21 ran with NO flap); /healthz + /robots.txt bypass the
+  auth before_request (cookieless, CDN-cacheable); /robots.txt curbs bot load (Crawl-delay + disallow
+  /*?,/history,/api); in-process daily-crawl scheduler hard-refuses to arm when DATABASE_URL is set.
+  Verified: FANGTRACK_DAILY_CRAWL_HOUR NOT on prod web; FANGTRACK_PROXY_URL IS (unexpected, harmless).
+- 2026-07-20 — UX + TRUST batch — SHIPPED (dev→main, ba6c873; was HELD, Mike shipped). (1) TRUST
+  (critical): mrs2200's
   private-seller list surfaced in global "all-time-low" alerts on other accounts. Private-seller
   uploads write real crawl_runs+price_history rows, so species_market_stats (all-time-low/market
   price) + the snapshot-based fire mover included them, and the alerts engine emitted fire/drop/back
