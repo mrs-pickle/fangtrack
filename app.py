@@ -1408,6 +1408,73 @@ def email_preview(name):
     return html
 
 
+def _is_tarantula_listing(l) -> bool:
+    """True if the listing's genus is a known Theraphosidae (tarantula) genus.
+    Keeps the dashboard Top Deals to tarantulas only — no scorpions/centipedes/
+    millipedes/beetles/roaches/isopods."""
+    from normalize.traits import TARANTULA_GENUS_DEFAULTS
+    global _TARANTULA_GENERA
+    try:
+        _TARANTULA_GENERA
+    except NameError:
+        _TARANTULA_GENERA = {g.lower() for g in TARANTULA_GENUS_DEFAULTS}
+    k = (l.get("scientific_name_key") or "").strip().lower()
+    return bool(k) and k.split(" ")[0] in _TARANTULA_GENERA
+
+
+def _curated_top_deals(snap, n=12):
+    """Curated 'Top Deals right now': tarantulas only, in-stock, ONE best deal per
+    species, ranked by deal grade + rarity, then spread across price tiers so the
+    list isn't all $10-12 slings. Vendor links to the exact listing in the template."""
+    def _rar(l):
+        return l.get("size_class_rarity_score") or l.get("rarity_score") or 0
+
+    def _weight(l):
+        w = 0.0
+        if l.get("is_fire_deal"):
+            w += 3
+        dr = l.get("deal_rating")
+        if dr == "💎💎":
+            w += 3
+        elif dr == "💎":
+            w += 2
+        elif dr == "👍":
+            w += 1
+        return w + _rar(l) / 10.0   # rarity 0-10 → 0-1, tie-breaks toward rarer
+
+    cand = [l for l in snap
+            if _is_tarantula_listing(l)
+            and l.get("availability") != "out_of_stock"
+            and (l.get("price_usd") or 0) > 0
+            and (l.get("is_fire_deal")
+                 or l.get("deal_rating") in ("💎💎", "💎")
+                 or (_rar(l) >= 7 and l.get("deal_rating") in ("💎💎", "💎", "👍")))]
+
+    # one BEST deal per species (highest weight wins)
+    best = {}
+    for l in cand:
+        k = l.get("scientific_name_key")
+        if k and (k not in best or _weight(l) > _weight(best[k])):
+            best[k] = l
+    ranked = sorted(best.values(), key=lambda l: (-_weight(l), l.get("price_usd") or 9e9))
+
+    # round-robin across price tiers → a spread of prices AND sizes, best-first per tier
+    def _tier(p):
+        p = p or 0
+        return 0 if p < 50 else 1 if p < 150 else 2 if p < 400 else 3
+    tiers = {0: [], 1: [], 2: [], 3: []}
+    for l in ranked:
+        tiers[_tier(l.get("price_usd"))].append(l)
+    out = []
+    while len(out) < n and any(tiers.values()):
+        for t in (0, 1, 2, 3):
+            if tiers[t]:
+                out.append(tiers[t].pop(0))
+                if len(out) >= n:
+                    break
+    return out
+
+
 @app.route("/")
 def dashboard():
     # The dashboard is the market overview — site crawls only. Private-seller lists
@@ -1424,7 +1491,7 @@ def dashboard():
     fair   = [l for l in snap if l.get("deal_rating") == "👍"]
     above  = [l for l in snap if l.get("deal_rating") == "👎"]
     female = [l for l in snap if l.get("sex") == "F"]
-    top_deals = sorted(fire + gem2, key=lambda l: l.get("price_usd", 9999))[:12]
+    top_deals = _curated_top_deals(snap)
     _attach_clean_names(top_deals)
     summary = _cached_crawl_summary()[-10:]
     hits = _crawl_state.get("last_hits", [])
