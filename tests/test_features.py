@@ -201,6 +201,18 @@ def test_private_seller_never_moves_market_analytics():
     assert "priv_9_secret" not in fire_vendors, "private seller leaked into movers"
 
 
+def test_private_seller_fuzzy_snaps_to_existing_species():
+    from tools.import_seller import _snap_to_website_species as snap
+    web = ["grammostola pulchra", "augacephalus junodi", "tliltocatl vagans"]
+    # a typo connects to the real species…
+    assert snap("grammastola pulchra", web) == "grammostola pulchra"
+    assert snap("tlitocatl vagans", web) == "tliltocatl vagans"
+    # …an exact match is kept…
+    assert snap("grammostola pulchra", web) == "grammostola pulchra"
+    # …but a genuinely different species is NEVER merged to a near neighbor.
+    assert snap("augacephalus rufus", web) == "augacephalus rufus"
+
+
 def test_feeder_roach_packs_are_not_livestock():
     from normalize.livestock import is_livestock
     # Bulk feeder packs (Josh's Frogs) must NOT pass — they were showing as deals.

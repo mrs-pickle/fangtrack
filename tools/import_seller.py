@@ -247,6 +247,35 @@ def parse_with_regex(text: str) -> list[dict]:
 # DB INSERTION
 # ---------------------------------------------------------------------------
 
+def _website_species_keys(db_path) -> list:
+    """Canonical species keys that exist on WEBSITE vendors (not private sellers)."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT DISTINCT scientific_name_key FROM price_history "
+            "WHERE scientific_name_key IS NOT NULL AND vendor_key NOT IN "
+            "(SELECT vendor_key FROM vendors WHERE platform='private_seller')").fetchall()
+        return [r[0] for r in rows if r[0]]
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+
+def _snap_to_website_species(name_key: str, website_keys: list) -> str:
+    """Mike's rule: a private-seller listing must CONNECT to the existing species its
+    spelling most closely resembles, never create its own species page. If the key
+    already matches a website species, keep it. Otherwise snap to the closest website
+    species — but only on a VERY close spelling match (cutoff 0.9), so a genuine typo
+    ('grammastola pulchra' → 'grammostola pulchra') connects while two distinct
+    species ('augacephalus rufus' vs 'augacephalus junodi') never get merged."""
+    import difflib
+    if not name_key or not website_keys or name_key in website_keys:
+        return name_key
+    m = difflib.get_close_matches(name_key, website_keys, n=1, cutoff=0.9)
+    return m[0] if m else name_key
+
+
 def insert_listings(listings: list[dict], seller_name: str,
                     seller_key: str = None, db_path=DB_PATH,
                     dry_run: bool = False, contact: str = "",
@@ -281,6 +310,7 @@ def insert_listings(listings: list[dict], seller_name: str,
         )
 
     now = datetime.now(timezone.utc).isoformat()
+    website_keys = _website_species_keys(db_path)   # for the fuzzy connect-to-existing
     rows = []
     for entry in listings:
         name = entry.get("scientific_name", "").strip()
@@ -291,6 +321,9 @@ def insert_listings(listings: list[dict], seller_name: str,
             name_key = normalize_species_key(name)
         except Exception:
             name_key = name.lower()
+        # Connect this private listing to the nearest existing website species
+        # (never let it create its own species page — Mike's rule).
+        name_key = _snap_to_website_species(name_key, website_keys)
 
         size_str = entry.get("size")
         sz_min, sz_max, sz_mid = parse_size(size_str)

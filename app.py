@@ -836,11 +836,20 @@ def get_species_catalog(db_path=DB_PATH) -> list:
     cat = []
     try:
         conn = get_connection(db_path)
+        # WEBSITE-ONLY catalog: private-seller lists must NOT create species pages
+        # (Mike's rule) — a private-only species (e.g. a seller's misspelled "sp.")
+        # became a browse card that 404'd for everyone but the uploader, and leaked
+        # private sourcing into the public catalog. Exclude platform='private_seller'
+        # so the catalog is the website market only. Private listings still show to
+        # their owner on /deals + collection, mapped to the nearest real species.
         rows = conn.execute("""
             SELECT scientific_name_key AS k,
                    GROUP_CONCAT(DISTINCT common_name) AS commons,
                    COUNT(*) AS n, MIN(price_usd) AS min_p
-            FROM price_history WHERE price_usd > 0 AND scientific_name_key IS NOT NULL
+            FROM price_history
+            WHERE price_usd > 0 AND scientific_name_key IS NOT NULL
+              AND vendor_key NOT IN (SELECT vendor_key FROM vendors
+                                     WHERE platform='private_seller')
             GROUP BY scientific_name_key
         """).fetchall()
         conn.close()
