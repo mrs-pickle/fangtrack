@@ -201,6 +201,17 @@ def test_private_seller_never_moves_market_analytics():
     assert "priv_9_secret" not in fire_vendors, "private seller leaked into movers"
 
 
+def test_feeder_roach_packs_are_not_livestock():
+    from normalize.livestock import is_livestock
+    # Bulk feeder packs (Josh's Frogs) must NOT pass — they were showing as deals.
+    assert not is_livestock('- 1" Large Orange Head Roaches (25 count)')
+    assert not is_livestock("Discoid Roaches 50 ct")
+    assert not is_livestock("Dubia Roaches pack of 100")
+    # …but pet roach genera and real sling packs stay livestock.
+    assert is_livestock("Gromphadorhina portentosa (Madagascar Hissing Cockroach)")
+    assert is_livestock("Grammostola pulchra 10 sling pack")
+
+
 # ── livestock filter: art prints must not pass ────────────────────────────────
 def test_art_prints_are_not_livestock():
     from normalize.livestock import is_livestock

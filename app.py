@@ -264,7 +264,11 @@ def _cached_intel(snap, force=False) -> dict:
         return _intel_cache["data"] if _intel_cache["data"] is not None else dict(_EMPTY_INTEL)
     try:
         from analytics.market import market_intelligence
-        intel = market_intelligence(DB_PATH, snap, get_owned_keys(DB_PATH))
+        # intel is a SHARED, cron-built, blob-cached tile — it must not carry any
+        # per-user "owned" set (that would bake one account's collection into the
+        # blob everyone loads). Pass empty; owned marks are applied per-request
+        # elsewhere via _req_owned().
+        intel = market_intelligence(DB_PATH, snap, set())
     except Exception as e:
         logger.warning(f"market_intelligence failed: {e}")
         intel = {}
@@ -601,11 +605,10 @@ def _build_snapshot(now: float) -> list:
     for l in snapshot:
         l["vendor_homepage"] = _vendor_homepage(l.get("vendor_key", ""))
 
-    # Annotate with owned flag (mark but never suppress)
-    owned = get_owned_keys(DB_PATH)
-    for l in snapshot:
-        key = l.get("scientific_name_key", "")
-        l["owned"] = key in owned
+    # NOTE: "owned" is per-user and MUST NOT be baked into this shared/cached
+    # snapshot — doing so leaked the admin's collection checkmarks to every visitor
+    # (incl. logged-out). Routes pass `owned_keys=_req_owned()` to the template and
+    # check membership per request instead (empty for anonymous visitors).
 
     # Flag private-seller listings + their owner so the per-user visibility filter
     # (_visible_to_user) can hide a private seller from everyone except the account
@@ -1444,7 +1447,7 @@ def dashboard():
         female_count=len(female),
         total=len(snap), crawl_summary=summary, wl_hits=hits,
         wl_count=len(wl_targets), crawl_state=_crawl_state,
-        movers=movers, mstats=stats, intel=intel,
+        movers=movers, mstats=stats, intel=intel, owned_keys=_req_owned(),
         last_crawl=head["last_crawl"], days_history=head["days"],
         crawl_health=head["health"], health_counts=head["health_counts"],
         vendors_live=vendors_live)
@@ -1620,7 +1623,8 @@ def deals():
     return render_template("deals.html", listings=listings, total=len(snap),
                            matched_count=matched_count, page=page, pages=pages,
                            per=per, vendors=vendors, filters=request.args,
-                           page_base=_page_base(), mstats=get_market_stats())
+                           page_base=_page_base(), mstats=get_market_stats(),
+                           owned_keys=_req_owned())
 
 
 @app.route("/watchlist")

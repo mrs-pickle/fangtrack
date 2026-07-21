@@ -63,6 +63,10 @@ STRONG_DENY = [
     "superworm", "waxworm", "hornworm", "dubia", "red runner", "fruit fly",
     "drosophila", "springtail", "bloodworm", "herring", "fish food",
     "gutload", "tadpole", "roach crunch", "isopod crunch", "crunchies",
+    # feeder roaches sold by the count (Josh's Frogs &c.) — NOT the pet roach
+    # genera (Gromphadorhina/Blaberus keep passing on their genus token).
+    "orange head roach", "discoid roach", "banana roach", "lobster roach",
+    "turkistan roach", "ivory head roach", "green banana roach",
     # consumables / supplements / media / services
     "fertilizer", "nutrient", "additive", "supplement", "supplementation",
     "calcium", "vitamin", "mineral booster", "mineral bath", "gutload",
@@ -270,6 +274,11 @@ _WEAK_RE = _mk_re(WEAK_DENY)
 _ART_PRINT_RE = re.compile(
     r"\bprint\b.{0,15}\b\d{1,2}\s*[x×]\s*\d{1,2}\b|\b\d{1,2}\s*[x×]\s*\d{1,2}\b.{0,15}\bprint\b",
     re.I)
+# Bulk feeder pack: a live PET is never priced "(25 count)" / "50 ct" / "pack of
+# 100". Used to drop feeder insects (roaches/worms) that otherwise pass on a taxon
+# keyword like "roach" — but only when no real invert GENUS is present, so a
+# genuine "Grammostola … 10 sling pack" stays livestock.
+_FEEDER_PACK_RE = re.compile(r"\b\d{1,4}\s*(?:count|ct|pcs|pieces)\b|\bpack\s*of\s*\d{1,4}\b", re.I)
 _LOWER_BINOMIAL = re.compile(r"\b([A-Z][a-z]{5,})\s+([a-z]{3,})\b")
 _GENUS_SP = re.compile(r"\b([A-Z][a-z]{4,})\s+(?:sp|cf|aff)\b", re.I)
 _LEAD_QUALIFIER = re.compile(
@@ -306,6 +315,12 @@ def is_livestock(title: str) -> bool:
 
     # (2) Deny plant / shell / vertebrate genera.
     if tokens and tokens[0] in DENY_GENERA:
+        return False
+
+    # (2b) Bulk feeder pack ("(25 count)", "50 ct", "pack of 100") with no invert
+    # genus → feeder insects, not livestock (drops Josh's "Orange Head Roaches
+    # (25 count)" that would otherwise pass on the "roach" taxon keyword).
+    if _FEEDER_PACK_RE.search(low) and not any(t in GENUS_SET for t in tokens):
         return False
 
     # (3) Positive signal: known invert genus token, or specific taxon keyword.

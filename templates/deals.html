@@ -136,10 +136,10 @@
   {% for l in listings %}
   {% set mk = mstats.get(l.scientific_name_key) or {} %}
   {% set rs = l.size_class_rarity_score or l.rarity_score or 0 %}
-  <tr {% if l.owned %}style="border-left:2px solid #2563eb;"{% endif %}>
+  <tr {% if l.scientific_name_key in owned_keys %}style="border-left:2px solid #2563eb;"{% endif %}>
     <!-- Owned -->
     <td style="text-align:center; padding:4px;">
-      {% if l.owned %}<span class="owned-badge" title="In your collection">✓</span>{% endif %}
+      {% if l.scientific_name_key in owned_keys %}<span class="owned-badge" title="In your collection">✓</span>{% endif %}
     </td>
     <!-- Deal badge -->
     <td data-sort="{{ 5 if l.is_fire_deal else 4 if l.deal_rating=='💎💎' else 3 if l.deal_rating=='💎' else 2 if l.deal_rating=='👍' else 1 }}" style="white-space:nowrap;">

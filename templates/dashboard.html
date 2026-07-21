@@ -167,7 +167,7 @@
           {% elif l.deal_rating == '💎💎' %}<span style="background:#7c3aed; color:#f4f4f5; padding:2px 7px; border-radius:4px; font-size:11px;">💎💎</span>
           {% elif l.deal_rating == '💎' %}<span style="background:#3b82f6; color:#ffffff; padding:2px 7px; border-radius:4px; font-size:11px;">💎</span>{% endif %}
         </td>
-        <td class="td-td"><a href="/species/{{ l.scientific_name_key }}" style="font-style:italic; color:#2563eb; font-size:13px; text-decoration:none;">{{ l.sci_display }}</a>{% if l.owned %} <span style="color:#2563eb; font-weight:800;" title="You own this">✓</span>{% endif %}</td>
+        <td class="td-td"><a href="/species/{{ l.scientific_name_key }}" style="font-style:italic; color:#2563eb; font-size:13px; text-decoration:none;">{{ l.sci_display }}</a>{% if l.scientific_name_key in owned_keys %} <span style="color:#2563eb; font-weight:800;" title="You own this">✓</span>{% endif %}</td>
         <td class="td-td" style="color:#a1a1aa; font-size:13px;">{{ l.size_text or '?' }}</td>
         <td class="td-td" style="font-weight:700; color:#f4f4f5; text-align:right; font-variant-numeric:tabular-nums;">${{ "%.0f"|format(l.price_usd) }}</td>
         <td class="td-td" style="color:#52525b; font-size:12px;">{{ l.vendor_key }}</td>
