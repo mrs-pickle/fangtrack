@@ -1024,6 +1024,34 @@ def warm_and_persist():
     logger.info("warm_and_persist: all dashboard caches built + persisted")
 
 
+def _apply_key_aliases(db_path=DB_PATH) -> int:
+    """Collapse fragmented / misspelled / truncated species keys onto their
+    canonical form across price_history — PORTABLE (uses the pg adapter, unlike
+    tools/migrate_key_aliases.py which is raw sqlite3). canonicalize_key already
+    runs on each NEW row via db.record; this fixes accumulated HISTORICAL rows so
+    the search dropdown shows ONE entry per species (e.g. the 3 'Dominican Purple'
+    fragments collapse to one). Run after every crawl."""
+    from normalize.key_aliases import canonicalize_key
+    conn = get_connection(db_path)
+    changed = 0
+    try:
+        keys = [r["scientific_name_key"] for r in conn.execute(
+            "SELECT DISTINCT scientific_name_key FROM price_history "
+            "WHERE scientific_name_key IS NOT NULL AND scientific_name_key<>''")]
+        for k in keys:
+            ck = canonicalize_key(k)
+            if ck != k:
+                conn.execute("UPDATE price_history SET scientific_name_key=? "
+                             "WHERE scientific_name_key=?", (ck, k))
+                changed += 1
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"_apply_key_aliases failed: {e}")
+    finally:
+        conn.close()
+    return changed
+
+
 def run_crawl_thread(vendor_keys: list[str]):
     """Run crawler in background thread."""
     global _crawl_state
@@ -1102,6 +1130,15 @@ def run_crawl_thread(vendor_keys: list[str]):
         if all_results:
             from pipeline import run_multi_vendor_pipeline
             run_multi_vendor_pipeline(all_results, db_path=DB_PATH)
+
+        # Collapse fragmented species keys onto their canonical form so the catalog
+        # / search dropdown shows ONE entry per species (self-heals on every crawl).
+        try:
+            n = _apply_key_aliases(DB_PATH)
+            if n:
+                logger.info(f"key-alias pass: collapsed {n} fragmented species keys")
+        except Exception as e:
+            logger.warning(f"key-alias pass skipped: {e}")
 
         # Rebuild snapshot and check watchlist
         _snapshot_cache["data"] = None  # invalidate cache

@@ -51,6 +51,13 @@ GENUS_ALIASES: dict[str, str] = {
 
 # ── Exact key → canonical key (epithet fixes, truncations, glued size text) ──
 KEY_ALIASES: dict[str, str] = {
+    # Undescribed trade-name species that fragment across vendors (dropped "sp",
+    # dropped genus, or common-name-only) → collapse to ONE dropdown entry each.
+    "phormictopus dominican":         "phormictopus sp dominican",
+    "phormictopus sp dominican purple": "phormictopus sp dominican",
+    "dominican purple birdeater":     "phormictopus sp dominican",
+    "dominican purple":               "phormictopus sp dominican",
+    "dominican dwarf blue":           "holothele sp dominican",
     # epithet misspellings
     "tlitocatl khalenbergi":          "tliltocatl kahlenbergi",
     "tliltocatl khalenbergi":         "tliltocatl kahlenbergi",
