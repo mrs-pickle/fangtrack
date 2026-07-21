@@ -2671,6 +2671,7 @@ def species_search():
     f_temp  = request.args.get("temp", "")
     f_exp   = request.args.get("exp", "")
     f_clim  = request.args.get("climate", "")
+    f_instock = request.args.get("instock", "")   # "1" → only species in stock now
     sort_by = request.args.get("sort", "name")
 
     catalog = get_species_browse()
@@ -2679,15 +2680,36 @@ def species_search():
         catalog = [s for s in catalog
                    if ql in s["display"].lower() or ql in (s["common"] or "").lower()
                    or ql in s["key"]]
+    # In-Stock-Only: a base filter (like the search box) — narrows BOTH the facet
+    # option counts and the results to species with ≥1 live listing as of last scrape.
+    if f_instock:
+        catalog = [s for s in catalog if (s.get("live") or 0) > 0]
+
+    # A facet's own option counts must reflect every OTHER selected facet (the
+    # intersection) — otherwise "$250+" showed its global 63 even after Advanced was
+    # picked, when only 4 species are both. So each facet is counted over the catalog
+    # filtered by all active facets EXCEPT itself.
+    _FACET_FILTERS = [
+        ("genus", f_genus), ("origin", f_orig), ("rarity_tier", f_tier),
+        ("price_band", f_band), ("hemisphere", f_hem), ("habitat", f_hab),
+        ("t_size", f_tsize), ("temperament", f_temp), ("experience", f_exp),
+        ("climate", f_clim),
+    ]
+
+    def _apply_facets(items, exclude_field=None):
+        out = items
+        for field, val in _FACET_FILTERS:
+            if val and field != exclude_field:
+                out = [s for s in out if s.get(field) == val]
+        return out
 
     def facet_counts(field):
         c = {}
-        for s in catalog:
+        for s in _apply_facets(catalog, exclude_field=field):
             v = s.get(field)
             if v:
                 c[v] = c.get(v, 0) + 1
         return c
-    # facet option counts computed on the query-filtered set (before facet filters)
     from normalize.genus_meta import PRICE_BAND_ORDER
     # Rarity always renders in linear scale order (rarest → most common), never by
     # count, so the scale reads the same everywhere it appears.
@@ -2720,17 +2742,7 @@ def species_search():
         "climate":     ordered("climate"),
     }
 
-    matched = catalog
-    if f_genus: matched = [s for s in matched if s.get("genus") == f_genus]
-    if f_orig:  matched = [s for s in matched if s.get("origin") == f_orig]
-    if f_tier:  matched = [s for s in matched if s.get("rarity_tier") == f_tier]
-    if f_band:  matched = [s for s in matched if s.get("price_band") == f_band]
-    if f_hem:   matched = [s for s in matched if s.get("hemisphere") == f_hem]
-    if f_hab:   matched = [s for s in matched if s.get("habitat") == f_hab]
-    if f_tsize: matched = [s for s in matched if s.get("t_size") == f_tsize]
-    if f_temp:  matched = [s for s in matched if s.get("temperament") == f_temp]
-    if f_exp:   matched = [s for s in matched if s.get("experience") == f_exp]
-    if f_clim:  matched = [s for s in matched if s.get("climate") == f_clim]
+    matched = _apply_facets(catalog)   # all active facets applied (intersection)
 
     # Direction toggle: each sort has a natural default (A-Z, priciest, rarest,
     # most-listed). Clicking the active sort again flips it.
@@ -2757,7 +2769,7 @@ def species_search():
     tiles = matched[(page - 1) * per: page * per]
     active = {"genus": f_genus, "origin": f_orig, "tier": f_tier, "band": f_band,
               "hem": f_hem, "habitat": f_hab, "tsize": f_tsize, "temp": f_temp,
-              "exp": f_exp, "climate": f_clim,
+              "exp": f_exp, "climate": f_clim, "instock": f_instock,
               "sort": sort_by, "dir": direction, "q": query}
     rarity_legend = _cached_rarity_legend()
     return render_template("species.html", tiles=tiles, query=query,
