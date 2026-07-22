@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/fangtrack_icon_128.png') }}">
 <!-- FangTrack colour system — design tokens shared with the emails.
      Source: tokens/fangtrack.css (+ tokens/fangtrack.tokens.json). -->
-<link rel="stylesheet" href="/tokens/fangtrack.css?v=3">
+<link rel="stylesheet" href="/tokens/fangtrack.css?v=4">
 <style>
 * { box-sizing: border-box; }
 
@@ -121,6 +121,10 @@ input:focus, select:focus { border-color:#2563eb; }
 .nav-link:hover { color:var(--text); background:var(--card); }
 .nav-link.active { color:#2563eb; background:var(--card); }
 
+/* Brand logo swap — white lockup on dark, black lockup on light */
+[data-theme="light"] .ft-logo-dark  { display:none !important; }
+[data-theme="light"] .ft-logo-light { display:block !important; }
+
 /* Flash */
 .flash-ok  { background:var(--flash-ok-bg); border:1px solid var(--flash-ok-border); color:var(--flash-ok-text); padding:10px 16px; border-radius:6px; margin-bottom:14px; }
 .flash-err { background:var(--flash-err-bg); border:1px solid var(--flash-err-border); color:var(--flash-err-text); padding:10px 16px; border-radius:6px; margin-bottom:14px; }
@@ -184,21 +188,12 @@ input:focus, select:focus { border-color:#2563eb; }
 <nav style="background:var(--nav); border-bottom:1px solid var(--row-divider); position:sticky; top:0; z-index:50;">
   <div class="navwrap" style="max-width:1600px; margin:0 auto; padding:0 20px; height:52px; display:flex; align-items:center; gap:4px;">
 
-    <!-- Logo mark + wordmark -->
-    <a href="/" style="display:flex; align-items:center; gap:10px; margin-right:20px; text-decoration:none;">
-      <img src="data:image/png;base64,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"
-           alt="FangTrack Pro" height="38"
-           style="width:auto; image-rendering:auto;">
-      <div>
-        <div style="font-size:16px; font-weight:900; letter-spacing:-.02em; line-height:1;">
-          <span style="color:var(--text);">FANG</span><span style="color:#2563eb;">TRACK</span>
-        </div>
-        {% if current_user %}
-        <div style="background:#2563eb; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">PRO</div>
-        {% else %}
-        <div style="background:#a855f7; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">BETA</div>
-        {% endif %}
-      </div>
+    <!-- Brand logo — theme-swapped: white lockup on dark, black lockup on light -->
+    <a href="/" style="display:flex; align-items:center; margin-right:20px; text-decoration:none;">
+      <img class="ft-logo ft-logo-dark" src="{{ url_for('static', filename='img/logo_dark.png') }}"
+           alt="FangTrack Pro" style="height:30px; width:auto; display:block;">
+      <img class="ft-logo ft-logo-light" src="{{ url_for('static', filename='img/logo_light.png') }}"
+           alt="FangTrack Pro" style="height:30px; width:auto; display:none;">
     </a>
 
     <!-- Nav links -->

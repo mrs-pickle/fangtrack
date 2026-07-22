@@ -82,12 +82,16 @@
   --ft-primary-soft: rgba(37,99,235,.10);
   --ft-accent-soft: rgba(168,85,247,.12);
 
-  --ft-bg: #eceef2;  --ft-surface: #f7f8fa;  --ft-surface-2: #ffffff;
-  --ft-border: #e2e5ea;  --ft-text: #18181b;  --ft-text-2: #52525b;  --ft-text-3: #71717a;
+  /* Muted slate-gray scale (Tailwind slate). PAGE is a mid grey (not bright),
+     cards sit one step LIGHTER for elevation but stay grey — never pure #fff, so
+     tiles read as "grayish" not glaring. Mirrors the dark theme's page<surface<card
+     elevation, inverted. */
+  --ft-bg: #e3e5ea;  --ft-surface: #e9ebef;  --ft-surface-2: #eef0f3;
+  --ft-border: #cfd3da;  --ft-text: #18181b;  --ft-text-2: #52525b;  --ft-text-3: #6b7280;
 
-  --hover: #e7e9ee;  --nav: #ffffff;  --divider: #e6e8ed;  --row-divider: #eef0f3;
+  --hover: #d9dce2;  --nav: #eef0f3;  --divider: #d9dce2;  --row-divider: #e3e5ea;
   --text-soft: #27272a;  --text-quiet: #3f3f46;
-  --text-dimmer: #71717a;  --text-dimmest: #9a9aa2;
+  --text-dimmer: #6b7280;  --text-dimmest: #9ca3af;
 
   --ft-down: #16a34a;  --ft-up: #dc2626;
 
