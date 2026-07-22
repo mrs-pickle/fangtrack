@@ -140,11 +140,12 @@ def _security_headers(resp):
     # posts, and <base> hijacking. Defense-in-depth (stored-XSS risk is already low).
     resp.headers.setdefault("Content-Security-Policy",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com "
+        "https://*.google-analytics.com https://*.analytics.google.com; "
         "frame-ancestors 'self'; base-uri 'self'; form-action 'self'")
     if os.environ.get("FANGTRACK_HTTPS"):
         resp.headers.setdefault("Strict-Transport-Security",

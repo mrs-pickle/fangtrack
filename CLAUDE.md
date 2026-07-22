@@ -45,6 +45,11 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 - Test a vendor: `python main.py --vendor <key>`. Tests: `python -m pytest tests/` (must pass).
 - Windows local: `python` (3.14), not `python3`.
 - New working vendor → wire into main.py registry, vendors/__init__.py REGISTRY, and app crawl path.
+- **Google Analytics on EVERY page (Mike's rule, 2026-07-21):** the gtag.js snippet
+  (`G-06WHKW6W8K`) rides in base.html `<head>`, so every page that `{% extends "base.html" %}`
+  is covered automatically. Any NEW page/response that does NOT extend base.html (standalone
+  HTML, a bespoke print/export view, a new microsite) MUST include the same snippet right after
+  `<head>` — never ship a user-facing page without it. Emails are exempt (mail clients strip JS).
 - Caches (snapshot/market/movers/intel/summary/rarity_legend/species/browse): 1h TTL,
   invalidated + persisted by the crawl.
 
@@ -305,3 +310,14 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   mike@fangtrack.com DONE (Mike did it manually in Render — move_collection.py now dead code);
   IPRoyal proxy pw ROTATED (done). Still-open Render nicety (deferred, not urgent): remove the
   stray FANGTRACK_PROXY_URL from the WEB service env (web doesn't crawl; leave it on the cron).
+- PARKED (2026-07-21, Mike's list):
+  - **LIGHT MODE** — first pass (toggle + 535 hex→var conversion + GA) is on branch `feature/
+    light-mode` (commit 134e409), NOT shipped. Mike's feedback: tiles still black-bg, white too
+    bright, and the logo must switch to the spider icon + "FANG" in BLACK for light. Needs a
+    proper light palette (deep-research best practices before redoing). GA + emails were split
+    OUT of this branch and shipped separately. Do NOT ship light mode until it's right.
+  - **Cloudflare edge cache still DYNAMIC** — rule is correct (OR expr, eligible, 1-day edge TTL,
+    no Page Rules) and a disable/enable redeploy did NOT fix it → CONTRACT/OPEN A CF SUPPORT
+    TICKET (zone-side). Low impact (assets are immutable+1yr, cached in-browser anyway).
+  - **GA Tag Manager + web-service expansion** — maybe this weekend: move from raw gtag to GTM
+    container, evaluate other web services (Search Console, etc.).
