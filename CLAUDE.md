@@ -75,6 +75,36 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-21 (pm) — EMAILS + GA SHIPPED (dev→main, live 00cf9db); LIGHT MODE built but HELD on a
+  branch. Preflight-gated (73 tests, pg scan, compile) then shipped. (a) BRANDED ALERT + WATCHLIST
+  EMAILS: both now extend base_email.html (wordmark, black bg/white text) + a stat bar; each
+  scientific name HYPERLINKS to the exact listing (species-page fallback so it's always clickable)
+  instead of a bare URL line; one-click UNSUBSCRIBE (itsdangerous-signed token → `/unsubscribe/<t>`
+  sets `users.email_opt_out`, clears alert_categories; public route, auth-skip) + "manage
+  preferences" in the shared footer. `_maybe_email` + the watchlist digest now send the branded
+  multipart mail (plain-text fallback kept); admin `/email-test/<name>` + `/email-preview` for both.
+  TEST SENDS delivered to mike@fangtrack.com from prod (also confirmed the Resend key works — closed
+  the long-open #98). Mike saw the watchlist email render and APPROVED its light look as the basis
+  for the future site light mode. (b) COLLECTION UPLOAD: stop folding the Common Name column into
+  notes (notes = the Notes column only). (c) GOOGLE ANALYTICS: gtag.js (G-06WHKW6W8K) after <head>
+  in base.html (covers every base-extending page); CSP script-src/connect-src widened for
+  googletagmanager + google-analytics; NEW RULE in Conventions — every user-facing page carries the
+  GA tag (standalone pages add it manually). (d) DEAD TOOLS removed: move_collection.py (Mike ran the
+  collection move manually in Render), scan_source_policy2.py. (e) CLOUDFLARE: scanned via Chrome —
+  the cache rule is CORRECT (OR expr /static/+/tokens/, Eligible-for-cache, Edge TTL ignore-cc 1-day,
+  0 Page Rules) yet the edge STILL returns cf-cache-status:DYNAMIC even after a forced disable→enable
+  REDEPLOY. Zone-side anomaly → PARKED: open a CF support ticket. Low impact (assets are
+  immutable+1yr, cached in-browser regardless). (f) LIGHT MODE (HELD, branch `feature/light-mode`
+  134e409, NOT shipped): header 🌙/☀️ toggle → data-theme on <html>, persisted via cookie +
+  users.theme_pref; 535 hardcoded dark hexes → CSS vars across 33 templates (each var's DARK value ==
+  the old hex, so dark is byte-identical — only light activates). Mike's feedback: tiles still
+  black-bg, white too bright, logo must swap (spider icon + black "FANG"). GA + emails were SPLIT OUT
+  of this branch and shipped separately so light mode could keep cooking. Redo next session off the
+  approved EMAIL look; Mike provides the logo asset at session start. GOTCHA/LESSON: bundling GA into
+  the light-mode commit meant a `git branch feature/light-mode` + `reset --hard` split, then
+  re-applying GA cleanly to dev — keep independently-shippable features in separate commits.
+  Memory: [[light-mode-wip]]. (g) CRAWL (local, on request): 29/29 complete, 9m43s, 3,592 in-stock —
+  vendor-by-vendor within ±0–6 of this morning's prod 09:00 crawl (pulled from prod Crawl History).
 - 2026-07-21 — SPECIES/COLLECTION polish + canonicalization (SHIPPED, dev→main). Follow-ups after
   Mike click-through. (1) Collection table now SORTABLE by any column — the global sorter can't
   handle the interleaved hidden edit rows, so a dedicated sorter in collection.html keeps each edit
@@ -313,9 +343,12 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 - PARKED (2026-07-21, Mike's list):
   - **LIGHT MODE** — first pass (toggle + 535 hex→var conversion + GA) is on branch `feature/
     light-mode` (commit 134e409), NOT shipped. Mike's feedback: tiles still black-bg, white too
-    bright, and the logo must switch to the spider icon + "FANG" in BLACK for light. Needs a
-    proper light palette (deep-research best practices before redoing). GA + emails were split
-    OUT of this branch and shipped separately. Do NOT ship light mode until it's right.
+    bright, logo must swap. APPROVED BASIS (2026-07-21): the branded **watchlist email** is the
+    look to copy for the site light mode (soft off-white card, NOT pure #fff; dark text; thin light
+    borders) — translate base_email.html's T.* token values into the site `[data-theme="light"]`
+    block. LOGO: Mike provides the light-mode logo asset at the START of next session (wait for it).
+    Deep-research light-mode best practices, rebuild palette tile-by-tile, DON'T ship till Mike oks.
+    GA + emails were split OUT of this branch and shipped separately.
   - **Cloudflare edge cache still DYNAMIC** — rule is correct (OR expr, eligible, 1-day edge TTL,
     no Page Rules) and a disable/enable redeploy did NOT fix it → CONTRACT/OPEN A CF SUPPORT
     TICKET (zone-side). Low impact (assets are immutable+1yr, cached in-browser anyway).
