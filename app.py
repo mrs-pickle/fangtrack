@@ -1379,7 +1379,20 @@ def render_email(name: str, **ctx) -> tuple[str, str]:
     if name not in EMAIL_TEMPLATES:
         raise ValueError(f"unknown email template: {name!r}")
     ctx.setdefault("site_url", SITE_URL)
-    ctx["T"] = _design_tokens()
+    # Emails render LIGHT (Mike-approved 2026-07-22): soft off-white surfaces + dark
+    # text — the approved watchlist-email look, and the ground the black wordmark
+    # logo sits on. Overrides only the neutral tokens; accent blue stays #2563eb.
+    import copy
+    T = copy.deepcopy(_design_tokens())
+    T["color"]["surface"].update({
+        "base": "#f4f5f7", "raised": "#ffffff", "card": "#ffffff",
+        "border": "#e6e6ea", "divider": "#ececef", "hover": "#f0f0f2", "row_divider": "#f0f0f2",
+    })
+    T["color"]["text"].update({
+        "primary": "#18181b", "soft": "#3f3f46", "quiet": "#52525b",
+        "muted": "#71717a", "dim": "#71717a", "dimmer": "#8f8f98", "dimmest": "#a1a1aa",
+    })
+    ctx["T"] = T
     # test_request_context, not app_context: the auth context processor reads
     # session, which only exists inside a request context (the cron path has none).
     with app.test_request_context():
