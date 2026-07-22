@@ -166,6 +166,7 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
                "detail": f"${l.get('price_usd',0):.0f} at {l.get('vendor_key')}"
                          + (f" (${l.get('landed_cost'):.0f} shipped)" if l.get('landed_cost') else ""),
                "species_key": l.get("scientific_name_key"),
+               "sci": l.get("scientific_name"),
                "url": l.get("product_url") or ""}, sig)
 
     for d in mv.get("drops", []):
@@ -175,6 +176,7 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
                "detail": f"${d.get('prev_price',0):.0f} → ${d.get('new_price',0):.0f} "
                          f"(−{int(d.get('pct',0))}%) at {d.get('vendor_key')}",
                "species_key": d.get("scientific_name_key"),
+               "sci": d.get("scientific_name"),
                "url": d.get("product_url") or ""}, sig)
 
     for l in mv.get("back_in_stock", []):
@@ -183,6 +185,7 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
                "title": f"Back in stock: {l.get('scientific_name','')[:40]}",
                "detail": f"${l.get('price_usd',0):.0f} at {l.get('vendor_key')}",
                "species_key": l.get("scientific_name_key"),
+               "sci": l.get("scientific_name"),
                "url": l.get("product_url") or ""}, sig)
 
     # Saved-search hits
@@ -199,6 +202,7 @@ def evaluate_and_record(snapshot: list, db_path=None, settings: dict | None = No
                    "title": f"'{s['name']}' → {l.get('scientific_name','')[:36]}",
                    "detail": f"${l.get('price_usd',0):.0f} · {l.get('size_text') or '?'} · {l.get('vendor_key')}",
                    "species_key": l.get("scientific_name_key"),
+                   "sci": l.get("scientific_name"),
                    # Tag with the search owner so the hit is visible ONLY to them
                    # (an untagged event is global — that leaked one user's searches
                    # to everyone via load_feed's _visible_to check).
@@ -258,10 +262,18 @@ def unread_count(user_id=None, categories=None) -> int:
 
 
 def _maybe_email(settings: dict, events: list) -> None:
-    """Email the batch of new alerts, only if SMTP is configured."""
+    """Email the batch of new alerts, only if SMTP is configured. Prefers the
+    branded (multipart) email; falls back to plain text if app rendering is
+    unavailable (keeps this module importable on its own)."""
     if not (settings.get("notify_email") and settings.get("smtp_user")
             and settings.get("smtp_pass")):
         return
+    try:
+        from app import send_branded_alert_email
+        send_branded_alert_email(settings, events)
+        return
+    except Exception:
+        pass  # fall through to the plain-text sender below
     import smtplib
     lines = [f"{e.get('icon','')} {e.get('title','')}\n    {e.get('detail','')}"
              + (f"\n    {e.get('url')}" if e.get('url') else "")

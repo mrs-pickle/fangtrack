@@ -227,7 +227,8 @@ def init_auth(app):
         # session/CSRF write) so a slow Postgres can never delay the probe and flap
         # the instance — the 2026-07-20 outage was health-check timeouts, not a crash.
         p = request.path
-        if p in ("/healthz", "/robots.txt") or p.startswith("/static/") or p.startswith("/tokens/"):
+        if p in ("/healthz", "/robots.txt") or p.startswith("/static/") or p.startswith("/tokens/") \
+                or p.startswith("/unsubscribe/"):
             return
         _load_logged_in_user()
         if "_csrf" not in session:

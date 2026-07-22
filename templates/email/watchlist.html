@@ -1,0 +1,60 @@
+{#  Watchlist digest email — the daily watchlist hits + top-deal counts.
+    Branded like the welcome email (base shell). Stat bar up top, each hit's
+    scientific name hyperlinked to the exact listing, unsubscribe in footer.
+    Context: intro, stats [{label,value}], items [{icon,kind,sci,url,detail}],
+    unsub_url, cta_url/cta_label, site_url, T. #}
+{% extends "email/base_email.html" %}
+
+{% block preheader %}{{ items|length }} watchlist hit{{ '' if items|length == 1 else 's' }} in today's FangTrack crawl.{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 16px; font-size:18px; font-weight:800; color:{{ T.color.text.primary }};">
+  {{ intro or 'Your watchlist digest' }} 👁️
+</p>
+
+{% if stats %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin:0 0 20px; background:{{ T.color.surface.base }};
+              border:1px solid {{ T.color.surface.border }}; border-radius:8px;">
+  <tr>
+    {% for s in stats %}
+    <td align="center" style="padding:12px 6px; font-family:{{ T.type.family }};
+        {% if not loop.first %}border-left:1px solid {{ T.color.surface.border }};{% endif %}">
+      <div style="font-size:22px; font-weight:900; color:{{ T.color.text.primary }};">{{ s.value }}</div>
+      <div style="font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+                  color:{{ T.color.text.muted }};">{{ s.label }}</div>
+    </td>
+    {% endfor %}
+  </tr>
+</table>
+{% endif %}
+
+{% if items %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  {% for it in items %}
+  <tr>
+    <td style="padding:10px 0; {% if not loop.first %}border-top:1px solid {{ T.color.surface.border }};{% endif %}
+               font-family:{{ T.type.family }};">
+      <div style="font-size:14px; line-height:1.5;">
+        <span style="color:{{ T.color.text.primary }};">{{ it.icon }}</span>
+        {% if it.kind %}<span style="font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+              color:{{ T.color.text.muted }};">&nbsp;{{ it.kind }}</span><br>{% endif %}
+        {% if it.url %}
+          <a href="{{ it.url }}" style="color:{{ T.color.accent.primary }}; font-weight:700;
+             font-style:italic; text-decoration:none;">{{ it.sci }}</a>
+        {% else %}
+          <span style="color:{{ T.color.text.primary }}; font-weight:700; font-style:italic;">{{ it.sci }}</span>
+        {% endif %}
+      </div>
+      {% if it.detail %}
+      <div style="font-size:13px; line-height:1.5; color:{{ T.color.text.soft }}; margin-top:2px;">
+        {{ it.detail }}</div>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p style="margin:0; color:{{ T.color.text.soft }};">No watchlist hits this crawl — we'll keep watching.</p>
+{% endif %}
+{% endblock %}

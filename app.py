@@ -1321,20 +1321,45 @@ def _write_digest(snapshot: list, hits: list):
     out_path.write_text("\n".join(lines), encoding="utf-8")
     logger.info(f"Digest written to {out_path}")
 
-    # Optional email
+    # Optional email — branded watchlist digest (hyperlinked names + unsubscribe),
+    # falls back to the plain-text digest if branded rendering fails.
     settings = load_settings()
-    if settings.get("notify_email") and settings.get("smtp_user"):
+    to_addr = settings.get("notify_email")
+    if to_addr and settings.get("smtp_user") and not _email_opted_out(to_addr):
         try:
-            _send_email(settings, "\n".join(lines), hits)
+            items = []
+            for h in hits:
+                badges = ("🔥" if h.is_fire_deal else
+                          ("💎💎" if h.deal_rating == "💎💎" else
+                           ("💎" if h.deal_rating == "💎" else "")))
+                lstr = f" · ${h.landed_cost:.0f} shipped" if h.landed_cost else ""
+                items.append({
+                    "icon": "🎯", "kind": h.target_display,
+                    "sci": h.scientific_name,
+                    "url": getattr(h, "product_url", "") or f"{SITE_URL}/deals",
+                    "detail": f"${h.price_usd:.0f} · {h.size_text or '?'}\" · "
+                              f"{h.sex or '?'} · {h.vendor_key}{lstr}  {badges}".strip(),
+                })
+            stats = [{"label": "Watchlist hits", "value": len(hits)},
+                     {"label": "🔥 all-time lows", "value": len(fire_deals)},
+                     {"label": "💎💎 deals", "value": len(gem2_deals)}]
+            html, text = render_watchlist_email(items, stats, to_addr)
+            subject = f"🕷 FangTrack — {len(hits)} watchlist hit{'' if len(hits)==1 else 's'} — {datetime.now().strftime('%b %d')}"
+            send_email(to_addr, subject, text, settings, html=html)
+            logger.info(f"Branded watchlist digest emailed to {to_addr}")
         except Exception as e:
-            logger.warning(f"Email notification failed: {e}")
+            logger.warning(f"Branded digest email failed ({e}); sending plain text")
+            try:
+                _send_email(settings, "\n".join(lines), hits)
+            except Exception as e2:
+                logger.warning(f"Email notification failed: {e2}")
 
 
 SITE_URL = os.environ.get("FANGTRACK_SITE_URL", "https://fangtrack.com")
 
 # Email templates that may be rendered/previewed by name. Allowlist — the name
 # reaches render_template and the admin preview route.
-EMAIL_TEMPLATES = {"welcome"}
+EMAIL_TEMPLATES = {"welcome", "alerts", "watchlist"}
 
 
 @lru_cache(maxsize=1)
@@ -1394,6 +1419,94 @@ def _send_email(settings: dict, body: str, hits: list):
     logger.info(f"Digest emailed to {settings['notify_email']}")
 
 
+# ── Branded alert / watchlist email (unsubscribe + hyperlinked names) ──────────
+
+def _unsub_serializer():
+    from itsdangerous import URLSafeSerializer
+    return URLSafeSerializer(app.secret_key or "fangtrack-dev-key", salt="email-unsub")
+
+
+def _unsub_url(email: str) -> str:
+    """One-click unsubscribe URL for a recipient (signed, no login needed)."""
+    return f"{SITE_URL}/unsubscribe/{_unsub_serializer().dumps(email or '')}"
+
+
+def _email_opted_out(email: str) -> bool:
+    """True if a user with this email has unsubscribed from alert/watchlist mail."""
+    if not email:
+        return False
+    try:
+        conn = get_connection(DB_PATH)
+        _ensure_profile_cols(conn)
+        row = conn.execute("SELECT email_opt_out FROM users WHERE lower(email)=lower(?)",
+                           (email,)).fetchone()
+        conn.close()
+        return bool(row and row["email_opt_out"])
+    except Exception:
+        return False
+
+
+_ALERT_KIND = {"fire": "All-time low", "price_drop": "Price drop",
+               "back_in_stock": "Back in stock", "saved_search": "Watchlist match"}
+
+
+def _alert_items(events: list) -> list:
+    """Turn raw alert events into email rows: icon, kind, scientific name, a link
+    (the exact listing, or the species page as a fallback so the name is ALWAYS
+    clickable), and the detail line."""
+    items = []
+    for e in events[:50]:
+        sci = e.get("sci") or (e.get("title", "").split(":", 1)[-1].strip()) \
+              or (e.get("species_key") or "").title()
+        url = e.get("url")
+        if not url and e.get("species_key"):
+            from urllib.parse import quote
+            url = f"{SITE_URL}/species/{quote(e['species_key'])}"
+        items.append({"icon": e.get("icon", "•"), "kind": _ALERT_KIND.get(e.get("type"), "Alert"),
+                      "sci": sci, "url": url or "", "detail": e.get("detail", "")})
+    return items
+
+
+def render_alert_email(events: list, to_addr: str) -> tuple[str, str]:
+    """(html, text) for the branded alerts email."""
+    from collections import Counter
+    c = Counter(e.get("type") for e in events)
+    stats = [{"label": lbl, "value": c.get(t, 0)} for t, lbl in
+             (("fire", "All-time lows"), ("price_drop", "Price drops"),
+              ("back_in_stock", "Restocks"), ("saved_search", "Watchlist"))
+             if c.get(t)]
+    n = len(events)
+    return render_email("alerts",
+                        intro=f"{n} new alert{'' if n == 1 else 's'} from the latest crawl",
+                        stats=stats, items=_alert_items(events),
+                        unsub_url=_unsub_url(to_addr),
+                        cta_url=f"{SITE_URL}/alerts", cta_label="View all alerts")
+
+
+def render_watchlist_email(items: list, stats: list, to_addr: str) -> tuple[str, str]:
+    """(html, text) for the branded watchlist digest email."""
+    return render_email("watchlist",
+                        intro=f"{len(items)} watchlist hit{'' if len(items) == 1 else 's'} today"
+                              if items else "Your watchlist digest",
+                        stats=stats, items=items,
+                        unsub_url=_unsub_url(to_addr),
+                        cta_url=f"{SITE_URL}/deals", cta_label="Browse today's deals")
+
+
+def send_branded_alert_email(settings: dict, events: list, to_addr: str = None) -> None:
+    """Send the branded (multipart) alerts email. No-op without SMTP or if the
+    recipient has unsubscribed."""
+    to_addr = to_addr or settings.get("notify_email")
+    if not (to_addr and settings.get("smtp_user") and settings.get("smtp_pass")):
+        return
+    if _email_opted_out(to_addr):
+        return
+    html, text = render_alert_email(events, to_addr)
+    n = len(events)
+    send_email(to_addr, f"🕷 FangTrack — {n} new alert{'' if n == 1 else 's'}",
+               text, settings, html=html)
+
+
 # ── ROUTES ────────────────────────────────────────────────────────────────────
 
 @app.route("/healthz")
@@ -1446,6 +1559,33 @@ def tokens_css():
     return resp
 
 
+def _sample_alert_events() -> list:
+    """Realistic sample events for previewing/testing the alerts email."""
+    return [
+        {"type": "fire", "icon": "🔥", "sci": "Poecilotheria metallica", "species_key": "poecilotheria metallica",
+         "detail": "$65 at fear_not_tarantulas ($78 shipped)", "url": f"{SITE_URL}/deals"},
+        {"type": "price_drop", "icon": "▼", "sci": "Grammostola pulchra", "species_key": "grammostola pulchra",
+         "detail": "$90 → $72 (−20%) at spider_shoppe", "url": f"{SITE_URL}/deals"},
+        {"type": "back_in_stock", "icon": "↺", "sci": "Monocentropus balfouri", "species_key": "monocentropus balfouri",
+         "detail": "$45 at the_tarantula_collective", "url": f"{SITE_URL}/deals"},
+        {"type": "saved_search", "icon": "🎯", "sci": "Chromatopelma cyaneopubescens", "species_key": "chromatopelma cyaneopubescens",
+         "detail": "$28 · 1.5\" · juices_arthropods", "url": f"{SITE_URL}/deals"},
+    ]
+
+
+def _sample_watchlist():
+    """Sample (items, stats) for previewing/testing the watchlist email."""
+    items = [
+        {"icon": "🎯", "kind": "Watchlist match", "sci": "Pamphobeteus sp. machala",
+         "url": f"{SITE_URL}/deals", "detail": "$40 · 2\" · ♀ · great_basin_tarantulas 🔥"},
+        {"icon": "🎯", "kind": "Watchlist match", "sci": "Xenesthis intermedia",
+         "url": f"{SITE_URL}/deals", "detail": "$120 · 1.25\" · unsexed · exotics_unlimited 💎💎"},
+    ]
+    stats = [{"label": "Watchlist hits", "value": 2},
+             {"label": "All-time lows", "value": 6}, {"label": "💎💎 deals", "value": 3}]
+    return items, stats
+
+
 @app.route("/admin/email-preview/<name>")
 @admin_required
 def email_preview(name):
@@ -1453,9 +1593,78 @@ def email_preview(name):
     sent. Allowlisted names only."""
     if name not in EMAIL_TEMPLATES:
         abort(404)
-    html, _ = render_email(name, display_name="Mike",
-                           cta_url=f"{SITE_URL}/deals", cta_label="Browse today's deals")
+    if name == "alerts":
+        html, _ = render_alert_email(_sample_alert_events(), "mike@fangtrack.com")
+    elif name == "watchlist":
+        items, stats = _sample_watchlist()
+        html, _ = render_watchlist_email(items, stats, "mike@fangtrack.com")
+    else:
+        html, _ = render_email(name, display_name="Mike",
+                               cta_url=f"{SITE_URL}/deals", cta_label="Browse today's deals")
     return html
+
+
+@app.route("/admin/email-test/<name>")
+@admin_required
+def email_test(name):
+    """Send a real test of a branded email to ?to= (default mike@fangtrack.com).
+    Uses the configured SMTP — works on prod where Resend is set."""
+    if name not in ("alerts", "watchlist"):
+        abort(404)
+    to_addr = (request.args.get("to") or "mike@fangtrack.com").strip()
+    settings = load_settings()
+    if not (settings.get("smtp_user") and settings.get("smtp_pass")):
+        return {"ok": False, "error": "SMTP not configured in this environment"}, 503
+    try:
+        if name == "alerts":
+            html, text = render_alert_email(_sample_alert_events(), to_addr)
+            subject = "🕷 FangTrack — 4 new alerts (test)"
+        else:
+            items, stats = _sample_watchlist()
+            html, text = render_watchlist_email(items, stats, to_addr)
+            subject = "🕷 FangTrack — watchlist digest (test)"
+        send_email(to_addr, subject, text, settings, html=html)
+        return {"ok": True, "sent_to": to_addr, "template": name}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}, 500
+
+
+@app.route("/unsubscribe/<token>")
+def unsubscribe(token):
+    """One-click unsubscribe from alert/watchlist email (CAN-SPAM). Signed token,
+    no login needed. Turns off ALL alert email for the matching user; in-app inbox
+    alerts still work. Idempotent."""
+    from itsdangerous import BadSignature
+    try:
+        email = _unsub_serializer().loads(token)
+    except BadSignature:
+        return _unsub_page("This unsubscribe link is invalid or expired.", ok=False), 400
+    try:
+        conn = get_connection(DB_PATH)
+        _ensure_profile_cols(conn)
+        conn.execute("UPDATE users SET email_opt_out=1, alert_categories='' "
+                     "WHERE lower(email)=lower(?)", (email,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return _unsub_page(f"{email} has been unsubscribed from FangTrack alert emails. "
+                       "You'll still see alerts in your in-app inbox.", ok=True)
+
+
+def _unsub_page(msg: str, ok: bool = True) -> str:
+    T = _design_tokens()
+    color = T["color"]["accent"]["primary"] if ok else "#f97316"
+    return f"""<!doctype html><meta charset=utf-8>
+<title>FangTrack — Unsubscribe</title>
+<body style="margin:0;background:{T['color']['surface']['base']};color:{T['color']['text']['primary']};
+             font-family:{T['type']['family']};text-align:center;padding:80px 20px;">
+  <div style="font-size:22px;font-weight:900;letter-spacing:-.02em;margin-bottom:24px;">
+    <span style="color:#fff;">FANG</span><span style="color:{color};">TRACK</span></div>
+  <p style="font-size:15px;line-height:1.7;max-width:440px;margin:0 auto;">{msg}</p>
+  <p style="margin-top:28px;"><a href="{SITE_URL}/account/alerts"
+     style="color:{color};">Manage alert preferences</a></p>
+</body>"""
 
 
 def _is_tarantula_listing(l) -> bool:
@@ -2195,10 +2404,12 @@ def parse_collection_file(stream, filename: str) -> list[dict]:
         # Require a real name: non-empty and containing letters (skips blank/NaN/NaT/total rows).
         if not species or species.lower() in ("nan", "nat") or not _re.search(r"[A-Za-z]", species):
             continue
-        common = cell(row, "common")
+        # Notes = ONLY the user's Notes column. The Common Name column is redundant
+        # (the common name is derived from the species key) and must NOT be folded in.
         raw_notes = cell(row, "notes")
-        notes = " · ".join(str(x).strip() for x in (common, raw_notes)
-                           if x and str(x).strip() and str(x).lower() != "nan") or None
+        notes = (str(raw_notes).strip()
+                 if raw_notes and str(raw_notes).strip() and str(raw_notes).lower() != "nan"
+                 else None)
         try:
             price = float(cell(row, "price")) if cell(row, "price") is not None else None
         except (TypeError, ValueError):
@@ -2303,6 +2514,10 @@ def _ensure_profile_cols(conn):
     # firehose of every market mover.
     if "alert_categories" not in have:
         conn.execute("ALTER TABLE users ADD COLUMN alert_categories TEXT DEFAULT ''")
+    # One-click email unsubscribe (CAN-SPAM). 1 = never send this user any alert /
+    # watchlist email again (in-app inbox alerts still work). Set by /unsubscribe.
+    if "email_opt_out" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN email_opt_out INTEGER DEFAULT 0")
     conn.commit()
 
 

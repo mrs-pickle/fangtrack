@@ -1,0 +1,15 @@
+FANGTRACK — {{ intro or (items|length ~ ' new alert(s)') }}
+
+{% for s in stats %}{{ s.value }} {{ s.label }}   {% endfor %}
+
+{% for it in items %}{{ it.icon }} {{ it.kind }}
+  {{ it.sci }}
+  {{ it.detail }}{% if it.url %}
+  {{ it.url }}{% endif %}
+
+{% endfor %}
+--
+Open FangTrack: {{ cta_url or site_url }}
+{% if unsub_url %}Unsubscribe: {{ unsub_url }}
+Manage alert preferences: {{ site_url }}/account/alerts{% endif %}
+FangTrack — private market intelligence tool · mike@fangtrack.com

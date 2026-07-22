@@ -1,0 +1,16 @@
+FANGTRACK — {{ intro or 'Your watchlist digest' }}
+
+{% for s in stats %}{{ s.value }} {{ s.label }}   {% endfor %}
+
+{% if items %}{% for it in items %}{{ it.icon }} {{ it.kind }}
+  {{ it.sci }}
+  {{ it.detail }}{% if it.url %}
+  {{ it.url }}{% endif %}
+
+{% endfor %}{% else %}No watchlist hits this crawl — we'll keep watching.
+{% endif %}
+--
+Open FangTrack: {{ cta_url or site_url }}
+{% if unsub_url %}Unsubscribe: {{ unsub_url }}
+Manage alert preferences: {{ site_url }}/account/alerts{% endif %}
+FangTrack — private market intelligence tool · mike@fangtrack.com

@@ -81,6 +81,15 @@
             <a href="{{ site_url }}/transparency" style="color:{{ T.color.text.muted }};">What is FangTrack?</a>
             &nbsp;·&nbsp;
             <a href="mailto:mike@fangtrack.com" style="color:{{ T.color.text.muted }};">mike@fangtrack.com</a><br>
+            {% if unsub_url %}
+            <span style="display:inline-block; margin-top:8px;">
+              <a href="{{ unsub_url }}"
+                 style="color:{{ T.color.text.muted }}; text-decoration:underline;">Unsubscribe</a>
+              &nbsp;·&nbsp;
+              <a href="{{ site_url }}/account/alerts"
+                 style="color:{{ T.color.text.muted }}; text-decoration:underline;">Manage alert preferences</a>
+            </span><br>
+            {% endif %}
             © FangTrack 2026
           </td>
         </tr>
