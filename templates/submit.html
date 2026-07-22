@@ -3,7 +3,7 @@
 {% block content %}
 <div style="max-width:760px; margin:0 auto;">
   <h1 style="font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0 0 6px;">Submit</h1>
-  <p style="color:#a1a1aa; margin-bottom:24px; font-size:14px;">Recommend a vendor, report a bug, or share an idea. We read everything.</p>
+  <p style="color:var(--muted); margin-bottom:24px; font-size:14px;">Recommend a vendor, report a bug, or share an idea. We read everything.</p>
 
   <div class="card" style="margin-bottom:24px;">
     <form action="/submit/save" method="post" class="flex flex-col gap-4">
@@ -29,13 +29,13 @@
       </div>
 
       <div>
-        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;"><span id="message-label">DETAILS</span> <span style="color:#52525b;">(optional for vendor suggestions)</span></label>
+        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;"><span id="message-label">DETAILS</span> <span style="color:var(--text-dimmer);">(optional for vendor suggestions)</span></label>
         <textarea name="message" rows="6" placeholder="Tell us what's up — the more detail, the better. For bugs: what page, what you clicked, what happened."
           style="width:100%; box-sizing:border-box; resize:vertical;"></textarea>
       </div>
 
       <div>
-        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">YOUR EMAIL <span style="color:#52525b;">(optional — if you'd like a reply)</span></label>
+        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">YOUR EMAIL <span style="color:var(--text-dimmer);">(optional — if you'd like a reply)</span></label>
         <input name="contact" type="email" placeholder="you@email.com" style="width:100%; box-sizing:border-box;">
       </div>
 
@@ -52,8 +52,8 @@
       {% for s in recent %}
       <tr>
         <td style="white-space:nowrap;">{% if s.kind=='vendor' %}🕷 Vendor{% elif s.kind=='bug' %}🐛 Bug{% else %}💡 Idea{% endif %}</td>
-        <td style="color:#a1a1aa; font-size:12px;">{{ (s.vendor_name ~ ' — ' if s.vendor_name else '') }}{{ (s.message or '')[:80] }}</td>
-        <td style="color:#52525b; font-size:12px; white-space:nowrap;">{{ (s.created_at or '')[:16] }}</td>
+        <td style="color:var(--muted); font-size:12px;">{{ (s.vendor_name ~ ' — ' if s.vendor_name else '') }}{{ (s.message or '')[:80] }}</td>
+        <td style="color:var(--text-dimmer); font-size:12px; white-space:nowrap;">{{ (s.created_at or '')[:16] }}</td>
       </tr>
       {% endfor %}
       </tbody>

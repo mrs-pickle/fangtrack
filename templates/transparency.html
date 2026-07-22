@@ -5,12 +5,12 @@
   <h1 style="font-size:26px; font-weight:900; letter-spacing:-.03em; margin-bottom:24px;">How FangTrack Works</h1>
 
   <div class="card" style="margin-bottom:20px;">
-    <p style="color:#d4d4d8; line-height:1.8; margin:0 0 16px;">
+    <p style="color:var(--text-quiet); line-height:1.8; margin:0 0 16px;">
       FangTrack is a market intelligence platform for the exotic invertebrate hobby — the first
       product to bring Keepa-style price history, StockX-style deal scoring, and TCG-inspired
       rarity tracking to the tarantula, scorpion, centipede, and isopod market.
     </p>
-    <p style="color:#d4d4d8; line-height:1.8; margin:0 0 16px;">
+    <p style="color:var(--text-quiet); line-height:1.8; margin:0 0 16px;">
       Transparency on rarity, availability, and price is not a one-sided win for buyers. Breeders
       and sellers currently price by instinct, forum osmosis, and whatever the last Facebook sale
       rumored to close at. FangTrack gives the supply side the same market data the demand side
@@ -20,7 +20,7 @@
       market to hold margin, or over market when scarcity justifies it. Markets with visible
       prices do not shrink seller profits; they reward the sellers who understand them.
     </p>
-    <p style="color:#d4d4d8; line-height:1.8; margin:0;">
+    <p style="color:var(--text-quiet); line-height:1.8; margin:0;">
       The current product is a local web application that crawls
       <strong style="color:#2563eb;">{{ vendor_count or 30 }}</strong> US vendors, scores
       <strong style="color:#2563eb;">{{ "{:,}".format(listing_count) if listing_count else "~5,000+" }}</strong>
@@ -33,6 +33,6 @@
 </div>
 
 <!-- How FangTrack Works + FAQ (merged from the former Guide page) -->
-<div style="border-top:1px solid #2a2a31; margin:36px 0 28px;"></div>
+<div style="border-top:1px solid var(--border); margin:36px 0 28px;"></div>
 {% include "_guide_body.html" %}
 {% endblock %}

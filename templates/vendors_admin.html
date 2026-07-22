@@ -1,20 +1,20 @@
 {% extends "base.html" %}{% block title %}Vendors — FangTrack Pro{% endblock %}
 {% block content %}
 <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">🏬 Vendors <span style="font-size:11px; font-weight:700; color:#a855f7; background:#2a1a3a; padding:2px 8px; border-radius:4px; vertical-align:middle;">ADMIN</span></h1>
-  <span style="color:#a1a1aa; font-size:13px;">{{ vendors|length }} crawled vendors · {{ total_listings }} listings in system</span>
+  <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">🏬 Vendors <span style="font-size:11px; font-weight:700; color:#a855f7; background:var(--ft-accent-soft); padding:2px 8px; border-radius:4px; vertical-align:middle;">ADMIN</span></h1>
+  <span style="color:var(--muted); font-size:13px;">{{ vendors|length }} crawled vendors · {{ total_listings }} listings in system</span>
 </div>
-<p style="color:#a1a1aa; font-size:13px; margin:0 0 18px;">QA view: open a vendor to see every listing we hold for them next to a link to their live site, so you can eyeball that our data matches theirs.</p>
+<p style="color:var(--muted); font-size:13px; margin:0 0 18px;">QA view: open a vendor to see every listing we hold for them next to a link to their live site, so you can eyeball that our data matches theirs.</p>
 
 <!-- ── Source policy (CB / WC) ─────────────────────────────────────────────── -->
 {% if srcs %}
 <div class="card" style="margin-bottom:18px;">
   <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px;">
     <div style="font-size:13px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:.06em;">🧬 Source policy — CB / WC coverage</div>
-    <div style="font-size:12px; color:#a1a1aa;">{{ src_summary.marked }} / {{ src_summary.total }} listings marked
+    <div style="font-size:12px; color:var(--muted);">{{ src_summary.marked }} / {{ src_summary.total }} listings marked
       (<strong style="color:{{ '#22c55e' if src_summary.pct >= 90 else '#fbbf24' }};">{{ src_summary.pct }}%</strong>)</div>
   </div>
-  <p style="font-size:12px; color:#a1a1aa; line-height:1.6; margin:8px 0 12px;">
+  <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:8px 0 12px;">
     Most sellers never state a source per listing. Where a vendor has <strong>never once listed a wild-caught animal</strong>,
     you can confirm them as captive-bred-only (ask them, or use what you know) and every unstated listing of theirs gets
     tagged CB — marked <em>“vendor-confirmed”</em>, never presented as if the listing itself said so.
@@ -29,13 +29,13 @@
     <tr>
       <td style="font-size:12px;">{{ s.key }}</td>
       <td style="color:#22c55e; font-weight:700;">{{ s.cb }}</td>
-      <td style="color:{{ '#ef4444' if s.wc else '#3f3f46' }}; font-weight:700;">{{ s.wc or '—' }}</td>
-      <td style="color:{{ '#fbbf24' if s.unk else '#3f3f46' }}; font-weight:700;">{{ s.unk or '—' }}</td>
+      <td style="color:{{ '#ef4444' if s.wc else 'var(--text-dimmest)' }}; font-weight:700;">{{ s.wc or '—' }}</td>
+      <td style="color:{{ '#fbbf24' if s.unk else 'var(--text-dimmest)' }}; font-weight:700;">{{ s.unk or '—' }}</td>
       <td style="font-size:11px;">
         {% if s.scraped %}<span style="color:#22c55e;" title="Their own site states captive-bred only">site says CB</span>
         {% elif not s.confirmable %}<span style="color:#ef4444;" title="This vendor has listed wild-caught animals — cannot blanket-tag">sells WC</span>
-        {% elif s.unk %}<span style="color:#71717a;">never states WC</span>
-        {% else %}<span style="color:#3f3f46;">—</span>{% endif %}
+        {% elif s.unk %}<span style="color:var(--text-dim);">never states WC</span>
+        {% else %}<span style="color:var(--text-dimmest);">—</span>{% endif %}
       </td>
       <td>
         <form action="/admin/vendor-policy" method="post" style="display:flex; gap:6px; align-items:center;">
@@ -64,13 +64,13 @@
   <tbody>
   {% for v in vendors %}
   <tr>
-    <td><a href="/vendors/{{ v.key }}" style="color:#2563eb; text-decoration:none; font-weight:700;">{{ v.name }}</a><div style="font-size:11px; color:#52525b;">{{ v.key }}</div></td>
-    <td style="color:#a1a1aa; font-size:12px;">{{ v.platform or '—' }}</td>
+    <td><a href="/vendors/{{ v.key }}" style="color:#2563eb; text-decoration:none; font-weight:700;">{{ v.name }}</a><div style="font-size:11px; color:var(--text-dimmer);">{{ v.key }}</div></td>
+    <td style="color:var(--muted); font-size:12px;">{{ v.platform or '—' }}</td>
     <td style="font-weight:700;">{{ v.listings }}</td>
     <td style="color:#34d399;">{{ v.instock }}</td>
-    <td style="color:#a1a1aa; font-size:12px;">{{ v.last or '—' }}</td>
-    <td><span style="font-size:11px; padding:2px 8px; border-radius:4px; {% if v.status=='complete' %}background:#064e3b; color:#a7f3d0;{% elif v.status=='partial' %}background:#78350f; color:#fed7aa;{% else %}background:#374151; color:#a1a1aa;{% endif %}">{{ v.status }}</span></td>
-    <td>{% if v.homepage %}<a href="{{ v.homepage }}" target="_blank" rel="noopener" style="color:#a1a1aa; font-size:12px;">open ↗</a>{% endif %}</td>
+    <td style="color:var(--muted); font-size:12px;">{{ v.last or '—' }}</td>
+    <td><span style="font-size:11px; padding:2px 8px; border-radius:4px; {% if v.status=='complete' %}background:#064e3b; color:#a7f3d0;{% elif v.status=='partial' %}background:#78350f; color:#fed7aa;{% else %}background:#374151; color:var(--muted);{% endif %}">{{ v.status }}</span></td>
+    <td>{% if v.homepage %}<a href="{{ v.homepage }}" target="_blank" rel="noopener" style="color:var(--muted); font-size:12px;">open ↗</a>{% endif %}</td>
     <td><a href="/vendors/{{ v.key }}" class="btn btn-ghost" style="padding:3px 10px; font-size:11px;">Inspect →</a></td>
   </tr>
   {% endfor %}

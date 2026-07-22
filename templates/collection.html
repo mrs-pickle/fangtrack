@@ -6,9 +6,9 @@
     <!-- Leaderboard opt-in — OFF by default; a collection is private unless shared. -->
     <form action="/collection/share" method="post" style="margin:0;" title="When on, your collection appears on the public leaderboard at /u/your-handle. Off keeps it private.">
       <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-      <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:#a1a1aa; cursor:pointer; user-select:none;">
+      <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none;">
         <input type="checkbox" name="share" onchange="this.form.submit()" {% if current_user and current_user.is_public %}checked{% endif %} style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;">
-        {% if current_user and current_user.is_public %}<span style="color:#e4e4e7;">🏆 Shared to leaderboard</span>{% else %}🔒 Collection private{% endif %}
+        {% if current_user and current_user.is_public %}<span style="color:var(--text-soft);">🏆 Shared to leaderboard</span>{% else %}🔒 Collection private{% endif %}
       </label>
     </form>
     {% if items %}<a href="/collection/labels" target="_blank" class="btn btn-ghost" style="font-size:12px; padding:5px 12px;">🖨 Print labels</a>{% endif %}
@@ -18,14 +18,14 @@
 <!-- Portfolio value (TCGplayer Collection Tracker) -->
 {% if items %}
 <div class="grid gap-3 mb-5 stat-strip-2" style="grid-template-columns:repeat(5,1fr);">
-  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Portfolio Value</div><div style="font-size:26px;font-weight:800;color:#34d399;">${{ "%.0f"|format(portfolio.total_value) }}</div><div style="font-size:10px;color:#52525b;">at today's market price</div></div>
-  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Animals</div><div style="font-size:26px;font-weight:800;">{{ portfolio.animals }}</div><div style="font-size:10px;color:#52525b;">{{ portfolio.holdings }} holdings</div></div>
-  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Species</div><div style="font-size:26px;font-weight:800;">{{ portfolio.species }}</div><div style="font-size:10px;color:#52525b;">distinct</div></div>
-  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Cost Basis</div><div style="font-size:26px;font-weight:800;">{% if portfolio.cost_basis %}${{ "%.0f"|format(portfolio.cost_basis) }}{% else %}—{% endif %}</div><div style="font-size:10px;color:#52525b;">what you paid</div></div>
+  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Portfolio Value</div><div style="font-size:26px;font-weight:800;color:#34d399;">${{ "%.0f"|format(portfolio.total_value) }}</div><div style="font-size:10px;color:var(--text-dimmer);">at today's market price</div></div>
+  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Animals</div><div style="font-size:26px;font-weight:800;">{{ portfolio.animals }}</div><div style="font-size:10px;color:var(--text-dimmer);">{{ portfolio.holdings }} holdings</div></div>
+  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Species</div><div style="font-size:26px;font-weight:800;">{{ portfolio.species }}</div><div style="font-size:10px;color:var(--text-dimmer);">distinct</div></div>
+  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Cost Basis</div><div style="font-size:26px;font-weight:800;">{% if portfolio.cost_basis %}${{ "%.0f"|format(portfolio.cost_basis) }}{% else %}—{% endif %}</div><div style="font-size:10px;color:var(--text-dimmer);">what you paid</div></div>
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Unrealized Gain</div>
     {% if portfolio.gain is not none %}<div style="font-size:26px;font-weight:800;color:{{ '#34d399' if portfolio.gain>=0 else '#f87171' }};">{{ '+' if portfolio.gain>=0 else '' }}${{ "%.0f"|format(portfolio.gain) }}</div>
     {% else %}<div style="font-size:26px;font-weight:800;">—</div>{% endif %}
-    <div style="font-size:10px;color:#52525b;">add "paid" to track</div>
+    <div style="font-size:10px;color:var(--text-dimmer);">add "paid" to track</div>
   </div>
 </div>
 {% endif %}
@@ -42,16 +42,16 @@
         {% for item in items %}
         <tr data-item="{{ item.id }}">
           <td><a href="/species/{{ item.species_key|urlencode }}" class="species-name" style="text-decoration:none;">{{ item.species_display }} →</a></td>
-          <td style="color:#a1a1aa; font-size:12px;">{{ item.common or '—' }}</td>
+          <td style="color:var(--muted); font-size:12px;">{{ item.common or '—' }}</td>
           <td>{% if item.sex == 'F' %}<span style="color:#f9a8d4;">♀</span>{% elif item.sex == 'M' %}<span style="color:#93c5fd;">♂</span>{% else %}?{% endif %}</td>
-          <td style="text-align:center; color:#a1a1aa;">{{ item.quantity }}</td>
-          <td style="color:#a1a1aa; font-size:12px;">{% if item.price_paid %}${{ "%.0f"|format(item.price_paid) }}{% else %}—{% endif %}</td>
-          <td style="color:#a1a1aa; font-size:12px;" title="{% if item.value_basis %}Valued from: {{ item.value_basis }}{% endif %}">{% if item.market_price %}${{ "%.0f"|format(item.market_price) }}{% if item.value_basis %}<span style="color:#52525b; font-size:9px; display:block;">{{ item.value_basis }}</span>{% endif %}{% else %}—{% endif %}</td>
+          <td style="text-align:center; color:var(--muted);">{{ item.quantity }}</td>
+          <td style="color:var(--muted); font-size:12px;">{% if item.price_paid %}${{ "%.0f"|format(item.price_paid) }}{% else %}—{% endif %}</td>
+          <td style="color:var(--muted); font-size:12px;" title="{% if item.value_basis %}Valued from: {{ item.value_basis }}{% endif %}">{% if item.market_price %}${{ "%.0f"|format(item.market_price) }}{% if item.value_basis %}<span style="color:var(--text-dimmer); font-size:9px; display:block;">{{ item.value_basis }}</span>{% endif %}{% else %}—{% endif %}</td>
           <td style="color:#34d399; font-weight:700; font-size:13px;">{% if item.market_value %}${{ "%.0f"|format(item.market_value) }}{% else %}—{% endif %}</td>
-          <td style="font-weight:700; font-size:12px; color:{% if item.gain and item.gain>=0 %}#34d399{% elif item.gain %}#f87171{% else %}#52525b{% endif %};">{% if item.gain is not none %}{{ '+' if item.gain>=0 else '' }}${{ "%.0f"|format(item.gain) }}{% else %}—{% endif %}</td>
-          <td style="color:#a1a1aa; font-size:12px;">{{ item.size_notes or '—' }}</td>
-          <td style="color:#a1a1aa; font-size:12px;">{{ item.source or '—' }}</td>
-          <td style="color:#a1a1aa; font-size:12px;">{{ item.notes or '—' }}</td>
+          <td style="font-weight:700; font-size:12px; color:{% if item.gain and item.gain>=0 %}#34d399{% elif item.gain %}#f87171{% else %}var(--text-dimmer){% endif %};">{% if item.gain is not none %}{{ '+' if item.gain>=0 else '' }}${{ "%.0f"|format(item.gain) }}{% else %}—{% endif %}</td>
+          <td style="color:var(--muted); font-size:12px;">{{ item.size_notes or '—' }}</td>
+          <td style="color:var(--muted); font-size:12px;">{{ item.source or '—' }}</td>
+          <td style="color:var(--muted); font-size:12px;">{{ item.notes or '—' }}</td>
           <td style="white-space:nowrap;">
             <button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('edit-{{ item.id }}').style.display=(document.getElementById('edit-{{ item.id }}').style.display==='table-row'?'none':'table-row')">✎</button>
             <form action="/collection/remove/{{ item.id }}" method="post" style="display:inline;">
@@ -59,7 +59,7 @@
             </form>
           </td>
         </tr>
-        <tr id="edit-{{ item.id }}" style="display:none; background:#141417;">
+        <tr id="edit-{{ item.id }}" style="display:none; background:var(--surface);">
           <td colspan="12" style="padding:14px 16px;">
             <form action="/collection/edit/{{ item.id }}" method="post" style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
               <div><label style="font-size:9px;color:#2563eb;display:block;">SEX</label>
@@ -78,9 +78,9 @@
         </tbody>
       </table>
     </div>
-    <div style="font-size:11px; color:#71717a; margin-top:8px;">Value is <strong>like-for-like</strong>: each animal is priced against current listings of the <em>same species, sex, and size class</em> (the small grey note under each Market price shows what it was compared to) — so a confirmed adult female isn't valued like a sling. When there aren't enough matching listings, it falls back to the species-wide market median. It's a market estimate from live asks, not an appraisal. Gain compares it to what you paid. Click ✎ to add purchase details. <a href="/transparency#value" style="color:#2563eb;">How this is calculated →</a></div>
+    <div style="font-size:11px; color:var(--text-dim); margin-top:8px;">Value is <strong>like-for-like</strong>: each animal is priced against current listings of the <em>same species, sex, and size class</em> (the small grey note under each Market price shows what it was compared to) — so a confirmed adult female isn't valued like a sling. When there aren't enough matching listings, it falls back to the species-wide market median. It's a market estimate from live asks, not an appraisal. Gain compares it to what you paid. Click ✎ to add purchase details. <a href="/transparency#value" style="color:#2563eb;">How this is calculated →</a></div>
     {% else %}
-    <div class="card" style="text-align:center; padding:40px; color:#52525b;">
+    <div class="card" style="text-align:center; padding:40px; color:var(--text-dimmer);">
       Your collection is empty. Add species you own to suppress watchlist alerts for things you already have.
     </div>
     {% endif %}
@@ -120,7 +120,7 @@
     <!-- Spreadsheet uploader -->
     <div class="card" style="margin-top:16px;">
       <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em;">📄 Upload a Sheet</div>
-      <p style="font-size:12px; color:#a1a1aa; line-height:1.6; margin:0 0 12px;">
+      <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 12px;">
         Have your collection in a spreadsheet? Upload a <strong>.csv</strong> or <strong>.xlsx</strong> and
         the columns fill automatically. We match headers like <em>Scientific Name, Common Name, Sex, Size,
         Cost/Price, Date, Vendor/Source, Notes</em> — any reasonable naming works.
@@ -128,8 +128,8 @@
       <form action="/collection/upload" method="post" enctype="multipart/form-data" class="flex flex-col gap-3">
         <input type="hidden" name="_csrf" value="{{ csrf_token }}">
         <input type="file" name="file" accept=".csv,.xlsx,.xls,.xlsm" required
-               style="width:100%; box-sizing:border-box; font-size:12px; color:#a1a1aa;">
-        <label style="font-size:12px; color:#a1a1aa; display:flex; align-items:center; gap:6px;">
+               style="width:100%; box-sizing:border-box; font-size:12px; color:var(--muted);">
+        <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;">
           <input type="checkbox" name="skip_dupes" checked style="width:auto;">
           Skip species already in my collection
         </label>

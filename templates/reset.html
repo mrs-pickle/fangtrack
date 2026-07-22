@@ -2,7 +2,7 @@
 {% block content %}
 <div style="max-width:400px; margin:50px auto;">
   <h1 style="font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0 0 6px; text-align:center;">Choose a new password</h1>
-  <p style="color:#a1a1aa; font-size:13px; text-align:center; margin:0 0 24px;">Almost done — pick a new password for your account.</p>
+  <p style="color:var(--muted); font-size:13px; text-align:center; margin:0 0 24px;">Almost done — pick a new password for your account.</p>
   <div class="card">
     <form method="post" action="/reset/{{ token }}" class="flex flex-col gap-3">
       <div>

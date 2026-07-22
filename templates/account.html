@@ -7,8 +7,8 @@
   <!-- Real name (private) -->
   <div class="card">
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">Your Name</div>
-    <div style="padding:9px 12px; background:#141417; border-radius:8px; font-size:12px; color:#a1a1aa; border:1px solid #2a2a31; margin-bottom:14px;">
-      🔒 <b style="color:#e4e4e7;">Private.</b> Your real name is never shown publicly — the leaderboard and public profiles use your display name. Only you (and an admin) can see this.
+    <div style="padding:9px 12px; background:var(--surface); border-radius:8px; font-size:12px; color:var(--muted); border:1px solid var(--border); margin-bottom:14px;">
+      🔒 <b style="color:var(--text-soft);">Private.</b> Your real name is never shown publicly — the leaderboard and public profiles use your display name. Only you (and an admin) can see this.
     </div>
     <form action="/account/name" method="post" class="flex flex-col gap-3">
       <input type="hidden" name="_csrf" value="{{ csrf_token }}">
@@ -29,12 +29,12 @@
   <!-- Account details + shortcuts -->
   <div class="card">
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.06em;">Details</div>
-    <div style="font-size:13px; color:#a1a1aa; line-height:1.9;">
-      <div>Email · <span style="color:#e4e4e7;">{{ current_user.email }}</span></div>
-      <div>Display name · <span style="color:#e4e4e7;">{{ current_user.display_name or '—' }}</span> <span style="color:#52525b;">(shown publicly)</span></div>
-      <div>Leaderboard · <span style="color:#e4e4e7;">{% if current_user.is_public %}🏆 shared{% else %}🔒 private{% endif %}</span></div>
+    <div style="font-size:13px; color:var(--muted); line-height:1.9;">
+      <div>Email · <span style="color:var(--text-soft);">{{ current_user.email }}</span></div>
+      <div>Display name · <span style="color:var(--text-soft);">{{ current_user.display_name or '—' }}</span> <span style="color:var(--text-dimmer);">(shown publicly)</span></div>
+      <div>Leaderboard · <span style="color:var(--text-soft);">{% if current_user.is_public %}🏆 shared{% else %}🔒 private{% endif %}</span></div>
     </div>
-    <div style="border-top:1px solid #2a2a31; margin-top:16px; padding-top:16px; display:flex; flex-direction:column; gap:8px;">
+    <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:16px; display:flex; flex-direction:column; gap:8px;">
       <a href="/collection" style="font-size:13px; color:#2563eb; text-decoration:none;">🕷 Your collection →</a>
       <a href="/sellers" style="font-size:13px; color:#2563eb; text-decoration:none;">👤 Your private sellers →</a>
       <button type="button" class="btn btn-ghost" style="align-self:flex-start; margin-top:4px;" onclick="ftTour.start()">🎬 Replay feature tour</button>
@@ -48,19 +48,19 @@
       <input type="hidden" name="_csrf" value="{{ csrf_token }}">
       <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
         <input type="checkbox" name="is_public" {% if current_user and current_user.is_public %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
-        <span style="font-size:13px; color:#e4e4e7;">Show my collection on the Leaderboard</span>
+        <span style="font-size:13px; color:var(--text-soft);">Show my collection on the Leaderboard</span>
       </label>
       <div>
         <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">HANDLE (your public URL)</label>
         <div style="display:flex; align-items:center; gap:0;">
-          <span style="color:#71717a; font-size:13px; padding:8px 0 8px 2px;">/u/</span>
+          <span style="color:var(--text-dim); font-size:13px; padding:8px 0 8px 2px;">/u/</span>
           <input name="handle" value="{{ current_user.handle or '' }}" placeholder="your-name" style="flex:1;">
         </div>
       </div>
       <button class="btn btn-primary" style="width:100%; justify-content:center;">Save profile</button>
-      <div style="font-size:11px; color:#52525b; line-height:1.6;">
+      <div style="font-size:11px; color:var(--text-dimmer); line-height:1.6;">
         Your public page shows species, rarity, and market value — a flex card for sharing.
-        <strong style="color:#a1a1aa;">What you paid stays private.</strong>
+        <strong style="color:var(--muted);">What you paid stays private.</strong>
         {% if current_user and current_user.is_public and current_user.handle %}
         <br>Live at <a href="/u/{{ current_user.handle }}" style="color:#2563eb;">/u/{{ current_user.handle }} →</a>
         {% endif %}
@@ -73,9 +73,9 @@
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;">Display</div>
     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
       <input type="checkbox" onchange="toggleHidePrivate(this.checked)" {% if hide_private %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
-      <span style="font-size:13px; color:#e4e4e7;">Hide private sellers everywhere (show websites only)</span>
+      <span style="font-size:13px; color:var(--text-soft);">Hide private sellers everywhere (show websites only)</span>
     </label>
-    <div style="font-size:11px; color:#52525b; margin-top:8px; line-height:1.6;">
+    <div style="font-size:11px; color:var(--text-dimmer); margin-top:8px; line-height:1.6;">
       Applies site-wide — the dashboard, deals, and species cards will show only website-vendor
       listings and hide imported private-seller lists. Takes effect immediately.
     </div>
@@ -84,8 +84,8 @@
   <!-- Alert preferences -->
   <div class="card">
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">🔔 Alerts</div>
-    <div style="font-size:12px; color:#a1a1aa; margin-bottom:12px; line-height:1.6;">
-      You always get an alert when a <b style="color:#e4e4e7;">saved search</b> matches. Turn on any
+    <div style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.6;">
+      You always get an alert when a <b style="color:var(--text-soft);">saved search</b> matches. Turn on any
       market categories below to also be alerted on those — off by default so your inbox stays yours.
     </div>
     <form action="/account/alerts" method="post" class="flex flex-col gap-2">
@@ -93,7 +93,7 @@
       {% for val, icon, label in [('fire','🔥','All-time-low / fire deals'), ('drops','▼','Price drops'), ('restocks','↺','Back in stock')] %}
       <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
         <input type="checkbox" name="cats" value="{{ val }}" {% if val in alert_cats %}checked{% endif %} style="width:auto; accent-color:#2563eb; cursor:pointer;">
-        <span style="font-size:13px; color:#e4e4e7;">{{ icon }} {{ label }}</span>
+        <span style="font-size:13px; color:var(--text-soft);">{{ icon }} {{ label }}</span>
       </label>
       {% endfor %}
       <button class="btn btn-primary" style="justify-content:center; margin-top:8px;">Save alert preferences</button>
@@ -103,7 +103,7 @@
   {% if current_user and current_user.is_admin %}
   <!-- Admin: site / market settings -->
   <div class="card" style="grid-column:1 / -1; border-color:#3a2a4a;">
-    <div style="font-size:13px; font-weight:700; color:#a855f7; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">⚙ Site Settings <span style="font-size:10px; background:#2a1a3a; padding:2px 8px; border-radius:4px;">ADMIN</span></div>
+    <div style="font-size:13px; font-weight:700; color:#a855f7; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.06em;">⚙ Site Settings <span style="font-size:10px; background:var(--ft-accent-soft); padding:2px 8px; border-radius:4px;">ADMIN</span></div>
     <form action="/settings" method="post" class="grid gap-4" style="grid-template-columns:1fr 1fr;">
       <input type="hidden" name="_csrf" value="{{ csrf_token }}">
       <div>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ theme_pref|default('dark') }}">
 <head>
 <!-- Google tag (gtag.js) — analytics on every page. Any new standalone page
      (one that does NOT extend base.html) must include this same snippet. -->
@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/fangtrack_icon_128.png') }}">
 <!-- FangTrack colour system — design tokens shared with the emails.
      Source: tokens/fangtrack.css (+ tokens/fangtrack.tokens.json). -->
-<link rel="stylesheet" href="/tokens/fangtrack.css?v=2">
+<link rel="stylesheet" href="/tokens/fangtrack.css?v=3">
 <style>
 * { box-sizing: border-box; }
 
@@ -33,7 +33,7 @@
 .mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}
 .p-3{padding:.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}
 .shadow{box-shadow:0 1px 3px 0 rgb(0 0 0/.1),0 1px 2px -1px rgb(0 0 0/.1)}
-body { background:#0a0a0b; color:#f4f4f5; font-family:system-ui,-apple-system,sans-serif; font-size:14px; margin:0; }
+body { background:var(--base); color:var(--text); font-family:system-ui,-apple-system,sans-serif; font-size:14px; margin:0; }
 
 /* ── Rarity — GENERATED from theme.py. Do NOT hard-code a rarity hex here. ──
    Six cores on the oklch(0.66 0.20 H) hue ladder, rarest -> common:
@@ -49,7 +49,7 @@ body { background:#0a0a0b; color:#f4f4f5; font-family:system-ui,-apple-system,sa
 /* Momentum tags (StockX heating/cooling) */
 .heat  { background:#7f1d1d; color:#fecaca; }
 .cool  { background:#064e3b; color:#a7f3d0; }
-.steady{ background:#1f2937; color:#a1a1aa; }
+.steady{ background:var(--divider); color:var(--muted); }
 .mtag  { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.04em; }
 
 /* Sparkline cell */
@@ -57,18 +57,18 @@ body { background:#0a0a0b; color:#f4f4f5; font-family:system-ui,-apple-system,sa
 
 /* Smart pager (shared, see templates/_pager.html) */
 .pgr { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px; margin:14px 0; }
-.pgr-b, .pgr-n { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; padding:0 8px; border-radius:6px; font-size:13px; color:#2563eb; text-decoration:none; border:1px solid #2a2a31; background:#141417; }
+.pgr-b, .pgr-n { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; padding:0 8px; border-radius:6px; font-size:13px; color:#2563eb; text-decoration:none; border:1px solid var(--border); background:var(--surface); }
 .pgr-b:hover, .pgr-n:hover { border-color:#2563eb; }
-.pgr-cur { background:#2563eb; color:#0a0a0b; border-color:#2563eb; font-weight:700; }
+.pgr-cur { background:#2563eb; color:var(--base); border-color:#2563eb; font-weight:700; }
 .pgr-off { opacity:.35; pointer-events:none; }
-.pgr-gap { color:#52525b; padding:0 2px; }
-.pgr-jump { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#a1a1aa; margin-left:8px; }
+.pgr-gap { color:var(--text-dimmer); padding:0 2px; }
+.pgr-jump { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); margin-left:8px; }
 .pgr-jump input { width:58px; padding:5px 8px; text-align:center; }
-.pgr-lbl { font-size:12px; color:#71717a; margin-left:8px; }
+.pgr-lbl { font-size:12px; color:var(--text-dim); margin-left:8px; }
 
 /* Badge helpers reused on dashboard/cards */
 .badge-fire { background:#f97316; color:#fff; }
-.badge-gem2 { background:#7c3aed; color:#f4f4f5; }
+.badge-gem2 { background:#7c3aed; color:var(--text); }
 .badge-gem1 { background:#3b82f6; color:#fff; }
 
 /* 52-week style range bar — the .rangebar track gradient is GENERATED from
@@ -79,32 +79,32 @@ body { background:#0a0a0b; color:#f4f4f5; font-family:system-ui,-apple-system,sa
 /* Deal badges — FILLED chips (solid core bg); values mirror theme.py
    DEAL_BADGES. Rarity pills are translucent, so the systems never collide. */
 .d-fire  { background:#f97316; color:#fff; }
-.d-gem2  { background:#7c3aed; color:#f4f4f5; }
+.d-gem2  { background:#7c3aed; color:var(--text); }
 .d-gem1  { background:#3b82f6; color:#fff; }
-.d-fair  { background:#22c55e; color:#0a0a0b; }
-.d-above { background:#a1a1aa; color:#0a0a0b; }
+.d-fair  { background:#22c55e; color:var(--base); }
+.d-above { background:var(--muted); color:var(--base); }
 
 /* Table */
 table { border-collapse:collapse; width:100%; }
 th {
-  background:#141417; color:#2563eb; font-size:10px; letter-spacing:.1em;
+  background:var(--surface); color:#2563eb; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; padding:10px 12px; text-align:left;
-  position:sticky; top:0; z-index:10; border-bottom:1px solid #2a2a31;
+  position:sticky; top:0; z-index:10; border-bottom:1px solid var(--border);
 }
-td { padding:8px 12px; border-bottom:1px solid #1c1c21; font-size:13px; vertical-align:middle; }
-tr:hover td { background:#141417; }
+td { padding:8px 12px; border-bottom:1px solid var(--row-divider); font-size:13px; vertical-align:middle; }
+tr:hover td { background:var(--surface); }
 .species-name { font-style:italic; color:#2563eb; }
 
 /* Controls */
 input, select, textarea {
-  background:#1c1c21; border:1px solid #2a2a31; color:#f4f4f5;
+  background:var(--card); border:1px solid var(--border); color:var(--text);
   border-radius:6px; padding:8px 12px; font-size:13px; outline:none;
 }
 input:focus, select:focus { border-color:#2563eb; }
 
 /* Buttons */
 .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; border:none; letter-spacing:.02em; transition:all .12s; }
-.btn-primary { background:#2563eb; color:#0a0a0b; }
+.btn-primary { background:#2563eb; color:var(--base); }
 .btn-primary:hover { background:#1d4ed8; }
 .btn-ghost { background:transparent; color:#2563eb; border:1px solid #2563eb; }
 .btn-ghost:hover { background:#2563eb20; }
@@ -112,32 +112,32 @@ input:focus, select:focus { border-color:#2563eb; }
 .btn-danger:hover { background:#ef444415; }
 
 /* Cards */
-.card { background:#1c1c21; border-radius:10px; padding:20px; border:1px solid #2a2a31; }
-.stat-card { background:#141417; border-radius:10px; padding:16px 20px; border:1px solid #2a2a31; }
+.card { background:var(--card); border-radius:10px; padding:20px; border:1px solid var(--border); }
+.stat-card { background:var(--surface); border-radius:10px; padding:16px 20px; border:1px solid var(--border); }
 
 /* Nav */
 .crawl-btn.is-disabled, .crawl-btn[disabled] { opacity:.45 !important; cursor:not-allowed !important; pointer-events:none; filter:grayscale(.6) !important; }
-.nav-link { color:#a1a1aa; padding:6px 14px; border-radius:5px; font-size:13px; font-weight:500; letter-spacing:.02em; transition:all .12s; text-decoration:none; display:inline-block; }
-.nav-link:hover { color:#f4f4f5; background:#1c1c21; }
-.nav-link.active { color:#2563eb; background:#1c1c21; }
+.nav-link { color:var(--muted); padding:6px 14px; border-radius:5px; font-size:13px; font-weight:500; letter-spacing:.02em; transition:all .12s; text-decoration:none; display:inline-block; }
+.nav-link:hover { color:var(--text); background:var(--card); }
+.nav-link.active { color:#2563eb; background:var(--card); }
 
 /* Flash */
-.flash-ok  { background:#064e3b; border:1px solid #059669; color:#d1fae5; padding:10px 16px; border-radius:6px; margin-bottom:14px; }
-.flash-err { background:#450a0a; border:1px solid #b91c1c; color:#fecaca; padding:10px 16px; border-radius:6px; margin-bottom:14px; }
+.flash-ok  { background:var(--flash-ok-bg); border:1px solid var(--flash-ok-border); color:var(--flash-ok-text); padding:10px 16px; border-radius:6px; margin-bottom:14px; }
+.flash-err { background:var(--flash-err-bg); border:1px solid var(--flash-err-border); color:var(--flash-err-text); padding:10px 16px; border-radius:6px; margin-bottom:14px; }
 
 /* Owned badge */
 .owned-badge { color:#2563eb; font-weight:800; font-size:15px; }
 
 /* Shipping info */
-.ship-info { font-size:11px; color:#a1a1aa; line-height:1.5; }
+.ship-info { font-size:11px; color:var(--muted); line-height:1.5; }
 .ship-free { color:#22c55e; font-weight:700; }
 
 /* Dark scrollbars that blend with the background */
-* { scrollbar-color: #26262b #0e0e10; scrollbar-width: thin; }
+* { scrollbar-color: var(--border) var(--nav); scrollbar-width: thin; }
 ::-webkit-scrollbar { width:10px; height:10px; }
-::-webkit-scrollbar-track { background:#0e0e10; }
-::-webkit-scrollbar-thumb { background:#26262b; border-radius:5px; border:2px solid #0e0e10; }
-::-webkit-scrollbar-thumb:hover { background:#3f3f46; }
+::-webkit-scrollbar-track { background:var(--nav); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:5px; border:2px solid var(--nav); }
+::-webkit-scrollbar-thumb:hover { background:var(--text-dimmest); }
 
 /* ── Responsive breakpoint system ────────────────────────────────────────────
    ONE place for mobile rules (the app is inline-style heavy, so !important is
@@ -181,7 +181,7 @@ input:focus, select:focus { border-color:#2563eb; }
 <body>
 
 <!-- ── NAV ────────────────────────────────────────────────────────────────── -->
-<nav style="background:#0e0e10; border-bottom:1px solid #1c1c21; position:sticky; top:0; z-index:50;">
+<nav style="background:var(--nav); border-bottom:1px solid var(--row-divider); position:sticky; top:0; z-index:50;">
   <div class="navwrap" style="max-width:1600px; margin:0 auto; padding:0 20px; height:52px; display:flex; align-items:center; gap:4px;">
 
     <!-- Logo mark + wordmark -->
@@ -191,7 +191,7 @@ input:focus, select:focus { border-color:#2563eb; }
            style="width:auto; image-rendering:auto;">
       <div>
         <div style="font-size:16px; font-weight:900; letter-spacing:-.02em; line-height:1;">
-          <span style="color:#ffffff;">FANG</span><span style="color:#2563eb;">TRACK</span>
+          <span style="color:var(--text);">FANG</span><span style="color:#2563eb;">TRACK</span>
         </div>
         {% if current_user %}
         <div style="background:#2563eb; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; letter-spacing:.12em; display:inline-block; margin-top:1px;">PRO</div>
@@ -213,7 +213,8 @@ input:focus, select:focus { border-color:#2563eb; }
     <a href="/submit"    class="nav-link {% if request.path.startswith('/submit') %}active{% endif %}">Submit</a>
 
     <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
-      <span id="crawl-badge" style="display:none; background:#2563eb; color:#0a0a0b; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; letter-spacing:.04em;">↻ CRAWLING...</span>
+      <span id="crawl-badge" style="display:none; background:#2563eb; color:#fff; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; letter-spacing:.04em;">↻ CRAWLING...</span>
+      <button type="button" id="theme-toggle" class="nav-link" title="Toggle light / dark mode" aria-label="Toggle light or dark mode" style="background:none; border:none; cursor:pointer; font-size:15px; line-height:1; padding:6px 8px;">{{ '☀️' if theme_pref == 'light' else '🌙' }}</button>
       <a href="/leaderboard" class="nav-link {% if request.path.startswith('/leaderboard') or request.path.startswith('/u/') %}active{% endif %}">🏆 Leaderboard</a>
       <a href="/transparency" class="nav-link {% if request.path.startswith('/transparency') %}active{% endif %}" style="color:#f97316; font-weight:700;">What is FangTrack?</a>
       {% if current_user %}
@@ -223,7 +224,7 @@ input:focus, select:focus { border-color:#2563eb; }
         </form>
       {% else %}
         <a href="/login" class="nav-link {% if request.path.startswith('/login') %}active{% endif %}">Sign in</a>
-        <a href="/register" class="nav-link btn btn-primary" style="padding:5px 12px; color:#0a0a0b;">Sign up</a>
+        <a href="/register" class="nav-link btn btn-primary" style="padding:5px 12px; color:var(--base);">Sign up</a>
       {% endif %}
     </div>
   </div>
@@ -247,18 +248,18 @@ input:focus, select:focus { border-color:#2563eb; }
 <style>
 .sp-combo{ position:relative; }
 .sp-pop{ position:absolute; z-index:60; left:0; right:0; top:100%; margin-top:4px;
-  background:#141417; border:1px solid #2a2a31; border-radius:8px;
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
   box-shadow:0 8px 24px rgba(0,0,0,.5); max-height:340px; overflow-y:auto; display:none; }
 .sp-pop.open{ display:block; }
-.sp-opt{ padding:8px 12px; cursor:pointer; border-bottom:1px solid #1c1c21;
+.sp-opt{ padding:8px 12px; cursor:pointer; border-bottom:1px solid var(--row-divider);
   display:flex; align-items:baseline; gap:8px; }
 .sp-opt:last-child{ border-bottom:none; }
-.sp-opt.active, .sp-opt:hover{ background:#1c1c21; }
-.sp-opt .sci{ font-style:italic; color:#f4f4f5; font-weight:600; font-size:13px; }
-.sp-opt .com{ color:#a1a1aa; font-size:12px; }
-.sp-opt .cnt{ margin-left:auto; color:#71717a; font-size:11px; white-space:nowrap; }
+.sp-opt.active, .sp-opt:hover{ background:var(--card); }
+.sp-opt .sci{ font-style:italic; color:var(--text); font-weight:600; font-size:13px; }
+.sp-opt .com{ color:var(--muted); font-size:12px; }
+.sp-opt .cnt{ margin-left:auto; color:var(--text-dim); font-size:11px; white-space:nowrap; }
 .sp-opt .cnt .live{ color:#22c55e; font-weight:700; }
-.sp-empty{ padding:10px 12px; color:#71717a; font-size:12px; }
+.sp-empty{ padding:10px 12px; color:var(--text-dim); font-size:12px; }
 </style>
 <script>
 (function(){
@@ -328,24 +329,24 @@ input:focus, select:focus { border-color:#2563eb; }
 </script>
 
 <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
-<footer style="border-top:1px solid #1c1c21; padding:16px 20px; text-align:center; color:#3f3f46; font-size:12px; margin-top:40px;">
+<footer style="border-top:1px solid var(--row-divider); padding:16px 20px; text-align:center; color:var(--text-dimmest); font-size:12px; margin-top:40px;">
   FangTrack — private market intelligence tool<br>
   <div style="display:flex; gap:16px; justify-content:center; align-items:center; margin:12px 0;">
     <a href="https://instagram.com/fangtrack" target="_blank" rel="noopener noreferrer"
-       title="@fangtrack on Instagram" aria-label="Instagram @fangtrack" style="color:#a1a1aa;">
+       title="@fangtrack on Instagram" aria-label="Instagram @fangtrack" style="color:var(--muted);">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 1.62c-3.15 0-3.5.01-4.74.07-1.14.05-1.76.24-2.17.4-.55.21-.94.47-1.35.88-.41.41-.67.8-.88 1.35-.16.41-.35 1.03-.4 2.17-.06 1.24-.07 1.59-.07 4.74s.01 3.5.07 4.74c.05 1.14.24 1.76.4 2.17.21.55.47.94.88 1.35.41.41.8.67 1.35.88.41.16 1.03.35 2.17.4 1.24.06 1.59.07 4.74.07s3.5-.01 4.74-.07c1.14-.05 1.76-.24 2.17-.4.55-.21.94-.47 1.35-.88.41-.41.67-.8.88-1.35.16-.41.35-1.03.4-2.17.06-1.24.07-1.59.07-4.74s-.01-3.5-.07-4.74c-.05-1.14-.24-1.76-.4-2.17a3.6 3.6 0 0 0-.88-1.35 3.6 3.6 0 0 0-1.35-.88c-.41-.16-1.03-.35-2.17-.4-1.24-.06-1.59-.07-4.74-.07zm0 2.76a5.46 5.46 0 1 1 0 10.92 5.46 5.46 0 0 1 0-10.92zm0 9a3.54 3.54 0 1 0 0-7.08 3.54 3.54 0 0 0 0 7.08zm6.95-9.22a1.27 1.27 0 1 1-2.55 0 1.27 1.27 0 0 1 2.55 0z"/></svg>
     </a>
     <a href="https://tiktok.com/@fangtrack" target="_blank" rel="noopener noreferrer"
-       title="@fangtrack on TikTok" aria-label="TikTok @fangtrack" style="color:#a1a1aa;">
+       title="@fangtrack on TikTok" aria-label="TikTok @fangtrack" style="color:var(--muted);">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 5.82a4.28 4.28 0 0 1-1.05-2.82h-3.2v12.7a2.6 2.6 0 0 1-2.6 2.5 2.6 2.6 0 0 1-2.6-2.6 2.6 2.6 0 0 1 3.4-2.48V7.36a5.8 5.8 0 0 0-.8-.06A5.82 5.82 0 0 0 4.13 13.1a5.82 5.82 0 0 0 5.82 5.82 5.82 5.82 0 0 0 5.82-5.82V9.01a7.5 7.5 0 0 0 4.35 1.39V7.2a4.28 4.28 0 0 1-3.52-1.38z"/></svg>
     </a>
     <a href="https://youtube.com/@fangtrack" target="_blank" rel="noopener noreferrer"
-       title="@fangtrack on YouTube" aria-label="YouTube @fangtrack" style="color:#a1a1aa;">
+       title="@fangtrack on YouTube" aria-label="YouTube @fangtrack" style="color:var(--muted);">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14A31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg>
     </a>
   </div>
-  <a href="/privacy" style="color:#71717a; text-decoration:none;">Privacy Policy</a> ·
-  <a href="/terms" style="color:#71717a; text-decoration:none;">Terms of Service</a><br>
+  <a href="/privacy" style="color:var(--text-dim); text-decoration:none;">Privacy Policy</a> ·
+  <a href="/terms" style="color:var(--text-dim); text-decoration:none;">Terms of Service</a><br>
   © FangTrack 2026
 </footer>
 
@@ -356,19 +357,19 @@ input:focus, select:focus { border-color:#2563eb; }
 <style>
   #ft-tour-ovl{position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px;}
   #ft-tour-ovl.show{display:flex;}
-  .ft-tour-card{background:#161616; border:1px solid #2a2a31; border-radius:14px; max-width:440px; width:100%; padding:28px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative;}
+  .ft-tour-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; max-width:440px; width:100%; padding:28px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative;}
   .ft-tour-emoji{font-size:34px; line-height:1; margin-bottom:12px;}
-  .ft-tour-title{font-size:19px; font-weight:900; letter-spacing:-.02em; color:#f4f4f5; margin:0 0 8px;}
-  .ft-tour-body{font-size:14px; line-height:1.65; color:#a1a1aa; margin:0 0 8px; min-height:66px; white-space:pre-line;}
+  .ft-tour-title{font-size:19px; font-weight:900; letter-spacing:-.02em; color:var(--text); margin:0 0 8px;}
+  .ft-tour-body{font-size:14px; line-height:1.65; color:var(--muted); margin:0 0 8px; min-height:66px; white-space:pre-line;}
   .ft-tour-badges{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;}
   .ft-tour-badges span{font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px;}
   .ft-tour-foot{display:flex; align-items:center; justify-content:space-between; margin-top:18px;}
   .ft-tour-dots{display:flex; gap:6px;}
-  .ft-tour-dots i{width:7px; height:7px; border-radius:50%; background:#3f3f46; transition:background .15s;}
+  .ft-tour-dots i{width:7px; height:7px; border-radius:50%; background:var(--text-dimmest); transition:background .15s;}
   .ft-tour-dots i.on{background:#2563eb;}
   .ft-tour-btns{display:flex; gap:8px;}
-  .ft-tour-skip{position:absolute; top:14px; right:16px; color:#71717a; font-size:12px; background:none; border:none; cursor:pointer;}
-  .ft-tour-skip:hover{color:#a1a1aa;}
+  .ft-tour-skip{position:absolute; top:14px; right:16px; color:var(--text-dim); font-size:12px; background:none; border:none; cursor:pointer;}
+  .ft-tour-skip:hover{color:var(--muted);}
   @media (max-width:480px){ .ft-tour-card{padding:22px 18px 16px;} .ft-tour-title{font-size:17px;} }
 </style>
 <div id="ft-tour-ovl" role="dialog" aria-modal="true" aria-label="FangTrack tour">
@@ -397,6 +398,22 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 });
+
+// ── Light / dark theme toggle. Applies instantly (data-theme on <html>),
+// persists per-browser via cookie + (if signed in) the account. Default dark. ─
+(function(){
+  var btn = document.getElementById('theme-toggle'); if(!btn) return;
+  btn.addEventListener('click', function(){
+    var cur  = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var next = cur === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    btn.textContent = next === 'light' ? '☀️' : '🌙';
+    document.cookie = 'ft_theme=' + next + '; max-age=31536000; path=/; SameSite=Lax';
+    fetch('/theme', {method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':window.CSRF},
+      body:'theme=' + next}).catch(function(){});
+  });
+})();
 
 function checkCrawlStatus(){
   fetch('/api/crawl-status').then(r=>r.json()).then(d=>{
@@ -453,7 +470,7 @@ var ftTour = (function(){
     {e:'🧪', t:'We\'re a beta', b:'This is a work in progress, and you\'re one of the first people using it. That means you\'ll occasionally catch a wonky price, a missing vendor, or a rough edge. When you do, tell me. mike@fangtrack.com or use the Submit button. Early adopter notes are what will shape this thing, and the best ideas in FangTrack so far came from keepers like you.'},
     {e:'📊', t:'Dashboard', b:'Your at-a-glance snapshot: total live listings, deal counts, market movers, and Market Intelligence. Every tile is clickable and filters the Deals page.'},
     {e:'🔥', t:'Deals & badges', b:'Every in-stock listing, scored like-for-like against the market and its own history.',
-      badges:[['🔥 Fire','#f97316','#fff'],['💎💎 Exceptional','#7c3aed','#f4f4f5'],['💎 Strong','#3b82f6','#fff'],['👍 Fair','#22c55e','#0a0a0b']]},
+      badges:[['🔥 Fire','#f97316','#fff'],['💎💎 Exceptional','#7c3aed','var(--text)'],['💎 Strong','#3b82f6','#fff'],['👍 Fair','#22c55e','var(--base)']]},
     {e:'💎', t:'Rarity tiers', b:'Every species is percentile-ranked across the whole market by how few sellers carry it — rarest at the top.',
       badges:[{% for n in TIER_ORDER %}['{{ n }}','{{ RARITY_TIERS[n].bg }}','{{ RARITY_TIERS[n].text }}']{% if not loop.last %},{% endif %}{% endfor %}]},
     {e:'🔍', t:'Species catalog', b:'Look up any species by scientific OR common name. Each gets a spider card: price history, market stats, rarity, and every live listing across vendors.'},

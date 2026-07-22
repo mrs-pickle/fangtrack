@@ -76,15 +76,22 @@
    DERIVED (zinc-light), pending the full Design-project files. Used by
    emails/new surfaces; the web UI ships dark-only. ── */
 [data-theme="light"] {
+  /* Palette reference: the Mike-approved LIGHT email (soft off-white ground, white
+     cards, dark text, blue accent). "White too bright" (2026-07-21) → the PAGE is a
+     soft grey off-white, not #fff; white is reserved for raised cards so they pop. */
   --ft-primary-soft: rgba(37,99,235,.10);
-  --ft-accent-soft: rgba(168,85,247,.10);
+  --ft-accent-soft: rgba(168,85,247,.12);
 
-  --ft-bg: #fafafa;  --ft-surface: #ffffff;  --ft-surface-2: #f4f4f5;
-  --ft-border: #e4e4e7;  --ft-text: #18181b;  --ft-text-2: #52525b;  --ft-text-3: #a1a1aa;
+  --ft-bg: #eceef2;  --ft-surface: #f7f8fa;  --ft-surface-2: #ffffff;
+  --ft-border: #e2e5ea;  --ft-text: #18181b;  --ft-text-2: #52525b;  --ft-text-3: #71717a;
 
-  --hover: #eef0f3;  --nav: #ffffff;  --divider: #ececef;  --row-divider: #f0f0f2;
+  --hover: #e7e9ee;  --nav: #ffffff;  --divider: #e6e8ed;  --row-divider: #eef0f3;
   --text-soft: #27272a;  --text-quiet: #3f3f46;
-  --text-dimmer: #71717a;  --text-dimmest: #8f8f98;
+  --text-dimmer: #71717a;  --text-dimmest: #9a9aa2;
 
   --ft-down: #16a34a;  --ft-up: #dc2626;
+
+  /* Flash banners readable on light */
+  --flash-ok-bg:  #dcfce7; --flash-ok-border:  #86efac; --flash-ok-text:  #166534;
+  --flash-err-bg: #fee2e2; --flash-err-border: #fca5a5; --flash-err-text: #991b1b;
 }
