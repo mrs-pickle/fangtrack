@@ -300,5 +300,8 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   + write-guard + honest health + admin-gated QA + size/mobile fixes) — reviewed + green, HELD for
   Mike's explicit ship word; on ship: merge dev→main, resume the suspended cron, run ONE watched
   prod crawl (repopulates caches + is the "beats datacenter block" proof), seed tester/12345 on prod.
-  Then: move Mike's collection mrs2200 → mike@fangtrack.com; nurture campaign (reminder set Aug);
-  paid Postgres + backups before ~mid-Oct expiry (reminder set Sep). Crawler-500 FIXED; proxy DONE.
+  Then: nurture campaign (reminder set Aug); paid Postgres + backups before ~mid-Oct expiry
+  (reminder set Sep). Crawler-500 FIXED; proxy DONE. 2026-07-21: collection move mrs2200→
+  mike@fangtrack.com DONE (Mike did it manually in Render — move_collection.py now dead code);
+  IPRoyal proxy pw ROTATED (done). Still-open Render nicety (deferred, not urgent): remove the
+  stray FANGTRACK_PROXY_URL from the WEB service env (web doesn't crawl; leave it on the cron).
