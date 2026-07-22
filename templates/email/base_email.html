@@ -35,13 +35,12 @@
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
              style="max-width:600px; width:100%;">
 
-        <!-- ── Header: text wordmark (survives image blocking) ─────────── -->
+        <!-- ── Header: brand logo (white wordmark for the dark email; alt text
+             covers image-blocking clients) ─────────────────────────────── -->
         <tr>
-          <td style="padding:0 8px 18px; font-family:{{ T.type.family }};">
-            <span style="font-size:22px; font-weight:900; letter-spacing:-0.02em;">
-              <span style="color:#ffffff;">FANG</span><span style="color:{{ T.color.accent.primary }};">TRACK</span>
-            </span>
-            <span style="font-size:16px;">&nbsp;🕷️</span>
+          <td style="padding:0 8px 20px; font-family:{{ T.type.family }};">
+            <img src="{{ site_url }}/static/img/email_logo.png" alt="FangTrack Pro"
+                 width="210" style="display:block; width:210px; max-width:62%; height:auto; border:0;">
           </td>
         </tr>
 
