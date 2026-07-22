@@ -6,7 +6,7 @@
 </div>
 
 <div class="grid gap-3 mb-5 stat-strip-2" style="grid-template-columns:repeat(4,1fr);">
-  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Registered users</div><div style="font-size:26px;font-weight:800;color:#e4e4e7;">{{ users|length }}</div></div>
+  <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Registered users</div><div style="font-size:26px;font-weight:800;color:var(--text-soft);">{{ users|length }}</div></div>
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">Admins</div><div style="font-size:26px;font-weight:800;">{{ users|selectattr('is_admin')|list|length }}</div></div>
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">On leaderboard</div><div style="font-size:26px;font-weight:800;color:#34d399;">{{ users|selectattr('is_public')|list|length }}</div></div>
   <div class="stat-card"><div style="font-size:10px;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;">With a collection</div><div style="font-size:26px;font-weight:800;">{{ users|selectattr('collection_count')|list|length }}</div></div>
@@ -22,23 +22,23 @@
     {% for u in users %}
     <tr>
       <td>
-        <span style="color:#e4e4e7; font-weight:600;">{{ u.display_name or '—' }}</span>
-        {% if u.first_name or u.last_name %}<div style="font-size:11px; color:#71717a;">🔒 {{ u.first_name or '' }} {{ u.last_name or '' }}</div>{% endif %}
+        <span style="color:var(--text-soft); font-weight:600;">{{ u.display_name or '—' }}</span>
+        {% if u.first_name or u.last_name %}<div style="font-size:11px; color:var(--text-dim);">🔒 {{ u.first_name or '' }} {{ u.last_name or '' }}</div>{% endif %}
         {% if u.handle %}<div style="font-size:11px;"><a href="/u/{{ u.handle }}" style="color:#2563eb; text-decoration:none;">/u/{{ u.handle }} →</a></div>{% endif %}
       </td>
-      <td style="color:#a1a1aa;">{{ u.email }}</td>
-      <td style="color:#71717a; font-size:12px;">{{ (u.created_at or '')[:10] }}</td>
+      <td style="color:var(--muted);">{{ u.email }}</td>
+      <td style="color:var(--text-dim); font-size:12px;">{{ (u.created_at or '')[:10] }}</td>
       <td style="font-size:11px;">
         {% if u.is_admin %}<span style="color:#a855f7; font-weight:700;">ADMIN</span>{% endif %}
-        {% if u.is_public %}<span style="color:#22c55e;">🏆 public</span>{% else %}<span style="color:#52525b;">private</span>{% endif %}
+        {% if u.is_public %}<span style="color:#22c55e;">🏆 public</span>{% else %}<span style="color:var(--text-dimmer);">private</span>{% endif %}
       </td>
-      <td>{% if u.collection_count %}<a href="/admin/users/{{ u.id }}/collection" style="color:#2563eb; text-decoration:none;">{{ u.collection_count }} →</a>{% else %}<span style="color:#52525b;">0</span>{% endif %}</td>
-      <td>{% if u.watchlist_count %}<a href="/admin/users/{{ u.id }}/watchlist" style="color:#2563eb; text-decoration:none;">{{ u.watchlist_count }} →</a>{% else %}<span style="color:#52525b;">0</span>{% endif %}</td>
-      <td style="color:{{ '#e4e4e7' if u.private_seller_count else '#52525b' }};">{{ u.private_seller_count }}</td>
+      <td>{% if u.collection_count %}<a href="/admin/users/{{ u.id }}/collection" style="color:#2563eb; text-decoration:none;">{{ u.collection_count }} →</a>{% else %}<span style="color:var(--text-dimmer);">0</span>{% endif %}</td>
+      <td>{% if u.watchlist_count %}<a href="/admin/users/{{ u.id }}/watchlist" style="color:#2563eb; text-decoration:none;">{{ u.watchlist_count }} →</a>{% else %}<span style="color:var(--text-dimmer);">0</span>{% endif %}</td>
+      <td style="color:{{ 'var(--text-soft)' if u.private_seller_count else 'var(--text-dimmer)' }};">{{ u.private_seller_count }}</td>
     </tr>
     {% endfor %}
     </tbody>
   </table>
 </div>
-<div style="font-size:11px; color:#52525b; margin-top:12px;">Read-only. Private sellers and real names are shown here for support only — they are never exposed to other users.</div>
+<div style="font-size:11px; color:var(--text-dimmer); margin-top:12px;">Read-only. Private sellers and real names are shown here for support only — they are never exposed to other users.</div>
 {% endblock %}

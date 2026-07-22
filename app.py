@@ -21,7 +21,7 @@ for _stream in (sys.stdout, sys.stderr):
 
 from flask import (Flask, render_template, request, redirect, url_for,
                    flash, jsonify, Response, session, g, abort,
-                   send_from_directory)
+                   send_from_directory, make_response)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -140,11 +140,12 @@ def _security_headers(resp):
     # posts, and <base> hijacking. Defense-in-depth (stored-XSS risk is already low).
     resp.headers.setdefault("Content-Security-Policy",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com "
+        "https://*.google-analytics.com https://*.analytics.google.com; "
         "frame-ancestors 'self'; base-uri 'self'; form-action 'self'")
     if os.environ.get("FANGTRACK_HTTPS"):
         resp.headers.setdefault("Strict-Transport-Security",
@@ -2518,7 +2519,57 @@ def _ensure_profile_cols(conn):
     # watchlist email again (in-app inbox alerts still work). Set by /unsubscribe.
     if "email_opt_out" not in have:
         conn.execute("ALTER TABLE users ADD COLUMN email_opt_out INTEGER DEFAULT 0")
+    # UI theme preference ('light'/'dark'; empty = follow the default, which is dark).
+    # Signed-in users' choice persists here so it follows them across devices.
+    if "theme_pref" not in have:
+        conn.execute("ALTER TABLE users ADD COLUMN theme_pref TEXT DEFAULT ''")
     conn.commit()
+
+
+def _current_theme() -> str:
+    """Active UI theme: a signed-in user's saved choice wins (follows them across
+    devices), else the per-browser cookie, else 'dark' (the default brand theme)."""
+    uid = current_user_id()
+    if uid:
+        try:
+            conn = get_connection(DB_PATH)
+            _ensure_profile_cols(conn)
+            row = conn.execute("SELECT theme_pref FROM users WHERE id=?", (uid,)).fetchone()
+            conn.close()
+            t = (row["theme_pref"] if row else "") or ""
+            if t in ("light", "dark"):
+                return t
+        except Exception:
+            pass
+    return request.cookies.get("ft_theme") if request.cookies.get("ft_theme") in ("light", "dark") else "dark"
+
+
+@app.context_processor
+def inject_theme_pref():
+    return {"theme_pref": _current_theme()}
+
+
+@app.route("/theme", methods=["POST"])
+def set_theme():
+    """Persist a light/dark choice: a cookie for this browser, and (if signed in)
+    the account so it follows across devices. The page also flips instantly in JS."""
+    t = (request.form.get("theme") or "").strip().lower()
+    if t not in ("light", "dark"):
+        return {"ok": False, "error": "theme must be light or dark"}, 400
+    uid = current_user_id()
+    if uid:
+        try:
+            conn = get_connection(DB_PATH)
+            _ensure_profile_cols(conn)
+            conn.execute("UPDATE users SET theme_pref=? WHERE id=?", (t, uid))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+    resp = make_response({"ok": True, "theme": t})
+    resp.set_cookie("ft_theme", t, max_age=31536000, samesite="Lax",
+                    secure=bool(os.environ.get("FANGTRACK_HTTPS")))
+    return resp
 
 
 _VALID_ALERT_CATS = {"fire", "drops", "restocks"}

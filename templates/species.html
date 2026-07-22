@@ -3,7 +3,7 @@
 {% block content %}
 <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
   <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">🔍 Species Catalog</h1>
-  <span style="color:#a1a1aa; font-size:13px;">{{ total }} species{% if query %} matching "{{ query }}"{% endif %}</span>
+  <span style="color:var(--muted); font-size:13px;">{{ total }} species{% if query %} matching "{{ query }}"{% endif %}</span>
 </div>
 
 <form method="get" class="flex gap-3 mb-5">
@@ -29,9 +29,9 @@
       {% for r in rarity_legend %}
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <span class="rtier {{ r.tier_class }}" style="min-width:92px; text-align:center; flex:none;">{{ r.tier }}</span>
-        <span style="font-size:11px; color:#71717a; min-width:64px; flex:none;">{{ r.pct }}</span>
-        <span style="font-size:11px; color:#a1a1aa; min-width:120px; flex:none;">{{ r.sellers }} · {{ r.count }} species</span>
-        <span style="font-size:12px; color:#a1a1aa; flex:1; min-width:180px;">{{ r.meaning }}</span>
+        <span style="font-size:11px; color:var(--text-dim); min-width:64px; flex:none;">{{ r.pct }}</span>
+        <span style="font-size:11px; color:var(--muted); min-width:120px; flex:none;">{{ r.sellers }} · {{ r.count }} species</span>
+        <span style="font-size:12px; color:var(--muted); flex:1; min-width:180px;">{{ r.meaning }}</span>
       </div>
       {% endfor %}
     </div>
@@ -52,9 +52,9 @@
           {% set qd = dict(active) %}{% set _ = qd.update({param: '' if is_on else name, 'page': 1}) %}
           <a href="?{% for k,v in qd.items() %}{% if v %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}"
              style="display:flex; justify-content:space-between; gap:8px; padding:3px 6px; border-radius:4px; font-size:12px; text-decoration:none; margin-bottom:2px;
-                    {% if is_on %}background:#2563eb; color:#0a0a0b; font-weight:700;{% else %}color:#a1a1aa;{% endif %}">
+                    {% if is_on %}background:#2563eb; color:var(--base); font-weight:700;{% else %}color:var(--muted);{% endif %}">
             <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ name }}</span>
-            <span style="color:{% if is_on %}#0a0a0b{% else %}#52525b{% endif %};">{{ count }}</span>
+            <span style="color:{% if is_on %}var(--base){% else %}var(--text-dimmer){% endif %};">{{ count }}</span>
           </a>
         {% endfor %}
       </div>
@@ -66,7 +66,7 @@
     <a href="?{% for k,v in iqd.items() %}{% if v %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}"
        title="Show only species in stock somewhere as of the last scrape"
        style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:6px; margin-bottom:16px; text-decoration:none; font-size:12px; font-weight:700;
-              {% if active.instock %}background:#2563eb; color:#0a0a0b;{% else %}background:#141417; color:#a1a1aa; border:1px solid #2a2a31;{% endif %}">
+              {% if active.instock %}background:#2563eb; color:var(--base);{% else %}background:var(--surface); color:var(--muted); border:1px solid var(--border);{% endif %}">
       <span>In-stock only</span>
       <span style="font-size:10px; letter-spacing:.05em; opacity:.85;">{{ 'ON' if active.instock else 'OFF' }}</span>
     </a>
@@ -75,14 +75,14 @@
     {{ facet_group("Price", "band", facets.band, active.band) }}
 
     {% if facets.experience or facets.temperament or facets.habitat %}
-    <div style="font-size:10px; color:#a855f7; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; font-weight:800;">🕷 Traits <a href="/transparency#traits" style="color:#52525b; text-decoration:none; font-weight:400;">ⓘ</a></div>
+    <div style="font-size:10px; color:#a855f7; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; font-weight:800;">🕷 Traits <a href="/transparency#traits" style="color:var(--text-dimmer); text-decoration:none; font-weight:400;">ⓘ</a></div>
     {{ facet_group("Experience level", "exp", facets.experience, active.exp) }}
     {{ facet_group("Temperament", "temp", facets.temperament, active.temp) }}
     {{ facet_group("Habitat", "habitat", facets.habitat, active.habitat) }}
     {{ facet_group("Size", "tsize", facets.t_size, active.tsize) }}
     {{ facet_group("Hemisphere", "hem", facets.hemisphere, active.hem) }}
     {{ facet_group("Climate", "climate", facets.climate, active.climate) }}
-    <div style="border-top:1px solid #2a2a31; margin:2px 0 14px;"></div>
+    <div style="border-top:1px solid var(--border); margin:2px 0 14px;"></div>
     {% endif %}
 
     {{ facet_group("Genus", "genus", facets.genus, active.genus) }}
@@ -91,7 +91,7 @@
   <!-- ── Tiles ──────────────────────────────────────────────────────────── -->
   <div>
     <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px; align-items:center;">
-      <span style="font-size:11px; color:#71717a;">Sort</span>
+      <span style="font-size:11px; color:var(--text-dim);">Sort</span>
       {% set defdir = {'name':'asc','price':'desc','rarity':'desc','listings':'desc'} %}
       {% for key,label in [('name','A–Z'),('rarity','Rarity'),('price','Price'),('listings','Most listed')] %}
         {% set is_active = active.sort==key %}
@@ -110,18 +110,18 @@
       {% for s in tiles %}
       <a href="/species/{{ s.key|urlencode }}" class="card"
          style="padding:14px 16px; text-decoration:none; display:block; transition:border-color .12s;"
-         onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#2a2a31'">
+         onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='var(--border)'">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
           <div style="font-style:italic; color:#2563eb; font-weight:700; font-size:14px; line-height:1.25;">{{ s.display }}</div>
           {% if s.rarity_tier %}<span class="rtier {{ s.rarity_class }}" style="flex-shrink:0;">{{ s.rarity_tier }}</span>{% endif %}
         </div>
-        <div style="color:#a1a1aa; font-size:12px; margin-top:3px; min-height:15px;">{{ s.common or '' }}</div>
+        <div style="color:var(--muted); font-size:12px; margin-top:3px; min-height:15px;">{{ s.common or '' }}</div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:6px;">
           <span class="spark">{{ spark_svg(s.spark)|safe }}</span>
           {% if s.trend=='heating' %}<span class="mtag heat">▲ HEATING</span>
           {% elif s.trend=='cooling' %}<span class="mtag cool">▼ COOLING</span>{% endif %}
         </div>
-        <div style="color:#52525b; font-size:11px; margin-top:8px; display:flex; justify-content:space-between;">
+        <div style="color:var(--text-dimmer); font-size:11px; margin-top:8px; display:flex; justify-content:space-between;">
           <span>{{ s.live }} live listing{{ 's' if s.live != 1 else '' }}{% if s.min_p %} · from ${{ "%.0f"|format(s.min_p) }}{% endif %}</span>
           {% if s.market_price %}<span title="Market Price (trimmed median)">mkt ${{ "%.0f"|format(s.market_price) }}</span>{% endif %}
         </div>
@@ -131,7 +131,7 @@
 
     {{ smart_pager(page, pages, page_base) }}
     {% else %}
-    <div class="card" style="text-align:center; padding:40px; color:#52525b;">No species match these filters.</div>
+    <div class="card" style="text-align:center; padding:40px; color:var(--text-dimmer);">No species match these filters.</div>
     {% endif %}
   </div>
 </div>

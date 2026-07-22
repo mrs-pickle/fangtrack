@@ -2,9 +2,9 @@
 {% block content %}
 <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
   <h1 style="font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0;">🏆 Collector Leaderboard</h1>
-  <span style="color:#a1a1aa; font-size:13px;">{{ board.count }} public collection{{ 's' if board.count != 1 }}</span>
+  <span style="color:var(--muted); font-size:13px;">{{ board.count }} public collection{{ 's' if board.count != 1 }}</span>
 </div>
-<p style="color:#a1a1aa; font-size:13px; margin:0 0 22px;">
+<p style="color:var(--muted); font-size:13px; margin:0 0 22px;">
   Opt-in rankings across public collections. Make yours public in
   <a href="/account" style="color:#2563eb;">Settings</a> to appear here.
 </p>
@@ -16,18 +16,18 @@
   <div style="display:flex; flex-direction:column; gap:8px;">
     {% for r in rows %}
     <div style="display:flex; align-items:center; gap:10px;">
-      <span style="width:22px; text-align:center; font-weight:800; color:{{ '#fbbf24' if loop.index==1 else '#cbd5e1' if loop.index==2 else '#b45309' if loop.index==3 else '#52525b' }};">{{ loop.index }}</span>
-      <a href="/u/{{ r.handle }}" style="flex:1; color:#e4e4e7; text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.display_name or r.handle }}</a>
-      <span style="color:#f4f4f5; font-variant-numeric:tabular-nums; font-weight:700;">{% if money %}${{ "{:,.0f}".format(r[field]) }}{% else %}{{ r[field] }}{% endif %}</span>
+      <span style="width:22px; text-align:center; font-weight:800; color:{{ '#fbbf24' if loop.index==1 else '#cbd5e1' if loop.index==2 else '#b45309' if loop.index==3 else 'var(--text-dimmer)' }};">{{ loop.index }}</span>
+      <a href="/u/{{ r.handle }}" style="flex:1; color:var(--text-soft); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.display_name or r.handle }}</a>
+      <span style="color:var(--text); font-variant-numeric:tabular-nums; font-weight:700;">{% if money %}${{ "{:,.0f}".format(r[field]) }}{% else %}{{ r[field] }}{% endif %}</span>
     </div>
     {% endfor %}
   </div>
-  {% else %}<div style="color:#52525b; font-size:13px;">No entries yet.</div>{% endif %}
+  {% else %}<div style="color:var(--text-dimmer); font-size:13px;">No entries yet.</div>{% endif %}
 </div>
 {% endmacro %}
 
 {% if board.count == 0 %}
-<div class="card" style="text-align:center; padding:40px; color:#a1a1aa;">
+<div class="card" style="text-align:center; padding:40px; color:var(--muted);">
   No public collections yet. <a href="/account" style="color:#2563eb;">Be the first →</a>
 </div>
 {% else %}
@@ -43,14 +43,14 @@
     <div style="display:flex; flex-direction:column; gap:8px;">
       {% for r in board.rarest %}
       <div style="display:flex; align-items:center; gap:10px;">
-        <span style="width:22px; text-align:center; font-weight:800; color:{{ '#fbbf24' if loop.index==1 else '#52525b' }};">{{ loop.index }}</span>
-        <a href="/u/{{ r.handle }}" style="color:#e4e4e7; text-decoration:none; font-weight:600;">{{ r.display_name or r.handle }}</a>
-        <span style="flex:1; text-align:right; color:#a1a1aa; font-size:12px; font-style:italic;">{{ r.rarest[0] }}</span>
+        <span style="width:22px; text-align:center; font-weight:800; color:{{ '#fbbf24' if loop.index==1 else 'var(--text-dimmer)' }};">{{ loop.index }}</span>
+        <a href="/u/{{ r.handle }}" style="color:var(--text-soft); text-decoration:none; font-weight:600;">{{ r.display_name or r.handle }}</a>
+        <span style="flex:1; text-align:right; color:var(--muted); font-size:12px; font-style:italic;">{{ r.rarest[0] }}</span>
         <span class="rtier {{ RARITY_TIERS[r.rarest[1]].css }}">{{ r.rarest[1] }}</span>
       </div>
       {% endfor %}
     </div>
-    {% else %}<div style="color:#52525b; font-size:13px;">No entries yet.</div>{% endif %}
+    {% else %}<div style="color:var(--text-dimmer); font-size:13px;">No entries yet.</div>{% endif %}
   </div>
 </div>
 {% endif %}

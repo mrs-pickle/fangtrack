@@ -2,7 +2,7 @@
 {% block content %}
 <div style="margin-bottom:6px;"><a href="/leaderboard" style="color:#2563eb; font-size:12px; text-decoration:none;">← Leaderboard</a></div>
 <h1 style="font-size:24px; font-weight:900; letter-spacing:-.02em; margin:0 0 4px;">🕷 {{ owner.display_name or owner.handle }}</h1>
-<div style="color:#71717a; font-size:12px; margin-bottom:20px;">/u/{{ owner.handle }} · public collection</div>
+<div style="color:var(--text-dim); font-size:12px; margin-bottom:20px;">/u/{{ owner.handle }} · public collection</div>
 
 <!-- Flex stats (no purchase prices — those stay private to the owner) -->
 <div class="kpi-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:10px; margin-bottom:22px;">
@@ -20,17 +20,17 @@
   {% for it in items %}
   <tr>
     <td><a href="/species/{{ it.species_key|urlencode }}" class="species-name" style="text-decoration:none;">{{ it.species_display }}</a></td>
-    <td style="color:#a1a1aa; font-size:12px;">{{ it.common or '—' }}</td>
+    <td style="color:var(--muted); font-size:12px;">{{ it.common or '—' }}</td>
     <td>{{ it.sex or '?' }}</td>
     <td>{{ it.quantity or 1 }}</td>
-    <td style="color:#a1a1aa; font-size:12px;">{{ it.size_notes or '—' }}</td>
-    <td style="color:#a1a1aa; font-variant-numeric:tabular-nums;">{% if it.market_value %}${{ "%.0f"|format(it.market_value) }}{% else %}—{% endif %}</td>
+    <td style="color:var(--muted); font-size:12px;">{{ it.size_notes or '—' }}</td>
+    <td style="color:var(--muted); font-variant-numeric:tabular-nums;">{% if it.market_value %}${{ "%.0f"|format(it.market_value) }}{% else %}—{% endif %}</td>
   </tr>
   {% else %}
-  <tr><td colspan="6" style="text-align:center; color:#52525b; padding:30px;">This collection is empty.</td></tr>
+  <tr><td colspan="6" style="text-align:center; color:var(--text-dimmer); padding:30px;">This collection is empty.</td></tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
-<p style="color:#52525b; font-size:11px; margin-top:12px;">Market values are today's trimmed-median asking prices across tracked vendors. Purchase prices are private to the owner.</p>
+<p style="color:var(--text-dimmer); font-size:11px; margin-top:12px;">Market values are today's trimmed-median asking prices across tracked vendors. Purchase prices are private to the owner.</p>
 {% endblock %}

@@ -12,14 +12,14 @@
           <a href="/deals?species={{ t.species_display|urlencode }}"
              style="font-weight:700; font-style:italic; color:#2563eb; font-size:15px; text-decoration:none;"
              title="View all current listings for {{ t.species_display }}">{{ t.species_display }} →</a>
-          <div style="font-size:12px; color:#52525b; margin-top:4px; display:flex; gap:16px;">
-            {% if t.sex %}<span>Sex: <strong style="color:#e4e4e7;">{{ t.sex }}</strong></span>{% endif %}
-            {% if t.min_size or t.max_size %}<span>Size: <strong style="color:#e4e4e7;">{{ t.min_size or '?' }}"–{{ t.max_size or '∞' }}"</strong></span>{% endif %}
+          <div style="font-size:12px; color:var(--text-dimmer); margin-top:4px; display:flex; gap:16px;">
+            {% if t.sex %}<span>Sex: <strong style="color:var(--text-soft);">{{ t.sex }}</strong></span>{% endif %}
+            {% if t.min_size or t.max_size %}<span>Size: <strong style="color:var(--text-soft);">{{ t.min_size or '?' }}"–{{ t.max_size or '∞' }}"</strong></span>{% endif %}
             {% if t.max_price %}<span>Max: <strong style="color:#2563eb;">${{ "%.0f"|format(t.max_price) }}</strong></span>{% endif %}
             {% if t.max_landed %}<span>Max shipped: <strong style="color:#2563eb;">${{ "%.0f"|format(t.max_landed) }}</strong></span>{% endif %}
           </div>
-          {% if t.notes %}<div style="font-size:12px; color:#a1a1aa; margin-top:4px;">{{ t.notes }}</div>{% endif %}
-          <a href="/deals?species={{ t.species_display|urlencode }}" style="font-size:11px; color:#71717a; margin-top:6px; display:inline-block; text-decoration:none;">{{ t.hit_count }} hits total{% if t.last_hit %} · last: {{ t.last_hit[:10] }}{% endif %} · view listings →</a>
+          {% if t.notes %}<div style="font-size:12px; color:var(--muted); margin-top:4px;">{{ t.notes }}</div>{% endif %}
+          <a href="/deals?species={{ t.species_display|urlencode }}" style="font-size:11px; color:var(--text-dim); margin-top:6px; display:inline-block; text-decoration:none;">{{ t.hit_count }} hits total{% if t.last_hit %} · last: {{ t.last_hit[:10] }}{% endif %} · view listings →</a>
         </div>
         <form action="/watchlist/remove/{{ t.id }}" method="post">
           <button class="btn btn-danger" style="padding:5px 12px; font-size:12px;">Remove</button>
@@ -28,7 +28,7 @@
     </div>
     {% endfor %}
     {% else %}
-    <div class="card" style="text-align:center; padding:40px; color:#52525b;">
+    <div class="card" style="text-align:center; padding:40px; color:var(--text-dimmer);">
       No watchlist targets yet. Add one to get alerted when a species appears at your target price.
     </div>
     {% endif %}
@@ -47,12 +47,12 @@
             <option value="{{ s.value }}" data-common="{{ s.common }}">{{ s.value }}{% if s.common %} — {{ s.common }}{% endif %}</option>
             {% endfor %}
           </select>
-          <div style="font-size:10px; color:#52525b; margin-top:3px;">Type to jump to a species. Only species already in the system can be watched.</div>
+          <div style="font-size:10px; color:var(--text-dimmer); margin-top:3px;">Type to jump to a species. Only species already in the system can be watched.</div>
         </div>
         <div>
           <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">COMMON NAME</label>
           <input id="wl-common" readonly tabindex="-1" placeholder="—"
-                 style="width:100%; box-sizing:border-box; background:#141417; color:#a1a1aa; cursor:default;">
+                 style="width:100%; box-sizing:border-box; background:var(--surface); color:var(--muted); cursor:default;">
         </div>
         <div class="grid gap-3" style="grid-template-columns:1fr 1fr;">
           <div>
@@ -94,9 +94,9 @@
     <div class="card" style="margin-top:16px;">
       <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px;">Last Crawl Hits</div>
       {% for h in recent_hits %}
-      <div style="border-bottom:1px solid #2a2a31; padding:10px 0; font-size:13px;">
+      <div style="border-bottom:1px solid var(--border); padding:10px 0; font-size:13px;">
         <div style="font-weight:700; margin-bottom:3px;">{{ h.target }}</div>
-        <div style="color:#a1a1aa; font-size:12px;">{{ h.name }} · ${{ "%.0f"|format(h.price) }} @{{ h.vendor }}
+        <div style="color:var(--muted); font-size:12px;">{{ h.name }} · ${{ "%.0f"|format(h.price) }} @{{ h.vendor }}
           {% if h.fire %}🔥{% endif %} {% if h.rating == '💎💎' %}💎💎{% endif %}
         </div>
       </div>

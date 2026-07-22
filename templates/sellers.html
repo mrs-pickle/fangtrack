@@ -6,31 +6,31 @@
   <!-- Website vendors -->
   <div class="card">
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em;">Website Vendors</div>
-    <div style="font-size:12px; color:#71717a; margin-bottom:14px;">Crawls run automatically on a timer. Admins can trigger a manual crawl from the <a href="/admin" style="color:#a855f7;">Admin</a> page.</div>
+    <div style="font-size:12px; color:var(--text-dim); margin-bottom:14px;">Crawls run automatically on a timer. Admins can trigger a manual crawl from the <a href="/admin" style="color:#a855f7;">Admin</a> page.</div>
 
     <!-- Vendor status list (click a vendor to see its animals in the system) -->
-    <div style="font-size:10px; color:#52525b; margin-top:20px; margin-bottom:6px;">WEBSITE VENDORS — click to view listings</div>
+    <div style="font-size:10px; color:var(--text-dimmer); margin-top:20px; margin-bottom:6px;">WEBSITE VENDORS — click to view listings</div>
     <div style="max-height:340px; overflow-y:auto;">
     {% for v in vendors %}
     {% set lc = last_crawl.get(v) %}
-    <a href="/deals?vendor={{ v }}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid #2a2a31; text-decoration:none;" onmouseover="this.style.background='#1c1c21'" onmouseout="this.style.background=''">
+    <a href="/deals?vendor={{ v }}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid var(--border); text-decoration:none;" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background=''">
       <span style="font-size:13px; color:#2563eb;">{{ v }} →</span>
       {% if lc %}
-      <span style="font-size:11px; color:#52525b;">{{ lc.ph_rows or 0 }} listings · {{ (lc.started_at or '')[:10] }}</span>
+      <span style="font-size:11px; color:var(--text-dimmer);">{{ lc.ph_rows or 0 }} listings · {{ (lc.started_at or '')[:10] }}</span>
       {% else %}
-      <span style="font-size:11px; color:#3f3f46;">Never crawled</span>
+      <span style="font-size:11px; color:var(--text-dimmest);">Never crawled</span>
       {% endif %}
     </a>
     {% endfor %}
     </div>
 
     {% if private_sellers %}
-    <div style="font-size:10px; color:#52525b; margin-top:20px; margin-bottom:6px;">👤 YOUR PRIVATE SELLERS — private to your account · click to view</div>
+    <div style="font-size:10px; color:var(--text-dimmer); margin-top:20px; margin-bottom:6px;">👤 YOUR PRIVATE SELLERS — private to your account · click to view</div>
     <div style="max-height:220px; overflow-y:auto;">
     {% for s in private_sellers %}
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid #2a2a31;" onmouseover="this.style.background='#1c1c21'" onmouseout="this.style.background=''">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 6px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background=''">
       <a href="/deals?vendor={{ s.vendor_key }}&private=all" style="font-size:13px; color:#a855f7; text-decoration:none; flex:1;">👤 {{ s.vendor_name }} →</a>
-      {% if s.contact %}<span style="font-size:11px; color:#52525b; margin-right:10px;">{{ s.contact }}</span>{% endif %}
+      {% if s.contact %}<span style="font-size:11px; color:var(--text-dimmer); margin-right:10px;">{{ s.contact }}</span>{% endif %}
       <form action="/sellers/delete/{{ s.vendor_key }}" method="post" onsubmit="return confirm('Delete imported list &quot;{{ s.vendor_name }}&quot;? This removes its listings and history.');" style="margin:0;">
         <button class="btn btn-danger" style="padding:2px 8px; font-size:11px;">Delete</button>
       </form>
@@ -44,8 +44,8 @@
   {% if current_user %}
   <div class="card">
     <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">Add Your Private Seller List</div>
-    <div style="padding:9px 12px; background:#141417; border-radius:8px; font-size:12px; color:#a1a1aa; border:1px solid #2a2a31; margin-bottom:14px;">
-      🔒 <b style="color:#e4e4e7;">Private to your account.</b> Sellers you add here are visible only to you — never shared with other users, never shown publicly, and kept off the market view. They stay with your account.
+    <div style="padding:9px 12px; background:var(--surface); border-radius:8px; font-size:12px; color:var(--muted); border:1px solid var(--border); margin-bottom:14px;">
+      🔒 <b style="color:var(--text-soft);">Private to your account.</b> Sellers you add here are visible only to you — never shared with other users, never shown publicly, and kept off the market view. They stay with your account.
     </div>
     <form action="/sellers/import" method="post" class="flex flex-col gap-3">
       <input type="hidden" name="_csrf" value="{{ csrf_token }}">
@@ -54,7 +54,7 @@
         <input name="seller_name" required placeholder='e.g. "Eric Madrid" or "FB Seller July 26"' style="width:100%; box-sizing:border-box;">
       </div>
       <div>
-        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">CONTACT INFO <span style="color:#52525b;">(email / phone / FB — shown to buyers)</span></label>
+        <label style="font-size:10px; color:#2563eb; letter-spacing:.1em; display:block; margin-bottom:4px;">CONTACT INFO <span style="color:var(--text-dimmer);">(email / phone / FB — shown to buyers)</span></label>
         <input name="contact" placeholder="e.g. eric@email.com · @ericmadrid_Ts · (555) 123-4567" style="width:100%; box-sizing:border-box;">
       </div>
       <div>
@@ -63,7 +63,7 @@
           placeholder="Paste any format: tables, dashes, plain text, Facebook copy-paste...&#10;&#10;2x 1/4&quot; Grammostola pulchripes $35&#10;1x 3&quot; Cyriopagopus lividus female $120&#10;10/$100 Lasiodora parahybana slings"
           style="width:100%; box-sizing:border-box; resize:vertical; font-family:monospace; font-size:12px;"></textarea>
       </div>
-      <div style="padding:10px 12px; background:#141417; border-radius:8px; font-size:12px; color:#a1a1aa; border:1px solid #2a2a31;">
+      <div style="padding:10px 12px; background:var(--surface); border-radius:8px; font-size:12px; color:var(--muted); border:1px solid var(--border);">
         💡 If this is an updated list from the same seller, it will be imported as a new version — the old prices are preserved in history for trend tracking.
       </div>
       <button class="btn btn-primary" style="justify-content:center;">Import List</button>
@@ -72,7 +72,7 @@
   {% else %}
   <div class="card" style="display:flex; flex-direction:column; justify-content:center; text-align:center; gap:8px;">
     <div style="font-size:13px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.06em;">Private Seller Lists</div>
-    <div style="font-size:13px; color:#a1a1aa;">🔒 Track sellers who aren't on any website — Facebook groups, private breeders, local contacts. Your lists stay <b style="color:#e4e4e7;">private to your account</b>.</div>
+    <div style="font-size:13px; color:var(--muted);">🔒 Track sellers who aren't on any website — Facebook groups, private breeders, local contacts. Your lists stay <b style="color:var(--text-soft);">private to your account</b>.</div>
     <div><a href="/register" class="btn btn-primary" style="display:inline-flex;">Sign up to add private sellers</a></div>
   </div>
   {% endif %}
@@ -83,22 +83,22 @@
 <div style="margin-top:32px;">
   <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
     <h2 style="font-size:16px; font-weight:900; letter-spacing:-.02em; margin:0;">🏬 Vendor QA <span style="font-size:11px; font-weight:700; color:#a855f7; background:#2a1a3a; padding:2px 8px; border-radius:4px; vertical-align:middle;">ADMIN</span></h2>
-    <span style="color:#a1a1aa; font-size:13px;">{{ vendors_qa|length }} crawled vendors</span>
+    <span style="color:var(--muted); font-size:13px;">{{ vendors_qa|length }} crawled vendors</span>
   </div>
-  <p style="color:#a1a1aa; font-size:13px; margin:0 0 14px;">Open <strong>Inspect</strong> to see every listing we hold for a vendor next to a link to their live site — a quick way to confirm our data matches theirs.</p>
+  <p style="color:var(--muted); font-size:13px; margin:0 0 14px;">Open <strong>Inspect</strong> to see every listing we hold for a vendor next to a link to their live site — a quick way to confirm our data matches theirs.</p>
   <div class="card" style="padding:0; overflow-x:auto;">
   <table>
     <thead><tr><th>Vendor</th><th>Platform</th><th>Listings</th><th>In stock</th><th>Last crawl</th><th>Status</th><th data-nosort>Site</th><th data-nosort></th></tr></thead>
     <tbody>
     {% for v in vendors_qa %}
     <tr>
-      <td><a href="/vendors/{{ v.key }}" style="color:#2563eb; text-decoration:none; font-weight:700;">{{ v.name }}</a><div style="font-size:11px; color:#52525b;">{{ v.key }}</div></td>
-      <td style="color:#a1a1aa; font-size:12px;">{{ v.platform or '—' }}</td>
+      <td><a href="/vendors/{{ v.key }}" style="color:#2563eb; text-decoration:none; font-weight:700;">{{ v.name }}</a><div style="font-size:11px; color:var(--text-dimmer);">{{ v.key }}</div></td>
+      <td style="color:var(--muted); font-size:12px;">{{ v.platform or '—' }}</td>
       <td style="font-weight:700;">{{ v.listings }}</td>
       <td style="color:#34d399;">{{ v.instock }}</td>
-      <td style="color:#a1a1aa; font-size:12px;">{{ v.last or '—' }}</td>
-      <td><span style="font-size:11px; padding:2px 8px; border-radius:4px; {% if v.status=='complete' %}background:#064e3b; color:#a7f3d0;{% elif v.status=='partial' %}background:#78350f; color:#fed7aa;{% else %}background:#374151; color:#a1a1aa;{% endif %}">{{ v.status }}</span></td>
-      <td>{% if v.homepage %}<a href="{{ v.homepage }}" target="_blank" rel="noopener" style="color:#a1a1aa; font-size:12px;">open ↗</a>{% endif %}</td>
+      <td style="color:var(--muted); font-size:12px;">{{ v.last or '—' }}</td>
+      <td><span style="font-size:11px; padding:2px 8px; border-radius:4px; {% if v.status=='complete' %}background:#064e3b; color:#a7f3d0;{% elif v.status=='partial' %}background:#78350f; color:#fed7aa;{% else %}background:#374151; color:var(--muted);{% endif %}">{{ v.status }}</span></td>
+      <td>{% if v.homepage %}<a href="{{ v.homepage }}" target="_blank" rel="noopener" style="color:var(--muted); font-size:12px;">open ↗</a>{% endif %}</td>
       <td><a href="/vendors/{{ v.key }}" class="btn btn-ghost" style="padding:3px 10px; font-size:11px;">Inspect →</a></td>
     </tr>
     {% endfor %}

@@ -3,14 +3,14 @@
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:10px;">
   <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em; margin:0;">🏷 Discount Codes — Admin</h1>
   <div style="display:flex; align-items:center; gap:12px;">
-    <span style="color:#a1a1aa; font-size:13px;">{{ codes|length }} codes across {{ grouped|length }} vendors</span>
+    <span style="color:var(--muted); font-size:13px;">{{ codes|length }} codes across {{ grouped|length }} vendors</span>
     <form action="/admin/discounts/action" method="post" style="display:inline;" onsubmit="return confirm('Delete all 0% / no-effect scraped codes? Sitewide/Holiday/BOGO flags are kept.')">
       <input type="hidden" name="action" value="purge_zero">
       <button class="btn btn-danger" style="padding:5px 12px; font-size:12px;">🧹 Purge 0% codes</button>
     </form>
   </div>
 </div>
-<p style="color:#a1a1aa; font-size:12px; margin:0 0 16px;">Admin-only. Codes here feed the Deals page: a listing shows its vendor's best <em>active</em> code and the "with code" price. Verify the good ones, delete the noise.</p>
+<p style="color:var(--muted); font-size:12px; margin:0 0 16px;">Admin-only. Codes here feed the Deals page: a listing shows its vendor's best <em>active</em> code and the "with code" price. Verify the good ones, delete the noise.</p>
 
 <!-- Pointer to the full explanation (now lives in the FAQ) -->
 <div class="card" style="margin-bottom:16px; padding:12px 16px; font-size:12.5px; color:#999;">
@@ -54,10 +54,10 @@
           <span style="color:#fbbf24;">🎉 sale flag (see banner)</span>
         {% elif c.discount_value and c.discount_value > 0 %}
           {% if c.discount_type=='pct' %}{{ "%.0f"|format(c.discount_value) }}% off{% else %}${{ "%.0f"|format(c.discount_value) }} off{% endif %}
-        {% else %}<span style="color:#52525b;">0% — no effect</span>{% endif %}
+        {% else %}<span style="color:var(--text-dimmer);">0% — no effect</span>{% endif %}
       </td>
       <td data-sort="{{ c.is_verified }}">{% if c.is_verified %}<span style="color:#34d399;font-weight:700;">✓ Verified</span>{% else %}<span style="color:#fbbf24;">unverified</span>{% endif %}</td>
-      <td style="font-size:11px;color:#71717a;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ c.source_context }}">{{ c.source_context or '' }}</td>
+      <td style="font-size:11px;color:var(--text-dim);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ c.source_context }}">{{ c.source_context or '' }}</td>
       <td style="white-space:nowrap;">
         <form action="/admin/discounts/action" method="post" style="display:inline;">
           <input type="hidden" name="id" value="{{ c.id }}">
@@ -71,6 +71,6 @@
   </table>
 </div>
 {% else %}
-<div class="card" style="text-align:center; color:#52525b; padding:40px;">No discount codes yet. Run the discount scan or add one above.</div>
+<div class="card" style="text-align:center; color:var(--text-dimmer); padding:40px;">No discount codes yet. Run the discount scan or add one above.</div>
 {% endfor %}
 {% endblock %}

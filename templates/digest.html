@@ -2,9 +2,9 @@
 {% block content %}
 <div class="flex items-center justify-between mb-4">
   <h1 style="font-size:20px; font-weight:900; letter-spacing:-.02em;">📄 Daily Digest</h1>
-  <div style="font-size:12px; color:#52525b;">{{ digest_path }}</div>
+  <div style="font-size:12px; color:var(--text-dimmer);">{{ digest_path }}</div>
 </div>
 <div class="card">
-  <pre style="white-space:pre-wrap; font-family:monospace; font-size:13px; color:#e4e4e7; line-height:1.7;">{{ content }}</pre>
+  <pre style="white-space:pre-wrap; font-family:monospace; font-size:13px; color:var(--text-soft); line-height:1.7;">{{ content }}</pre>
 </div>
 {% endblock %}
