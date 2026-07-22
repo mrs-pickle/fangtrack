@@ -1478,7 +1478,7 @@ def render_email(name: str, **ctx) -> tuple[str, str]:
     if name not in EMAIL_TEMPLATES:
         raise ValueError(f"unknown email template: {name!r}")
     ctx.setdefault("site_url", SITE_URL)
-    ctx["T"] = _design_tokens()
+    ctx["T"] = _design_tokens()   # emails stay DARK (Mike's call 2026-07-22)
     # test_request_context, not app_context: the auth context processor reads
     # session, which only exists inside a request context (the cron path has none).
     with app.test_request_context():
