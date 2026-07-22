@@ -879,9 +879,89 @@ def get_species_catalog(db_path=DB_PATH, force=False) -> list:
 
 
 def get_species_list(db_path=DB_PATH) -> list:
-    """Autocomplete options: 'Genus species (Common)' for every species."""
+    """Autocomplete options: 'Genus species (Common)' for every species.
+    LEGACY — the native <datalist>. Superseded by the /api/species/suggest
+    combobox (kept only for any callers still reading the flat list)."""
     return [f"{s['display']} ({s['common']})" if s["common"] else s["display"]
             for s in get_species_catalog(db_path)]
+
+
+# ── Species typeahead (combobox suggest API) ────────────────────────────────
+# Replaces the native <datalist> whose option value was the whole
+# "Genus species (Common)" string — which the substring search could never
+# match. Here the client renders rich rows and selects the STABLE key, so a
+# pick always resolves to a real species page (no more "returns no result").
+_syn_index_cache = {"data": None}
+
+
+def _species_synonym_index() -> dict:
+    """canonical_key -> {junior-synonym / misspelling phrases} from key_aliases,
+    so a query typed as a bad/old name still surfaces the canonical species."""
+    if _syn_index_cache["data"] is None:
+        idx: dict[str, set] = {}
+        try:
+            from normalize.key_aliases import KEY_ALIASES
+            for bad, good in KEY_ALIASES.items():
+                idx.setdefault(good, set()).add(bad.lower())
+        except Exception:
+            pass
+        _syn_index_cache["data"] = idx
+    return _syn_index_cache["data"]
+
+
+def _score_species(q: str, s: dict, aliases) -> int:
+    """Rank one catalog entry against query q. Higher = better; 0 = no match.
+    Token-prefix aware: every whitespace token in q must prefix some word in the
+    field — so 'poecil metal' matches 'Poecilotheria metallica' and 'gram pulc'
+    matches 'Grammostola pulchra'. exact(100) > full-prefix(90) > all-tokens-lead
+    (80) > all-tokens(66) > contains(55) > fuzzy(≤45)."""
+    from difflib import SequenceMatcher
+    fields = [(s.get("display") or "").lower(), (s.get("common") or "").lower(),
+              (s.get("key") or "")] + list(aliases or ())
+    qtokens = q.split()
+    best = 0
+    for f in fields:
+        if not f:
+            continue
+        if f == q:
+            best = max(best, 100); continue
+        if f.startswith(q):
+            best = max(best, 90); continue
+        fwords = f.split()
+        if qtokens and all(any(w.startswith(t) for w in fwords) for t in qtokens):
+            lead = bool(fwords) and fwords[0].startswith(qtokens[0])
+            best = max(best, 80 if lead else 66); continue
+        if q in f:
+            best = max(best, 55); continue
+        if len(q) >= 4:
+            r = SequenceMatcher(None, q, f).ratio()
+            if r >= 0.72:
+                best = max(best, int(r * 45))
+    return best
+
+
+@app.route("/api/species/suggest")
+def api_species_suggest():
+    """Typeahead suggestions: ranked, synonym-aware, one row per canonical
+    species. Returns [{key, sci, common, n, live, url}] (top 10)."""
+    from urllib.parse import quote
+    q = (request.args.get("q") or "").strip().lower()
+    if len(q) < 2:
+        return jsonify([])
+    syn = _species_synonym_index()
+    scored = []
+    for s in get_species_browse():
+        sc = _score_species(q, s, syn.get(s.get("key", ""), ()))
+        if sc:
+            # tie-break: score, then more live listings, then more history, then A–Z
+            scored.append((-sc, -(s.get("live") or 0), -(s.get("n") or 0),
+                           (s.get("display") or "").lower(), s))
+    scored.sort(key=lambda t: t[:4])
+    out = [{"key": s["key"], "sci": s["display"], "common": s.get("common") or "",
+            "n": s.get("n") or 0, "live": s.get("live") or 0,
+            "url": f"/species/{quote(s['key'])}"}
+           for *_, s in scored[:10]]
+    return jsonify(out)
 
 
 # Enriched browse catalog (facets + market stats + rarity) — cached.
@@ -2292,7 +2372,11 @@ def collection_add():
     if not species:
         flash("Species name required", "error")
         return redirect(url_for("collection"))
-    key = normalize_species_key(species)
+    # Prefer the combobox's canonical species key (an exact pick); fall back to
+    # deriving the key from the typed text for manual/free entries.
+    from normalize.key_aliases import canonicalize_key
+    picked = request.form.get("species_key", "").strip()
+    key = canonicalize_key(picked) if picked else normalize_species_key(species)
     conn.execute("""
         INSERT INTO collection (species_key, species_display, sex, quantity, size_notes, notes, user_id)
         VALUES (?,?,?,?,?,?,?)
@@ -2990,6 +3074,11 @@ def sellers_import():
 @app.route("/species")
 def species_search():
     query   = request.args.get("q", "").strip()
+    # Defensive: strip a trailing "(Common Name)" so a legacy/pasted
+    # "Genus species (Common)" value still matches (the combobox navigates by key,
+    # so this only guards free-text and old links).
+    import re as _re_q
+    query = _re_q.sub(r"\s*\([^)]*\)\s*$", "", query).strip()
     page    = request.args.get("page", 1, type=int)
     f_genus = request.args.get("genus", "")
     f_orig  = request.args.get("origin", "")

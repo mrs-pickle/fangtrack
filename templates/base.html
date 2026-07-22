@@ -239,10 +239,93 @@ input:focus, select:focus { border-color:#2563eb; }
   {% block content %}{% endblock %}
 </div>
 
-<!-- Shared species list for autocomplete anywhere a species is entered -->
-<datalist id="species-datalist">
-  {% for s in all_species %}<option value="{{ s }}">{% endfor %}
-</datalist>
+<!-- Species combobox: replaces the native <datalist> (whose option value was the
+     whole "Genus species (Common)" string the search could never match). Any
+     <input data-species-combo> becomes a rich, keyboard-navigable typeahead backed
+     by /api/species/suggest; data-mode="navigate" opens the species page on pick,
+     data-mode="field" fills the input + a hidden species_key (canonical). -->
+<style>
+.sp-combo{ position:relative; }
+.sp-pop{ position:absolute; z-index:60; left:0; right:0; top:100%; margin-top:4px;
+  background:#141417; border:1px solid #2a2a31; border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5); max-height:340px; overflow-y:auto; display:none; }
+.sp-pop.open{ display:block; }
+.sp-opt{ padding:8px 12px; cursor:pointer; border-bottom:1px solid #1c1c21;
+  display:flex; align-items:baseline; gap:8px; }
+.sp-opt:last-child{ border-bottom:none; }
+.sp-opt.active, .sp-opt:hover{ background:#1c1c21; }
+.sp-opt .sci{ font-style:italic; color:#f4f4f5; font-weight:600; font-size:13px; }
+.sp-opt .com{ color:#a1a1aa; font-size:12px; }
+.sp-opt .cnt{ margin-left:auto; color:#71717a; font-size:11px; white-space:nowrap; }
+.sp-opt .cnt .live{ color:#22c55e; font-weight:700; }
+.sp-empty{ padding:10px 12px; color:#71717a; font-size:12px; }
+</style>
+<script>
+(function(){
+  function debounce(fn,ms){ let t; return function(){ var a=arguments,c=this; clearTimeout(t); t=setTimeout(function(){ fn.apply(c,a); },ms); }; }
+  function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function init(input){
+    if(input._spInit) return; input._spInit=true;
+    var mode = input.getAttribute('data-mode') || 'field';
+    var wrap = document.createElement('span');
+    wrap.className='sp-combo';
+    wrap.style.cssText='position:relative; display:block; flex:1 1 auto; min-width:0;';
+    input.parentNode.insertBefore(wrap, input); wrap.appendChild(input);
+    input.style.width='100%'; input.style.boxSizing='border-box'; input.style.flex='';
+    var pop = document.createElement('div'); pop.className='sp-pop'; pop.setAttribute('role','listbox');
+    wrap.appendChild(pop);
+    var hidden=null;
+    if(mode==='field'){
+      var form=input.form;
+      hidden = form ? form.querySelector('input[name="species_key"]') : null;
+      if(!hidden){ hidden=document.createElement('input'); hidden.type='hidden'; hidden.name='species_key'; wrap.appendChild(hidden); }
+    }
+    input.setAttribute('role','combobox'); input.setAttribute('aria-autocomplete','list');
+    input.setAttribute('aria-expanded','false'); input.autocomplete='off';
+    var items=[], active=-1;
+    function close(){ pop.classList.remove('open'); input.setAttribute('aria-expanded','false'); active=-1; }
+    function render(){
+      if(!items.length){ pop.innerHTML='<div class="sp-empty">No species match — press Enter to search text</div>'; }
+      else{
+        pop.innerHTML = items.map(function(it,i){
+          var live = it.live>0 ? '<span class="live">'+it.live+' in stock</span>' : (it.n+' listings');
+          return '<div class="sp-opt'+(i===active?' active':'')+'" role="option" data-i="'+i+'">'+
+            '<span class="sci">'+esc(it.sci)+'</span>'+
+            (it.common?'<span class="com">'+esc(it.common)+'</span>':'')+
+            '<span class="cnt">'+live+'</span></div>';
+        }).join('');
+      }
+      pop.classList.add('open'); input.setAttribute('aria-expanded','true');
+    }
+    function pick(i){
+      var it=items[i]; if(!it) return;
+      if(mode==='navigate'){ window.location = it.url; return; }
+      input.value = it.sci; if(hidden) hidden.value = it.key; close();
+    }
+    var doFetch = debounce(function(){
+      var q=input.value.trim();
+      if(q.length<2){ close(); return; }
+      fetch('/api/species/suggest?q='+encodeURIComponent(q))
+        .then(function(r){ return r.json(); })
+        .then(function(d){ items=d||[]; active=-1; render(); })
+        .catch(close);
+    },150);
+    input.addEventListener('input', function(){ if(hidden) hidden.value=''; doFetch(); });
+    input.addEventListener('keydown', function(e){
+      if(!pop.classList.contains('open')){ if(e.key==='ArrowDown') doFetch(); return; }
+      if(e.key==='ArrowDown'){ e.preventDefault(); active=Math.min(active+1, items.length-1); render(); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); active=Math.max(active-1, 0); render(); }
+      else if(e.key==='Enter'){ if(active>=0){ e.preventDefault(); pick(active); } }
+      else if(e.key==='Escape'){ close(); }
+    });
+    pop.addEventListener('mousedown', function(e){ var o=e.target.closest('.sp-opt'); if(o){ e.preventDefault(); pick(parseInt(o.dataset.i,10)); } });
+    document.addEventListener('click', function(e){ if(!wrap.contains(e.target)) close(); });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('input[data-species-combo]').forEach(init);
+  });
+})();
+</script>
 
 <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
 <footer style="border-top:1px solid #1c1c21; padding:16px 20px; text-align:center; color:#3f3f46; font-size:12px; margin-top:40px;">
