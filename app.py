@@ -893,10 +893,27 @@ def get_species_list(db_path=DB_PATH) -> list:
 # pick always resolves to a real species page (no more "returns no result").
 _syn_index_cache = {"data": None}
 
+# Hobby nicknames / abbreviations that AREN'T derivable from the scientific or
+# common name (those are already searched directly). Shorthand -> canonical key.
+# Extend as new shorthand shows up; a nickname whose species isn't in the catalog
+# simply never matches (harmless).
+_SPECIES_NICKNAMES = {
+    "gbb":          "chromatopelma cyaneopubescens",   # green bottle blue
+    "obt":          "pterinochilus murinus",           # orange baboon / "orange bitey thing"
+    "gooty":        "poecilotheria metallica",
+    "goliath":      "theraphosa stirmi",
+    "king baboon":  "pelinobius muticus",
+    "cobalt blue":  "cyriopagopus lividus",
+    "pinktoe":      "avicularia avicularia",
+    "rose hair":    "grammostola porteri",
+    "curly hair":   "tliltocatl albopilosus",
+}
+
 
 def _species_synonym_index() -> dict:
-    """canonical_key -> {junior-synonym / misspelling phrases} from key_aliases,
-    so a query typed as a bad/old name still surfaces the canonical species."""
+    """canonical_key -> {junior-synonym / misspelling / nickname phrases}, so a
+    query typed as a bad/old name, a misspelling, or hobby shorthand still
+    surfaces the one canonical species."""
     if _syn_index_cache["data"] is None:
         idx: dict[str, set] = {}
         try:
@@ -905,6 +922,8 @@ def _species_synonym_index() -> dict:
                 idx.setdefault(good, set()).add(bad.lower())
         except Exception:
             pass
+        for nick, key in _SPECIES_NICKNAMES.items():
+            idx.setdefault(key, set()).add(nick)
         _syn_index_cache["data"] = idx
     return _syn_index_cache["data"]
 
