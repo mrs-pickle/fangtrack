@@ -58,6 +58,11 @@ KEY_ALIASES: dict[str, str] = {
     "dominican purple birdeater":     "phormictopus sp dominican",
     "dominican purple":               "phormictopus sp dominican",
     "dominican dwarf blue":           "holothele sp dominican",
+    # Augacephalus rufus ("Peach Earth Tiger") fragmented across a junior synonym +
+    # a mis-key (both harvested the same common name) → collapse to ONE species.
+    "aspinochilus rufus":             "augacephalus rufus",
+    "phormingochilus sp rufus":       "augacephalus rufus",
+    "augacephalus enzedami":          "augacephalus ezendami",
     # epithet misspellings
     "tlitocatl khalenbergi":          "tliltocatl kahlenbergi",
     "tliltocatl khalenbergi":         "tliltocatl kahlenbergi",

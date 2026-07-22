@@ -21,7 +21,7 @@ COMMON_NAMES = {
     # Added 2026-07-17 (collection import surfaced these gaps)
     "phormictopus sp dominican purple": "Dominican Purple",
     "haplocosmia himalayana": "Himalayan Beauty",
-    "augacephalus rufus": "Red Baboon",           # canonicalizer alias fixed 2026-07-16
+    "augacephalus rufus": "Peach Earth Tiger",     # NOT "Red Baboon" (2026-07-22, Mike) — Peach Earthtiger Baboon
     "lasiocyano sazimai": "Brazilian Blue",       # canonicalizer alias fixed 2026-07-16
     "phormingochilus hati hati": "Borneo Purple Earth Tiger",
     "chilobrachys sp kaeng krachan": "Dark Earth Tiger",
