@@ -43,6 +43,27 @@ def test_sitemap_is_well_formed_and_lists_pages():
     assert all(u.startswith("http") for u in locs), "sitemap needs ABSOLUTE urls"
 
 
+def test_sitemap_never_advertises_a_url_that_would_404():
+    """A sitemap entry that 404s becomes a Search Console error.
+
+    A crawl re-keys price_history onto the canonical species immediately, but
+    the cached catalog can still hold the old fragment for up to its TTL. Listing
+    it would advertise a dead page. Every species URL must be a CANONICAL key.
+    """
+    from urllib.parse import unquote
+    from normalize.key_aliases import canonicalize_key
+    r = app.test_client().get("/sitemap.xml")
+    root = ET.fromstring(r.get_data(as_text=True))
+    ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+    locs = [e.text for e in root.iter(f"{ns}loc")]
+    assert len(locs) == len(set(locs)), "sitemap lists a duplicate URL"
+    for loc in locs:
+        if "/species/" not in loc:
+            continue
+        key = unquote(loc.split("/species/", 1)[1])
+        assert canonicalize_key(key) == key, f"non-canonical key in sitemap: {key}"
+
+
 def test_sitemap_lastmod_is_a_real_date_and_not_in_the_future():
     """lastmod has to be TRUE to be worth anything.
 

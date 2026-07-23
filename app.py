@@ -1770,12 +1770,34 @@ def sitemap_xml():
         except Exception:
             pass                                  # endpoint renamed/absent — skip quietly
 
+    # Only advertise CANONICAL keys. A crawl heals price_history onto the
+    # canonical key immediately, but the cached catalog can still hold the old
+    # fragment for up to its TTL — during which the sitemap would advertise a
+    # page that 404s, and Search Console reports it as "Submitted URL not found".
+    # Filtering through canonicalize_key makes this immune to that lag: a
+    # fragment is skipped even while it is still sitting in the cache.
     try:
+        from normalize.key_aliases import canonicalize_key
+    except Exception:
+        canonicalize_key = None
+    try:
+        seen_keys, skipped = set(), 0
         for sp in (get_species_catalog(DB_PATH) or []):
             key = sp.get("key") or sp.get("species_key")
-            if key:
-                urls.append((url_for("species_detail", species_key=key, _external=True),
-                             "weekly", "0.8", _seen.get(key) or today))
+            if not key:
+                continue
+            if canonicalize_key:
+                canon = canonicalize_key(key)
+                if canon != key:            # a fragment/misspelling — its page is gone
+                    skipped += 1
+                    continue
+            if key in seen_keys:            # never list the same URL twice
+                continue
+            seen_keys.add(key)
+            urls.append((url_for("species_detail", species_key=key, _external=True),
+                         "weekly", "0.8", _seen.get(key) or today))
+        if skipped:
+            logger.info(f"sitemap: skipped {skipped} non-canonical species key(s)")
     except Exception as e:
         logger.warning(f"sitemap: species catalog unavailable ({e})")
 
