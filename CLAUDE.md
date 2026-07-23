@@ -75,6 +75,47 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-23 — SEO/ANALYTICS INFRA + TESTER FIXES SHIPPED (dev→main, live 948052a; CI green on the
+  matching SHA, 95 tests). Context: Mike wants best-practice infrastructure but NO ads / no SEO push
+  this year — growth is organic sharing into invert communities. (a) LINK PREVIEWS were the actual
+  gap: base.html had ZERO Open Graph tags and no meta description, so every link pasted into a FB
+  group / Reddit / Discord unfurled as a bare URL (reads as spam). Added OG + Twitter card +
+  canonical + a generated 1200x630 card (static/img/og_default.png, built from brand tokens).
+  Species pages describe the animal from REAL data ("Market price $150 · 26 listings in stock ·
+  14 vendors · all-time low $61"), built only from values we HAVE so a preview never shows "$None".
+  Pages override with `{% set og_title/og_description %}` — child-set VARS, not Jinja blocks, because
+  a block would also emit its text into <head>. og:image is ABSOLUTE (relative paths are silently
+  dropped by every scraper). (b) PRODUCT EVENTS: GA4 alone reports pageviews, which can't answer
+  "does the product work" — added sign_up, collection_import, watchlist_add, saved_search_create and
+  vendor_click. vendor_click matters most (sending a buyer to a vendor IS the product); it's
+  delegated from document so every table/tile/card is covered without opt-in. The others end in a
+  POST→redirect with no page left to fire from, so track_event() queues in the session and the next
+  page emits them exactly once (capped at 5; can never raise into a real request). (c) SITEMAP:
+  /sitemap.xml built from the CACHED catalog (read-only web never rebuilds on a request), robots.txt
+  advertises it, GOOGLE_SITE_VERIFICATION env var renders the GSC meta tag so verifying needs no
+  deploy. Prod: 1,318 urls / 1,312 species. lastmod is PER-SPECIES (last date we actually observed a
+  listing) — the first version stamped today on all ~1,200 pages every request, which is a lie told
+  daily and exactly how crawlers learn to ignore the field. DECIDED AGAINST GTM (value is letting
+  non-devs add tags; we have one tag and a deploy takes minutes — it would buy ~100KB, CSP
+  complexity and debug indirection for nothing until there are ad pixels). (d) BETA TESTER 1
+  ("Prices are all looking good!" — the 07-22 price batch holds, they verified it): MATURE MALE
+  rendered as "?" — we parsed Spider Shoppe's "Mature Male" variant correctly (sex=MM) but the
+  TEMPLATE only knew F and M, so MM and U (seller-stated unsexed) both fell through to "?", i.e. the
+  site denied knowing something the vendor plainly stated, on every mature male and every unsexed
+  animal. Root fix: ONE shared macro (templates/_sex.html) used by species_detail/deals/collection/
+  labels — four templates each had their own copy, and vendor_detail.html had ALREADY handled MM
+  correctly with nothing propagating. Also found en route: sizes rendered `2-3""` / `Adult"` (an inch
+  mark appended unconditionally). (e) THE REAL FIND — A. seemanni showed as TWO cards though the
+  seemani→seemanni alias had shipped days earlier: `_apply_key_aliases` was wired into
+  app.run_crawl_thread (the ADMIN in-process crawl) ONLY, so the prod cron
+  (scheduled_crawl.py → run_multi_vendor_pipeline) never called it — the alias healing had NEVER run
+  on production, meaning every alias ever added (84 typo merges, Dominican Purple, …) sat unapplied.
+  Moved into pipeline.apply_key_aliases, called from run_multi_vendor_pipeline where the cron AND the
+  admin crawl converge; app._apply_key_aliases is now a thin delegate. THIRD instance of this exact
+  shape (two snapshot builders → three listing writers → two crawl-completion paths) so a test now
+  fails if it drifts. GOTCHA: the first CI "success" I saw was the PREVIOUS commit's run — always
+  match head_sha before merging. Fragment merge only takes effect after a prod crawl runs the new
+  pipeline. Mike did the GA4 (14-month retention, internal-traffic filter) + Search Console setup.
 - 2026-07-22 (late) — SHIPPED the beta-tester batch (dev→main, live 386ac5e; CI green, 82 tests)
   + ran a full local crawl (29 vendors, 28 complete, 0 failed, 10.1 min, 8,807 raw). Prod verified:
   /, /deals, /species all 200 in 0.27-0.43s, "Est. landed" + estimate tooltip live, 0 discount codes.
