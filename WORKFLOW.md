@@ -15,6 +15,13 @@ after the change has been tested.
 - `main` = **production**. Protected. Only tested merges land here.
 - `dev` = integration. Day-to-day work happens on `dev` or short feature branches off `dev`.
 - **Never `git push origin main` by hand.** Prod changes happen by merging `dev → main`.
+- **NEVER merge a docs-only commit to `main` on its own.** Render redeploys on ANY push to
+  `main` — it does not know the change was only a `.md` file — and the 1-worker box drops
+  connections for ~30-60s while it swaps, so the live site 502s. This actually happened on
+  2026-07-23: two decision-log commits (`22ac205`, `9924e19`) caused two needless outages, and
+  Mike's Search Console sitemap submission landed inside one of them and came back
+  "Couldn't fetch". **Documentation commits stay on `dev` and ride along with the next real code
+  ship.** Zero config, no wasted restarts, and the log still lands on `main` — just batched.
 
 ## The daily loop
 1. `git switch dev && git pull` — start from the latest dev.
