@@ -29,6 +29,15 @@ after the change has been tested.
 6. On Mike's "ship it", **promote**: `git switch main && git merge dev && git push origin main`
    → prod deploys once, already-reviewed.
 7. Watch the deploy go **Live**; sanity-check fangtrack.com.
+8. **CRAWL PROD LAST (Mike's rule).** Shipping code changes **no existing row** — crawl-time
+   filters and annotations (pickup dupes, sex-from-title, source detection) only take effect when a
+   crawl re-runs them and rewrites `price_history` + the `cache_blob` caches. So the order is
+   **preflight → ship → confirm live → crawl**, and it must be the **prod** crawl: a local
+   `main.py --all` verifies the fix but changes nothing on fangtrack.com. Skip this and the deploy
+   looks shipped while users still see the old data until the 09:00 UTC cron.
+   Claude can't trigger it (needs an admin session, and Claude never enters Mike's credentials) —
+   Claude asks Mike to hit **Run Crawl** in `/admin`, or states plainly that prod stays stale
+   until the cron.
 
 ## Rollback (when a bad deploy reaches prod anyway)
 Render → `fangtrack` web service → **Events/Deploys** → find the last good deploy → **Rollback**.
