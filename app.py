@@ -397,6 +397,36 @@ def _visible_to_user(listings: list) -> list:
             or (uid is not None and l.get("private_owner") == uid)]
 
 
+# ── Analytics: product events that survive a redirect ────────────────────────
+# Most things worth measuring (signup, upload, watchlist add) finish with a
+# POST->redirect, so there is no page left to fire the event from. Queue it in
+# the session and let the NEXT rendered page emit it, exactly once.
+def track_event(name: str, **params) -> None:
+    """Queue a GA4 event to fire on the next page this user renders."""
+    try:
+        q = session.get("_ga_events") or []
+        q.append({"name": name, "params": {k: v for k, v in params.items() if v is not None}})
+        session["_ga_events"] = q[-5:]          # cap: never let a queue balloon
+    except Exception:
+        pass                                     # analytics must never break a request
+
+
+@app.context_processor
+def inject_analytics():
+    """Drain the queued events, and expose the Search Console token.
+
+    The token lives in an env var so verifying the site never needs a deploy.
+    """
+    events = []
+    try:
+        if session.get("_ga_events"):
+            events = session.pop("_ga_events")
+    except Exception:
+        events = []
+    return {"ga_events": events,
+            "google_site_verification": os.environ.get("GOOGLE_SITE_VERIFICATION", "").strip()}
+
+
 @app.context_processor
 def inject_helpers():
     """Expose analytics presentation helpers to every template."""
@@ -1716,8 +1746,48 @@ Allow: /
 
 @app.route("/robots.txt")
 def robots_txt():
-    resp = app.response_class(_ROBOTS_TXT, mimetype="text/plain")
+    body = _ROBOTS_TXT + f"\nSitemap: {url_for('sitemap_xml', _external=True)}\n"
+    resp = app.response_class(body, mimetype="text/plain")
     resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    """Every public page, for Search Console.
+
+    Reads the CACHED species catalog — the web is read-only for heavy builds, so
+    this must never trigger a rebuild (see _WEB_READONLY). A cold cache just
+    yields the static pages rather than jamming the worker.
+    """
+    from xml.sax.saxutils import escape
+    today = datetime.now(timezone.utc).date().isoformat()
+    urls = [(url_for("dashboard", _external=True), "daily", "1.0"),
+            (url_for("deals", _external=True), "daily", "0.9"),
+            (url_for("species_search", _external=True), "daily", "0.9")]
+    for ep, freq, pri in (("movers_all", "daily", "0.7"), ("guide", "monthly", "0.5"),
+                          ("privacy", "yearly", "0.2")):
+        try:
+            urls.append((url_for(ep, _external=True), freq, pri))
+        except Exception:
+            pass                                  # endpoint renamed/absent — skip quietly
+
+    try:
+        for sp in (get_species_catalog(DB_PATH) or []):
+            key = sp.get("key") or sp.get("species_key")
+            if key:
+                urls.append((url_for("species_detail", species_key=key, _external=True), "weekly", "0.8"))
+    except Exception as e:
+        logger.warning(f"sitemap: species catalog unavailable ({e})")
+
+    body = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, freq, pri in urls:
+        body.append(f"<url><loc>{escape(loc)}</loc><lastmod>{today}</lastmod>"
+                    f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>")
+    body.append("</urlset>")
+    resp = app.response_class("\n".join(body), mimetype="application/xml")
+    resp.headers["Cache-Control"] = "public, max-age=3600"
     return resp
 
 
@@ -2183,6 +2253,7 @@ def watchlist_add():
             user_id  = current_user_id(),
         )
         flash(f"Target #{wid} added: {species}", "success")
+        track_event("watchlist_add", species=species)
     except Exception as e:
         flash(f"Error: {e}", "error")
     return redirect(url_for("watchlist"))
@@ -3218,8 +3289,10 @@ def sellers_import():
 
         if is_update:
             flash(f"Updated: {count} listings imported from {seller_name} (versioned update — history preserved)", "success")
+            track_event("collection_import", count=count)
         else:
             flash(f"Imported {count} listings from {seller_name}", "success")
+            track_event("collection_import", count=count)
     except Exception as e:
         flash(f"Import error: {e}", "error")
     return redirect(url_for("sellers"))
@@ -3418,7 +3491,41 @@ def species_detail(species_key):
                            rarity_score=rarity_score,
                            inferred_sales=sales,
                            genus=genus,
+                           og_type="article",
+                           og_title=_species_og_title(species_key, common),
+                           og_description=_species_og_description(stats, len(current or [])),
                            owned=(species_key in _req_owned()))
+
+
+def _species_og_title(species_key: str, common: str) -> str:
+    """'Poecilotheria metallica — Gooty Sapphire' for the link preview."""
+    display = _display_from_key(species_key)
+    return f"{display} — {common}" if common else display
+
+
+def _species_og_description(stats: dict, live_count: int) -> str:
+    """The facts a keeper actually wants to see in a pasted link.
+
+    Built only from values we HAVE — a preview reading 'Market price $None'
+    would look broken in the one place first impressions are made.
+    """
+    bits = []
+    mp = (stats or {}).get("market_price")
+    if mp:
+        bits.append(f"Market price ${mp:,.0f}")
+    if live_count:
+        bits.append(f"{live_count} listing{'s' if live_count != 1 else ''} in stock")
+    vendors = (stats or {}).get("vendors_live") or (stats or {}).get("vendors_all")
+    if vendors:
+        bits.append(f"{vendors} vendor{'s' if vendors != 1 else ''}")
+    atl = (stats or {}).get("all_time_low")
+    if atl:
+        bits.append(f"all-time low ${atl:,.0f}")
+    tier = (stats or {}).get("rarity_tier")
+    if tier:
+        bits.append(str(tier))
+    return " · ".join(bits) if bits else \
+        "Price history, market price and rarity tracked across 29 vendor sites."
 
 
 @app.route("/family/<genus>")
@@ -3598,6 +3705,7 @@ def alerts_search_add():
     add_saved_search(name, crit, notify=True, now=datetime.now().isoformat(),
                      user_id=current_user_id())
     flash(f"Saved search '{name or 'unnamed'}' — you'll be alerted on new matches.", "success")
+    track_event("saved_search_create", filters=len(crit))
     return redirect(url_for("alerts"))
 
 

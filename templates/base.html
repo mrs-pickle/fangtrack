@@ -9,10 +9,44 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-06WHKW6W8K');
+{%- for e in ga_events | default([], true) %}
+  gtag('event', {{ e.name | tojson }}, {{ e.params | tojson }});
+{%- endfor %}
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}FangTrack Pro{% endblock %}</title>
+
+{# ── Link preview (Open Graph + Twitter card) ────────────────────────────────
+   FangTrack grows by people PASTING LINKS into invert groups, Reddit and
+   Discord. Without these tags every one of those unfurls as a bare URL, which
+   reads as spam in a hobby group. Pages override og_title/og_description to
+   describe the actual animal; everything else inherits the site defaults.
+   og:image must be an ABSOLUTE url — relative paths are silently dropped by
+   every scraper. #}
+{%- set _og_title = og_title | default('', true) or self.title() | trim %}
+{%- set _og_desc  = og_description | default('', true)
+      or "Live price tracking for tarantulas and other inverts across 29 vendor sites — market price, price history, rarity and deal grades." %}
+{%- set _og_image = og_image | default('', true)
+      or url_for('static', filename='img/og_default.png', _external=True) %}
+<meta name="description" content="{{ _og_desc }}">
+<meta property="og:site_name" content="FangTrack">
+<meta property="og:type" content="{{ og_type | default('website', true) }}">
+<meta property="og:title" content="{{ _og_title }}">
+<meta property="og:description" content="{{ _og_desc }}">
+<meta property="og:url" content="{{ request.url }}">
+<meta property="og:image" content="{{ _og_image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ _og_title }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ _og_title }}">
+<meta name="twitter:description" content="{{ _og_desc }}">
+<meta name="twitter:image" content="{{ _og_image }}">
+<link rel="canonical" href="{{ request.base_url }}">
+{%- if google_site_verification %}
+<meta name="google-site-verification" content="{{ google_site_verification }}">
+{%- endif %}
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/fangtrack_icon_128.png') }}">
 <!-- FangTrack colour system — design tokens shared with the emails.
@@ -560,6 +594,39 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+</script>
+
+<!-- ── Analytics events ───────────────────────────────────────────────────────
+     GA4 on its own only reports pageviews, which cannot answer "is the product
+     working". These are the moments that matter. vendor_click is the important
+     one: sending a buyer to a vendor IS what FangTrack does, so it is the only
+     real measure of value delivered (and the number a vendor would ask about).
+
+     Delegated from document so it covers every table, tile and card without
+     each template having to opt in — including rows drawn after page load. -->
+<script>
+(function () {
+  if (typeof gtag !== 'function') return;
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (!/^https?:/i.test(href)) return;
+    var host;
+    try { host = new URL(href, location.href).hostname; } catch (_) { return; }
+    if (!host || host === location.hostname) return;      // internal link
+    // A row's vendor + species are useful dimensions; fall back quietly.
+    var row = a.closest('tr, .deal-row, .mover-tile, .listing-row');
+    var species = row ? (row.getAttribute('data-species') || '') : '';
+    gtag('event', 'vendor_click', {
+      vendor_domain: host,
+      link_url: href,
+      species: species || undefined,
+      page: location.pathname
+    });
+  }, true);
+})();
 </script>
 {% block scripts %}{% endblock %}
 </body>

@@ -282,6 +282,10 @@ def init_auth(app):
                 session.clear()
                 session["user_id"] = uid
                 _deliver_welcome_email(email, name)
+                try:
+                    from app import track_event; track_event("sign_up", method="email")
+                except Exception:
+                    pass
                 flash("Welcome to FangTrack!" + (" You're the admin." if is_first else ""), "success")
                 return redirect(url_for("dashboard"))
         return render_template("register.html")
