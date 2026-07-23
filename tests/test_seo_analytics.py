@@ -43,6 +43,25 @@ def test_sitemap_is_well_formed_and_lists_pages():
     assert all(u.startswith("http") for u in locs), "sitemap needs ABSOLUTE urls"
 
 
+def test_sitemap_lastmod_is_a_real_date_and_not_in_the_future():
+    """lastmod has to be TRUE to be worth anything.
+
+    Stamping today on every page daily is how a crawler learns to ignore the
+    field. Species pages carry the date we last observed a listing, so a future
+    or malformed date means that wiring broke.
+    """
+    import datetime as _dt
+    r = app.test_client().get("/sitemap.xml")
+    root = ET.fromstring(r.get_data(as_text=True))
+    ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+    today = _dt.datetime.now(_dt.timezone.utc).date()
+    mods = [e.text for e in root.iter(f"{ns}lastmod")]
+    assert mods, "no lastmod entries"
+    for m in mods:
+        d = _dt.date.fromisoformat(m)             # raises on a malformed date
+        assert d <= today, f"lastmod in the future: {m}"
+
+
 # ── the event queue survives a redirect, and drains exactly once ────────────
 def test_track_event_queues_and_drains_once():
     import app as fangtrack

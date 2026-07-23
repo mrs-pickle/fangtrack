@@ -1762,13 +1762,24 @@ def sitemap_xml():
     """
     from xml.sax.saxutils import escape
     today = datetime.now(timezone.utc).date().isoformat()
-    urls = [(url_for("dashboard", _external=True), "daily", "1.0"),
-            (url_for("deals", _external=True), "daily", "0.9"),
-            (url_for("species_search", _external=True), "daily", "0.9")]
+    # Per-species lastmod, from the last date we actually observed a listing.
+    # Stamping today's date on all ~1,200 pages every day would be a LIE, and a
+    # sitemap whose lastmod is always "now" is exactly how crawlers learn to
+    # ignore the field entirely — costing us the one signal it provides.
+    try:
+        _seen = {k: (v.get("last_seen") or "")[:10]
+                 for k, v in (get_market_stats() or {}).items()}
+    except Exception:
+        _seen = {}
+    # (url, changefreq, priority, lastmod). The index pages genuinely do change
+    # every crawl, so "today" is honest for them.
+    urls = [(url_for("dashboard", _external=True), "daily", "1.0", today),
+            (url_for("deals", _external=True), "daily", "0.9", today),
+            (url_for("species_search", _external=True), "daily", "0.9", today)]
     for ep, freq, pri in (("movers_all", "daily", "0.7"), ("guide", "monthly", "0.5"),
                           ("privacy", "yearly", "0.2")):
         try:
-            urls.append((url_for(ep, _external=True), freq, pri))
+            urls.append((url_for(ep, _external=True), freq, pri, today))
         except Exception:
             pass                                  # endpoint renamed/absent — skip quietly
 
@@ -1776,14 +1787,15 @@ def sitemap_xml():
         for sp in (get_species_catalog(DB_PATH) or []):
             key = sp.get("key") or sp.get("species_key")
             if key:
-                urls.append((url_for("species_detail", species_key=key, _external=True), "weekly", "0.8"))
+                urls.append((url_for("species_detail", species_key=key, _external=True),
+                             "weekly", "0.8", _seen.get(key) or today))
     except Exception as e:
         logger.warning(f"sitemap: species catalog unavailable ({e})")
 
     body = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc, freq, pri in urls:
-        body.append(f"<url><loc>{escape(loc)}</loc><lastmod>{today}</lastmod>"
+    for loc, freq, pri, mod in urls:
+        body.append(f"<url><loc>{escape(loc)}</loc><lastmod>{mod}</lastmod>"
                     f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>")
     body.append("</urlset>")
     resp = app.response_class("\n".join(body), mimetype="application/xml")
