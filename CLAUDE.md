@@ -75,6 +75,39 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-22 — SPECIES-SEARCH + EMAIL-LOGO SHIPPED (dev→main, live 3f4fdd3); LIGHT MODE v2 +
+  COLLECTION RESOLVER built on dev (HELD). (a) SPECIES SEARCH rebuilt: the native <datalist>
+  submitted the whole "Genus species (Common)" string but species_search matched by SUBSTRING of
+  each field individually — the combined string is longer than any field, so a pick NEVER matched
+  (silently broke autocomplete for every common-name species). Replaced with an ID-based ARIA
+  combobox + `/api/species/suggest` (ranked exact›prefix›token›fuzzy, token-aware so 'poecil metal'
+  → P. metallica, synonym-aware via a key_aliases reverse index, + hobby nicknames gbb/obt/gooty).
+  Selecting navigates by the STABLE KEY, which structurally kills the whole bug class. Ranks the
+  cached ~1k catalog in Python — no pg_trgm, identical on SQLite+PG. (b) AUGACEPHALUS RUFUS =
+  "Peach Earth Tiger" (curated map wrongly overrode the correctly-harvested name with "Red Baboon");
+  3 fragments (augacephalus/aspinochilus/phormingochilus sp rufus) collapsed to one. (c) EMAIL LOGO:
+  Mike's lockup in the header; emails stay DARK with the WHITE logo variant (a light-email pass was
+  built then reverted on his call). (d) tools/species_audit.py — conservative fragment audit;
+  AUTO-SUGGESTS only same-genus near-duplicate displays (typos, 132 found), and lists
+  same-epithet-cross-genus + shared-common-name as REVIEW-ONLY, because those are mostly
+  coincidental (Archispirostreptus gigas ≠ Hysterocrates gigas; Heterometrus silenus ≠ spinifer) and
+  auto-merging them would be WRONG. (e) COLLECTION 404 BUG (Mike: 3 species had no market value +
+  404): collection.species_key was derived from whatever text was typed, so common names ("Peach
+  Earth Tiger"), trade names and misspellings matched NO card; and `_apply_key_aliases` only heals
+  price_history, NEVER the collection table — so even Dominican Purple (which HAS a working alias)
+  stayed broken on a stale stored key. FIX: `resolve_species_key()` — ONE resolver for any user text
+  (canonicalized key → exact catalog key → exact COMMON NAME → fuzzy ≥0.86), applied at collection
+  render so legacy rows heal with no migration. All 36 local rows now resolve (was 3 broken); also
+  fixes misspellings (hamori→hamorii) and common names (green bottle blue→Chromatopelma). LESSON:
+  any table storing a species_key needs the same resolver — price_history was the only one being
+  healed. (f) LIGHT MODE v2 (dev, HELD): rebuilt off the approved light-email palette; muted slate
+  scale (page #e3e5ea, soft-grey cards — never pure white, fixing "too bright"/"tiles too white"),
+  header 🌙/☀️ toggle persisted via cookie + users.theme_pref, theme-swapped logo (white lockup dark /
+  black lockup light, 40px to match live), ~561 hexes→vars across 33 templates (each var's DARK value
+  == the old hex so DARK IS BYTE-IDENTICAL). Page-by-page sweep clean (only intentional semantic
+  fills remain). GOTCHA: Flask runs debug=False so templates/CSS are CACHED — restart the preview
+  server after edits or you review stale UI. Mike's local preview is ALWAYS port 5050 (5000 does not
+  work on his machine) — memory [[local-preview-port]].
 - 2026-07-21 (pm) — EMAILS + GA SHIPPED (dev→main, live 00cf9db); LIGHT MODE built but HELD on a
   branch. Preflight-gated (73 tests, pg scan, compile) then shipped. (a) BRANDED ALERT + WATCHLIST
   EMAILS: both now extend base_email.html (wordmark, black bg/white text) + a stat bar; each

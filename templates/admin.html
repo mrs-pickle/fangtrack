@@ -57,7 +57,7 @@
       <div><span style="font-size:24px; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums;">{{ "%.1f"|format(speed.wall_seconds/60) }}</span><span style="color:var(--muted); font-size:13px;"> min wall-clock</span></div>
       <div><span style="font-size:18px; font-weight:700; color:var(--text-soft); font-variant-numeric:tabular-nums;">{{ speed.vendors }}</span><span style="color:var(--muted); font-size:13px;"> vendors</span></div>
       <div><span style="font-size:18px; font-weight:700; color:var(--text-soft); font-variant-numeric:tabular-nums;">{{ "%.0f"|format(speed.avg_seconds) }}s</span><span style="color:var(--muted); font-size:13px;"> avg/vendor</span></div>
-      <span style="padding:2px 10px; border-radius:4px; font-size:11px; font-weight:700; background:{{ '#1e3a5f' if speed.parallel else '#3a2a1e' }}; color:{{ '#7fb3ff' if speed.parallel else '#fcd34d' }};">{{ 'PARALLEL' if speed.parallel else 'SEQUENTIAL' }}</span>
+      <span style="padding:2px 10px; border-radius:4px; font-size:11px; font-weight:700; background:{{ 'rgba(37,99,235,.18)' if speed.parallel else 'rgba(217,119,6,.18)' }}; color:{{ '#3b82f6' if speed.parallel else '#d97706' }};">{{ 'PARALLEL' if speed.parallel else 'SEQUENTIAL' }}</span>
     </div>
     <div style="font-size:12px; color:var(--muted); line-height:1.7;">
       <span style="color:var(--text-dim);">Slowest:</span>
