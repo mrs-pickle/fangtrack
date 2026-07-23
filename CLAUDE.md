@@ -373,6 +373,31 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   mike@fangtrack.com DONE (Mike did it manually in Render — move_collection.py now dead code);
   IPRoyal proxy pw ROTATED (done). Still-open Render nicety (deferred, not urgent): remove the
   stray FANGTRACK_PROXY_URL from the WEB service env (web doesn't crawl; leave it on the cron).
+- PARKED (2026-07-22) — COMPETITOR-DERIVED FEATURES (Keepa / StockX / TCGplayer research;
+  Mike: "park these and let's discuss in the future"). Context: FangTrack ALREADY matches the
+  core of all three — price history (Keepa), Market Price as a trimmed median of recent sales
+  (TCG's exact methodology), all-time-low + 52-week range (StockX), collection tracker with
+  portfolio value/gain-loss (TCG), watchlist targets, saved searches, movers. The gap is data
+  QUALITY + TRUST, not feature count.
+  BETA MUST-HAVES (small, trust-affecting):
+    a. **Collection CSV EXPORT — confirmed MISSING** (import exists, export does not). TCG lets
+       you export; no-export reads as lock-in to a tester who just handed you their collection.
+    b. **Visible "as of / last scanned" freshness stamp** on species card + dashboard — Keepa
+       updates hourly and says so; a market price without a timestamp isn't trusted.
+    c. **One-click "Alert me under $X"** on the species card. The pieces exist (watchlist target,
+       saved-search max_price) but Keepa's whole loop is threshold→notify in ONE action.
+    d. Mobile pass on the new light mode (testers open on a phone first).
+  FUTURE IDEAS (ranked):
+    1. **BROWSER EXTENSION** — Keepa's actual moat (4M+ users) is overlaying price history on the
+       retailer's page while you shop. A FangTrack overlay showing market price + deal grade +
+       rarity on a vendor's product page is the highest-leverage differentiator we have.
+    2. Price-premium % per listing ("23% above market") — StockX; we already compute market price.
+    3. Liquidity/availability signal ("6 vendors, in stock 80% of days") — StockX volume analog;
+       arguably MORE useful here than for sneakers since rarity drives buying.
+    4. Portfolio value over time chart (TCG/StockX) — history already stored.
+    5. Have/Want/Trade lists + community layer (TCG social) — keepers trade slings constantly.
+    6. Surface vendor reliability from the Vendor QA data we already collect.
+    7. Longer term: PWA/mobile app, public API.
 - PARKED (2026-07-21, Mike's list):
   - **LIGHT MODE** — first pass (toggle + 535 hex→var conversion + GA) is on branch `feature/
     light-mode` (commit 134e409), NOT shipped. Mike's feedback: tiles still black-bg, white too
