@@ -75,6 +75,38 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-22 (pm) — BETA-TESTER DATA-QUALITY batch (on `dev`, 221200f + 37dcd7a, HELD for Mike's
+  ship word). Tester: "wrong prices and cb/wc statuses, sex missing when it's listed on the vendor's
+  website" + one animal showing twice. DIAGNOSIS FIRST: the PRICES were correct in the raw crawl
+  data ($48/$48/$124 moderatum, $58 versicolor) — the confusion was three price columns plus stale
+  discount codes. (a) PICKUP DUPES: vendors list a local-pickup copy beside the shippable one, so
+  one animal counted twice — `is_pickup_only()` + a gate in `pipeline._is_livestock` drops 124
+  phantom listings (118 Spider Shoppe "[Vancouver Pick-up]", 6 Fear Not). They slipped through
+  because `is_livestock` strips a leading "[...]" prefix. Crawl-time filter → existing rows clear on
+  the next crawl. (b) DISCOUNT CODES suppressed via `DISCOUNT_CODES_ENABLED = False` (Mike: "leave
+  the code column and filter, just remove all the codes until we figure a better way to scan them")
+  — suppressed in CODE, not by clearing the table, so prod is fixed on deploy regardless of its own
+  rows; 0/3,874 now carry a code. Scanner rework is next-session work. (c) HONEST LABELS:
+  "Landed"/"Shipped" → "Est. landed"/"Est. shipped", `~` prefix + "Estimate… Not a quote" tooltip
+  (it read as a real checkout total; it's price + the vendor's flat rate). (d) SEX FROM TITLE (real
+  bug, 134 suspects → 127 fixed): each scraper reads only its OWN variant field, so sellers who put
+  the sex in the TITLE ("Aphonopelma chalchodes - Male", variant '3"') showed Unknown across ALL
+  vendors at once. `sex_from_title()` + `annotate_missing_sex()` recovers 127 listings over 8
+  vendors (76F/30M/21 unsexed), fill-only (0 overwrites — a variant fact always wins). WHOLE WORDS
+  only: never normalize_sex's single-letter codes (they collide with size/locality notation), and
+  "PAIR M+F" stays Unknown (not one sexed animal). (e) CB/WC LABEL BUG (silent, the actual "wrong
+  statuses"): a spec line "CB/WC: WC" was read as **CB**, because the LABEL contains "CB" and the
+  both-mentioned tie-break trusts CB → wild-caught animals reported as captive-bred. `_LABELLED_RE`
+  now reads the value AFTER the label. Added `detect_source_type_in_prose()` for descriptions but
+  deliberately restricted to unambiguous signals — the loose version "resolved" 289 unknowns off
+  "breeder"/bare "cb"/"F2" in marketing copy, i.e. it would have FABRICATED a source; the strict one
+  fills 0 today, by design. Source misses re-measured: 0. GOTCHA/LESSON (cost a second commit):
+  there are TWO snapshot builders — `pipeline.py`'s AND `app._build_snapshot` (the one every page
+  reads). The sex fix landed only in pipeline, so the site still showed Unknown; caught by verifying
+  the RENDERED snapshot (817→944 sexed) instead of trusting green unit tests. Any listing-level
+  annotation must be added to BOTH or the site and the cron-built cache disagree. 82 tests green
+  (9 new, tests/test_listing_facts.py). NOT bugs, verified: the versicolor 0.5" sling really is
+  unsexed (nobody sexes slings) and the moderatum rows already carried F/M/MM.
 - 2026-07-22 — SPECIES-SEARCH + EMAIL-LOGO SHIPPED (dev→main, live 3f4fdd3); LIGHT MODE v2 +
   COLLECTION RESOLVER built on dev (HELD). (a) SPECIES SEARCH rebuilt: the native <datalist>
   submitted the whole "Genus species (Common)" string but species_search matched by SUBSTRING of
