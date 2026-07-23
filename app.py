@@ -593,6 +593,12 @@ def _build_snapshot(now: float) -> list:
         from normalize.source_type import set_confirmed_policies
         set_confirmed_policies(get_vendor_policies(DB_PATH))
         annotate_source_types(snapshot)
+        # Recover a sex the seller stated in the TITLE (scrapers read only their
+        # own variant field). Fill-only. NOTE: the crawl pipeline builds its own
+        # snapshot separately — both paths must run this or the site and the
+        # cron-built cache disagree about the same listing.
+        from normalize.sex import annotate_missing_sex
+        annotate_missing_sex(snapshot)
         from normalize.common_names import enrich_listings_with_common_names
         enrich_listings_with_common_names(snapshot)
         populate_historical_lows(snapshot, DB_PATH)
