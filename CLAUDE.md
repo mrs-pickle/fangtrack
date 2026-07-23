@@ -75,6 +75,22 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-22 (late) — SHIPPED the beta-tester batch (dev→main, live 386ac5e; CI green, 82 tests)
+  + ran a full local crawl (29 vendors, 28 complete, 0 failed, 10.1 min, 8,807 raw). Prod verified:
+  /, /deals, /species all 200 in 0.27-0.43s, "Est. landed" + estimate tooltip live, 0 discount codes.
+  CAUGHT POST-SHIP by verifying the crawl instead of trusting the commit: the pickup filter did NOT
+  clear the phantoms locally — 118 rows survived. ROOT CAUSE: there are THREE write paths, not two.
+  `main.py --all` (the CLI) calls `database.db.save_listings()` directly, which bulk-INSERTs into
+  price_history and never sees `pipeline._is_livestock`. The PROD cron (`scheduled_crawl.py`) uses
+  `run_multi_vendor_pipeline`, which DOES gate — so prod was never affected and clears on its 09:00
+  UTC run; only the CLI diverged. FIX: the same pickup gate now lives in `save_listings`, so CLI and
+  cron agree about what is in stock. Re-crawled spidershoppe + fear_not: pickup rows 118 → 0
+  (snapshot 3,921 → 3,797). LESSON (same shape as the two-snapshot-builder bug earlier the same
+  day): this codebase has PARALLEL paths for the same job — two snapshot builders, three listing
+  writers. A filter or annotation added to one is NOT in effect until every path has it, and the
+  only way to know is to exercise the path the user/cron actually runs, not the one under test.
+  NOTE: the CLI path also skips `_is_stocked`; sold-out rows are filtered by the scrapers upstream
+  today, but that divergence is unguarded — worth folding into save_listings next session.
 - 2026-07-22 (pm) — BETA-TESTER DATA-QUALITY batch (on `dev`, 221200f + 37dcd7a, HELD for Mike's
   ship word). Tester: "wrong prices and cb/wc statuses, sex missing when it's listed on the vendor's
   website" + one animal showing twice. DIAGNOSIS FIRST: the PRICES were correct in the raw crawl

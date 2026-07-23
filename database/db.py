@@ -228,8 +228,17 @@ def save_listings(listings: List[Listing], crawl_run_id: int,
     cur = conn.cursor()
     now = datetime.utcnow().isoformat()
 
+    # Local-pickup copies of a shippable listing double-count the same animal.
+    # The crawl pipeline drops them, but this bulk path (main.py CLI) writes
+    # straight to price_history, so the same rule has to be enforced here or the
+    # CLI and the cron disagree about what is in stock.
+    from normalize.livestock import is_pickup_only
+
     rows = []
     for l in listings:
+        if is_pickup_only(getattr(l, "raw_title", "") or "") or \
+           is_pickup_only(getattr(l, "scientific_name", "") or ""):
+            continue
         rows.append((
             l.vendor_key, l.scientific_name, l.scientific_name_key or "",
             l.common_name, l.sex, l.sex_display,
