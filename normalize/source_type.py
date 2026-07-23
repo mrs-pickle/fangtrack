@@ -107,6 +107,15 @@ def set_confirmed_policies(mapping: dict) -> None:
     VENDOR_POLICY_CONFIRMED.update({k: v for k, v in (mapping or {}).items() if v})
 
 
+# A vendor spec line that STATES the source, e.g. "CB/WC: WC", "Source: Captive Bred".
+# Captures the stated VALUE so the label's own "CB" can't be mistaken for the answer.
+_LABELLED_RE = re.compile(
+    r"(?:cb\s*/\s*wc|wc\s*/\s*cb|source|origin\s*type|captive[\s-]?bred\s*/\s*wild[\s-]?caught)"
+    r"\s*[:=]\s*"
+    r"(ltc|long[\s-]?term[\s-]?captive|cbb?|wc|captive[\s-]?bred|wild[\s-]?caught)\b",
+    re.IGNORECASE)
+
+
 def detect_source_type(title: str = "", notes: str = "",
                         variant: str = "") -> str:
     """
@@ -118,6 +127,20 @@ def detect_source_type(title: str = "", notes: str = "",
     combined = f"{title} {notes} {variant}".strip()
     if not combined:
         return UNK
+
+    # LABELLED SPEC FIELD FIRST. Several vendors publish a spec block like
+    # "CB/WC: WC" — the answer is the value AFTER the label. Pattern-matching the
+    # raw text there is actively WRONG: the label itself contains "CB", so a
+    # wild-caught animal would be reported as captive-bred (both tokens match and
+    # the tie-break trusts CB). Read the stated value instead.
+    m = _LABELLED_RE.search(combined)
+    if m:
+        val = m.group(1).lower()
+        if re.match(r"ltc|long", val):
+            return LTC
+        if val.startswith("wc") or "wild" in val:
+            return WC
+        return CB
 
     has_wc = bool(_WC_RE.search(combined))
     has_cb = bool(_CB_RE.search(combined))
@@ -136,6 +159,41 @@ def detect_source_type(title: str = "", notes: str = "",
     # Size-based inference: slings (< 1") almost never WC
     # Not applied here — done at the listing level with size context.
     return UNK
+
+
+# Many vendors state the source only in the product DESCRIPTION ("CB/WC: WC",
+# "captive bred here at the shop"), never in the title or variant — so the
+# listing looked "unknown" even though it told us. Prose is noisier than a
+# title, so we read only UNAMBIGUOUS signals here: the labelled spec field and
+# explicit phrases. The weak title tokens are deliberately NOT used —
+# "breeder" ("a favourite among breeders"), bare "cb", and "F2" all turn up
+# incidentally in marketing copy and would manufacture a source we were never told.
+_PROSE_CB_RE = re.compile(
+    r"\b(?:captive[\s-]?bred|captive[\s-]?born|home[\s-]?bred|cbb)\b", re.IGNORECASE)
+_PROSE_WC_RE = re.compile(
+    r"\b(?:wild[\s-]?caught|field[\s-]?collected|wild[\s-]?collected|"
+    r"imported\s+from\s+the\s+wild)\b", re.IGNORECASE)
+_PROSE_LTC_RE = re.compile(r"\b(?:ltc|long[\s-]?term[\s-]?captive)\b", re.IGNORECASE)
+
+
+def detect_source_type_in_prose(text: str = "") -> str:
+    """Detect a source the vendor STATED in free-text description copy.
+
+    High-confidence signals only (see note above). Returns UNK when the prose
+    is silent or says both, so a guess never outranks an honest 'unknown'.
+    """
+    if not text:
+        return UNK
+    m = _LABELLED_RE.search(text)
+    if m:                                   # an explicit spec field wins outright
+        return detect_source_type(m.group(0))
+    if _PROSE_LTC_RE.search(text):
+        return LTC
+    has_cb = bool(_PROSE_CB_RE.search(text))
+    has_wc = bool(_PROSE_WC_RE.search(text))
+    if has_cb != has_wc:                    # exactly one -> trust it
+        return CB if has_cb else WC
+    return UNK                              # silent, or contradicts itself
 
 
 def infer_source_type_from_size(detected: str, size_midpoint: float = None) -> str:
@@ -211,6 +269,13 @@ def annotate_source_types(listings: list) -> None:
         mid     = l.get("size_midpoint") if is_dict else getattr(l, "size_midpoint", None)
 
         detected = detect_source_type(f"{title} {blob}", notes, variant)
+
+        # Fall back to the product DESCRIPTION when the title/variant are silent.
+        # Many sellers only state CB/WC down in the body copy, so the listing did
+        # tell us — we just were not reading it. Title/variant still win outright;
+        # the description can only fill an 'unknown', never overturn a statement.
+        if detected == UNK:
+            detected = detect_source_type_in_prose(_get(l, "description", is_dict))
 
         # Vendor-level policy: many sellers are breeders who state "all captive
         # bred" once on their site rather than on each listing. Apply only when

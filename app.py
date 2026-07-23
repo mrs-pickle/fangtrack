@@ -160,6 +160,10 @@ def _security_headers(resp):
 # dev) leave this False and build normally, then persist the blobs.
 _WEB_READONLY = False
 
+# Discount codes are SUPPRESSED until a real scanner (expiry + verified_at) exists —
+# see the note in the snapshot builder. Column + filter stay; only the data is hidden.
+DISCOUNT_CODES_ENABLED = False
+
 # ── Market analytics (StockX/Keepa/TCG microstructure layer) ────────────────
 _market_cache = {"data": None, "ts": 0}
 
@@ -624,6 +628,15 @@ def _build_snapshot(now: float) -> list:
     # ── Deal codes + free shipping (native, first-class) ────────────────────
     # Attach the vendor's best active discount code and its "with code" price,
     # plus the free-shipping threshold, to every listing.
+    #
+    # DISCOUNT_CODES_ENABLED = False (2026-07-22, Mike's call after beta feedback):
+    # the 9 stored codes were hand-entered with NO expiry and no re-verification, so
+    # we were asserting dead codes as fact (a tester confirmed COLLECTIVE10 on
+    # spidershoppe and TTC10 on marshall_arachnids no longer work). The column and
+    # filter STAY — only the data is suppressed, so nothing shows a code until we
+    # build a real scanner (expiry + verified_at). Flip this back to True then.
+    # Suppressed here rather than by clearing the table so PROD is fixed on deploy
+    # regardless of what rows its own database still holds.
     from database.db import get_active_discount_codes
     codes_by_vendor = get_active_discount_codes(DB_PATH)
     shipping = get_all_shipping(DB_PATH)
@@ -632,7 +645,7 @@ def _build_snapshot(now: float) -> list:
         vk = l.get("vendor_key", "")
         price = l.get("price_usd") or 0
         codes = codes_by_vendor.get(vk, [])
-        best = _best_discount(codes, price)
+        best = _best_discount(codes, price) if DISCOUNT_CODES_ENABLED else None
         if best:
             l["discount_code"] = best["code"]
             l["discount_type"] = best["discount_type"]

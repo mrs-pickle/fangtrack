@@ -120,7 +120,7 @@
     <th>Market</th>
     <th data-nosort>90-Day</th>
     <th>+Ship</th>
-    <th>Landed</th>
+    <th title="Estimate: listing price + this vendor's flat shipping rate. Not a quote — verify at checkout.">Est. landed</th>
     <th data-nosort>Free Ship</th>
     <th>Trend</th>
     <th title="Captive-bred / wild-caught / unstated. Shown for information — it carries no weight in the deal score; all sources compete together.">Source</th>
@@ -181,7 +181,7 @@
     </td>
     <!-- Landed -->
     <td style="font-weight:600; color:var(--text-soft); white-space:nowrap;">
-      {% if l.landed_cost %}<span style="font-size:13px;">${{ "%.0f"|format(l.landed_cost) }}</span>{% else %}—{% endif %}
+      {% if l.landed_cost %}<span style="font-size:13px;" title="Estimate: listing price + this vendor's flat shipping rate. Not a quote — verify at checkout.">~${{ "%.0f"|format(l.landed_cost) }}</span>{% else %}—{% endif %}
     </td>
     <!-- Free shipping threshold -->
     <td class="ship-info" data-sort="{{ l.free_ship_threshold or 999999 }}">

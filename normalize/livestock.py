@@ -289,6 +289,22 @@ _STOP_SPECIES = {"and", "for", "the", "with", "was", "big", "top", "red", "blue"
                  "black", "green", "gold", "pink", "giant", "dwarf", "sale", "only"}
 
 
+# Local-pickup / in-person-only listings. These ARE livestock, but they can't be
+# bought online, and vendors list them ALONGSIDE the shippable copy — so counting
+# them double-counts stock and invents phantom duplicates (a beta tester saw
+# "2 listings at 0.5\"" for a Caribena versicolor that Spider Shoppe lists once,
+# the second being "[Vancouver Pick-up]"). Checked against the RAW title, because
+# is_livestock() strips a leading "[...]" prefix before its own tests.
+_PICKUP_ONLY_RE = re.compile(
+    r"pick[\s\-]?up\b|\blocal\s*pick|\bin[\s\-]?store\s*only\b|\bexpo\s*only\b|"
+    r"\bshow\s*only\b|\bno\s*ship(?:ping)?\b|\bcash\s*(?:and|&|n)\s*carry\b", re.I)
+
+
+def is_pickup_only(title: str) -> bool:
+    """True for local-pickup / in-person-only listings (not purchasable online)."""
+    return bool(title) and bool(_PICKUP_ONLY_RE.search(title))
+
+
 def is_livestock(title: str) -> bool:
     """True when the title looks like a live invertebrate listing."""
     if not title:

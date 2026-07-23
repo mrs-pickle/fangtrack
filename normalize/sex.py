@@ -71,6 +71,77 @@ def normalize_sex(raw: Optional[str]) -> tuple[str, str]:
     return "Unknown", "Unknown"
 
 
+# Some sellers put the sex in the LISTING TITLE and leave the variant as a bare
+# size ("Aphonopelma chalchodes - Male", variant '3"'). We were reading only the
+# variant, so those animals showed as Unknown even though the seller told us.
+#
+# A title is prose, so only WHOLE WORDS count here — never the single-letter
+# codes normalize_sex accepts ("f", "m", "u"), which collide with size notation
+# and locality codes in real titles. Ambiguous titles stay Unknown: reporting a
+# sex the seller did not state is worse than admitting we do not know.
+_PAIR_RE = re.compile(r"\bpairs?\b|\bm\s*\+\s*f\b|\bf\s*\+\s*m\b", re.IGNORECASE)
+_TITLE_UNSEXED_RE = re.compile(
+    r"\bunsexed\b|\bunconfirmed\b|\b(?:probable|likely|possible)\s+(?:female|male)\b",
+    re.IGNORECASE)
+_TITLE_MM_RE = re.compile(r"\b(?:mature|adult|ultimate)\s+males?\b", re.IGNORECASE)
+_TITLE_F_RE  = re.compile(r"\bfemales?\b", re.IGNORECASE)
+_TITLE_M_RE  = re.compile(r"\bmales?\b", re.IGNORECASE)
+
+
+def sex_from_title(title: Optional[str]) -> tuple[str, str]:
+    """Extract a seller-stated sex from a listing TITLE.
+
+    Returns ("Unknown", "Unknown") unless the title states one sex plainly.
+    A pair listing ("PAIR M+F") is deliberately Unknown — it is not a single
+    sexed animal, so labelling it either way would misdescribe what is sold.
+    """
+    if not title:
+        return "Unknown", "Unknown"
+    if _PAIR_RE.search(title):
+        return "Unknown", "Unknown"
+    if _TITLE_UNSEXED_RE.search(title):
+        return "U", SEX_DISPLAY["U"]
+    if _TITLE_MM_RE.search(title):
+        return "MM", SEX_DISPLAY["MM"]
+    has_f = bool(_TITLE_F_RE.search(title))
+    has_m = bool(_TITLE_M_RE.search(title))
+    if has_f and has_m:            # e.g. "males and females available"
+        return "Unknown", "Unknown"
+    if has_f:
+        return "F", SEX_DISPLAY["F"]
+    if has_m:
+        return "M", SEX_DISPLAY["M"]
+    return "Unknown", "Unknown"
+
+
+def annotate_missing_sex(listings: list) -> int:
+    """Fill in a seller-stated sex that the scraper missed. Returns how many.
+
+    Sex is extracted per-vendor (each scraper reads its own variant field), so a
+    seller who states it in the TITLE instead slipped through everywhere at once.
+    This runs over the finished snapshot — one place, all vendors, historical rows
+    included. FILL ONLY: a sex already extracted is never overwritten, so a
+    variant-level fact always beats this title-level fallback.
+    """
+    filled = 0
+    for l in listings:
+        is_dict = isinstance(l, dict)
+        cur = (l.get("sex") if is_dict else getattr(l, "sex", None)) or "Unknown"
+        if cur != "Unknown":
+            continue
+        title = (l.get("raw_title") if is_dict else getattr(l, "raw_title", None)) \
+            or (l.get("scientific_name") if is_dict else getattr(l, "scientific_name", None)) or ""
+        code, display = sex_from_title(title)
+        if code == "Unknown":
+            continue
+        if is_dict:
+            l["sex"], l["sex_display"] = code, display
+        else:
+            l.sex, l.sex_display = code, display
+        filled += 1
+    return filled
+
+
 def sex_from_variant_title(variant_title: Optional[str]) -> tuple[str, str]:
     """
     Extract sex from a Shopify/WooCommerce variant title like '1" Female' or 'MM 3"'.

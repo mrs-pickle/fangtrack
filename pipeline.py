@@ -325,6 +325,16 @@ def export_only(db_path: str | Path = DB_PATH,
 
     # Source type (WC vs CB) — must happen before deal scoring
     annotate_source_types(snapshot)
+
+    # Recover a sex the seller stated in the TITLE but the scraper (which reads
+    # the variant) missed. Fill-only — never overrides an extracted sex.
+    from normalize.sex import annotate_missing_sex
+    _filled_sex = annotate_missing_sex(snapshot)
+    if _filled_sex:
+        import logging
+        logging.getLogger(__name__).info(
+            f"Recovered sex from title for {_filled_sex} listing(s)")
+
     enrich_listings_with_common_names(snapshot)
 
     # Rarity Index (species-level + per-size-class)
@@ -373,9 +383,14 @@ def _is_stocked(d: dict) -> bool:
 
 
 def _is_livestock(d: dict) -> bool:
-    """Return True only for live invertebrate listings (drop supplies/decor/etc)."""
-    from normalize.livestock import is_livestock
-    title = d.get("scientific_name") or d.get("raw_title") or ""
+    """Return True only for live invertebrate listings that can actually be BOUGHT
+    online — drops supplies/decor/feeders, and local-pickup-only variants (which
+    vendors list alongside the shippable copy, double-counting stock)."""
+    from normalize.livestock import is_livestock, is_pickup_only
+    raw = d.get("raw_title") or ""
+    title = d.get("scientific_name") or raw
+    if is_pickup_only(raw) or is_pickup_only(title):
+        return False
     return is_livestock(title)
 
 

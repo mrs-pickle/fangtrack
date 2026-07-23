@@ -176,7 +176,7 @@
   </div>
   <div style="overflow-x:auto;">
   <table>
-    <thead><tr><th>Seller</th><th>Size</th><th>Sex</th><th title="Captive-bred / wild-caught / unstated. Shown for information — it carries no weight in the deal score.">Source</th><th>Ask</th><th>With code</th><th>Shipped</th><th>Deal</th><th>Rarity</th><th></th></tr></thead>
+    <thead><tr><th>Seller</th><th>Size</th><th>Sex</th><th title="Captive-bred / wild-caught / unstated. Shown for information — it carries no weight in the deal score.">Source</th><th>Ask</th><th>With code</th><th title="Estimate: listing price + this vendor's flat shipping rate. Not a quote — verify at checkout.">Est. shipped</th><th>Deal</th><th>Rarity</th><th></th></tr></thead>
     <tbody>
     {% for l in current|sort(attribute='price_usd') %}
     {% set buy = l.product_url or l.vendor_homepage %}
@@ -198,7 +198,7 @@
       </td>
       <td style="font-weight:700;color:#2563eb;">${{ "%.2f"|format(l.price_usd) }}</td>
       <td>{% if l.price_with_code %}<span style="color:#34d399;font-weight:700;">${{ "%.2f"|format(l.price_with_code) }}</span> <span style="font-size:10px;color:var(--text-dimmer);">{{ l.discount_code }}</span>{% else %}—{% endif %}</td>
-      <td style="color:var(--muted); font-size:12px;">{% if l.landed_cost %}${{ "%.0f"|format(l.landed_cost) }}{% else %}—{% endif %}</td>
+      <td style="color:var(--muted); font-size:12px;">{% if l.landed_cost %}~${{ "%.0f"|format(l.landed_cost) }}{% else %}—{% endif %}</td>
       <td>{% if l.is_fire_deal %}🔥{% elif l.deal_rating=='💎💎'%}💎💎{% elif l.deal_rating=='💎'%}💎{% else %}{{ l.deal_rating or '—'}}{% endif %}</td>
       <td>{% set rs=l.size_class_rarity_score%}{% if rs%}<span class="score-{{rs}} rtier">{{rs}}/10</span>{% endif %}</td>
       <td>{% if buy %}<a href="{{ buy }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:3px 12px;font-size:11px;" onclick="event.stopPropagation()">Buy →</a>{% endif %}</td>
