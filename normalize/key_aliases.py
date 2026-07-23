@@ -63,6 +63,14 @@ KEY_ALIASES: dict[str, str] = {
     "aspinochilus rufus":             "augacephalus rufus",
     "phormingochilus sp rufus":       "augacephalus rufus",
     "augacephalus enzedami":          "augacephalus ezendami",
+    # Fragments surfaced by the collection resolver (2026-07-22) — same animal
+    # split across several cards; collapse onto the key with the most history.
+    "chilobrachys sp kaeng krachan":  "chilobrachys sp kaeng",
+    "chilobrachys kaeng":             "chilobrachys sp kaeng",
+    "phormingochilus hati":           "phormingochilus hatihati",
+    "phormingochilus sp hati":        "phormingochilus hatihati",
+    "phormingochilus hati hati":      "phormingochilus hatihati",
+    "thrixopelma pruriens":           "ewok pruriens",   # Peruvian Green Velvet
     # epithet misspellings
     "tlitocatl khalenbergi":          "tliltocatl kahlenbergi",
     "tliltocatl khalenbergi":         "tliltocatl kahlenbergi",

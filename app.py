@@ -959,6 +959,62 @@ def _score_species(q: str, s: dict, aliases) -> int:
     return best
 
 
+_lookup_cache = {"data": None, "ts": 0}
+
+
+def _species_lookup_maps():
+    """(set of canonical keys, common-name -> key, catalog). Cached with the
+    catalog TTL. When a common name is shared by several cards, the one with the
+    most price history wins (the fragments get collapsed via key_aliases)."""
+    now = time.time()
+    if _lookup_cache["data"] and (now - _lookup_cache["ts"]) < _CACHE_TTL:
+        return _lookup_cache["data"]
+    cat = get_species_catalog(DB_PATH)
+    keys = {s["key"] for s in cat}
+    by_common: dict[str, tuple] = {}
+    for s in cat:
+        c = (s.get("common") or "").strip().lower()
+        if not c:
+            continue
+        prev = by_common.get(c)
+        if prev is None or (s.get("n") or 0) > prev[1]:
+            by_common[c] = (s["key"], s.get("n") or 0)
+    data = (keys, {c: k for c, (k, _) in by_common.items()}, cat)
+    _lookup_cache["data"], _lookup_cache["ts"] = data, now
+    return data
+
+
+def resolve_species_key(raw: str, min_ratio: float = 0.86) -> str | None:
+    """THE species resolver — maps ANY user text (scientific name, common/trade
+    name, or a misspelling) onto one canonical species key, or None if nothing is
+    close enough. Layered, cheapest first:
+        1. canonicalized key (key_aliases: synonyms, typos, trade names)
+        2. exact catalog key
+        3. exact COMMON NAME  ("Peach Earth Tiger" -> augacephalus rufus)
+        4. fuzzy match >= min_ratio over display / common / key
+    Used by the collection (upload + render), so a row typed as a common name or
+    misspelling still lands on the right card with a market value instead of 404."""
+    from normalize.key_aliases import canonicalize_key
+    from difflib import SequenceMatcher
+    if not raw:
+        return None
+    txt = " ".join(str(raw).split()).lower()
+    keys, by_common, cat = _species_lookup_maps()
+    for cand in (canonicalize_key(normalize_species_key(txt) or ""), canonicalize_key(txt)):
+        if cand and cand in keys:
+            return cand
+    if txt in by_common:
+        return by_common[txt]
+    best, bkey = 0.0, None
+    for s in cat:
+        r = max(SequenceMatcher(None, txt, (s.get("display") or "").lower()).ratio(),
+                SequenceMatcher(None, txt, (s.get("common") or "").lower()).ratio(),
+                SequenceMatcher(None, txt, s["key"]).ratio())
+        if r > best:
+            best, bkey = r, s["key"]
+    return bkey if best >= min_ratio else None
+
+
 @app.route("/api/species/suggest")
 def api_species_suggest():
     """Typeahead suggestions: ranked, synonym-aware, one row per canonical
@@ -2290,6 +2346,16 @@ def collection():
     except Exception:
         items = []
     conn.close()
+    # Resolve every row onto a real species card BEFORE valuing it. Legacy rows
+    # stored a key derived from whatever was typed — a common name ("Peach Earth
+    # Tiger"), a trade name, or a misspelling — which matched no card, so the row
+    # 404'd and showed no market value. The resolver heals those at render time
+    # (no migration needed) and the valuation then finds prices.
+    for it in items:
+        rk = (resolve_species_key(it.get("species_display") or "")
+              or resolve_species_key(it.get("species_key") or ""))
+        if rk:
+            it["species_key"] = rk
     items, portfolio = _collection_valued(items)
     return render_template("collection.html", items=items, portfolio=portfolio)
 
