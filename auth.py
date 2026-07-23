@@ -339,7 +339,9 @@ def init_auth(app):
             conn.commit()
             conn.close()
             flash("Password updated.", "success")
-        return redirect(url_for("settings"))
+        # /settings is admin-only — send everyone back to /account, where the
+        # Change Password form actually lives (a non-admin used to land in a 403).
+        return redirect(url_for("account"))
 
     # ── Password reset ────────────────────────────────────────────────────────
     @app.route("/forgot", methods=["GET", "POST"])
