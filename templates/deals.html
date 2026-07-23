@@ -104,7 +104,6 @@
   <b style="color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-size:10px;">Source</b>
   <span><span style="color:#22c55e; font-weight:700;">CB</span> captive-bred</span>
   <span><span style="color:#ef4444; font-weight:700;">WC</span> wild-caught</span>
-  <span><span style="color:#fbbf24; font-weight:700;">LTC</span> long-term captive</span>
   <span><span style="color:var(--text-dim); font-weight:700;">°</span> unconfirmed</span>
   <span style="color:var(--text-dimmer);">— info only, no effect on the deal score</span>
 </div>
@@ -208,8 +207,7 @@
                   else 'Seller did not state a source'))) %}
       {% set dim = p not in ('stated', '') %}
       {% if l.source_type=='CB' %}<span style="color:{{ '#166534' if dim else '#22c55e' }};" title="{{ tip }}">CB{% if dim %}<span style="color:var(--text-dim); font-weight:400;">°</span>{% endif %}</span>
-      {% elif l.source_type=='WC' %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:var(--text-dim); font-weight:400;">°</span>{% endif %}</span>
-      {% elif l.source_type=='LTC' %}<span style="color:#fbbf24;" title="{{ tip }}">LTC</span>
+      {% elif l.source_type in ('WC','LTC') %}<span style="color:{{ '#b91c1c' if dim else '#ef4444' }};" title="{{ tip }}">WC{% if dim %}<span style="color:var(--text-dim); font-weight:400;">°</span>{% endif %}</span>
       {% else %}<span style="color:var(--text-dimmest);" title="{{ tip }}">?</span>{% endif %}
     </td>
     <!-- Hist low -->
