@@ -75,6 +75,27 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
 5. Verify with a live run; cross-check count vs the vendor's real catalog size.
 
 ## Decision log (newest first)
+- 2026-07-23 (late) — PROD CRAWL + SITEMAP HARDENING SHIPPED (live 1270411). Mike ran the prod
+  Run Crawl; it was the FIRST time `apply_key_aliases` had ever executed on production (see the
+  entry below for why it never had). RESULT: the whole accumulated alias backlog collapsed at once —
+  species catalog **1,312 → 1,222 (−90)**, matching the ~80–100 predicted from local. Tester's
+  duplicate closed: /species/aphonopelma%20seemani now 404s, seemanni 200s. Site stayed healthy
+  through the in-process crawl (/healthz 0.19–0.21s, no flap on the 1-core box — the threads 4→8
+  change continues to hold; homepage briefly 2.8s while caches warmed, then back to 0.28s).
+  FLAW FOUND BY VERIFYING RATHER THAN ASSUMING: the crawl heals `price_history` immediately (so the
+  fragment's page 404'd right away) but the SITEMAP is built from the CACHED species catalog, which
+  lags — so for the length of that window the sitemap advertised a URL that 404s, which Search
+  Console reports as "Submitted URL not found (404)". Confirmed it was NOT an HTTP/edge cache (a
+  cache-buster returned the same bytes). Waiting would have fixed this instance but the window
+  reopens on EVERY future crawl that merges a fragment, so the fix is structural: the sitemap now
+  filters every key through `canonicalize_key` and skips any non-canonical form, plus de-dupes
+  (two fragments can canonicalize to the same URL). A fragment can no longer be advertised even
+  while it is still sitting in the cache. Final prod sitemap: 1,228 urls / 1,222 species, 0
+  misspellings, well-formed; 12/12 randomly sampled URLs return 200 (spot-checked as Googlebot
+  would). LESSON: "the data is fixed" and "the site shows it fixed" are different claims — anything
+  built from a cache needs checking separately from the table it derives from. Mike has GA4
+  (14-month retention + internal-traffic filter) and Search Console done; sitemap URL handed over
+  for submission: https://fangtrack.com/sitemap.xml
 - 2026-07-23 — SEO/ANALYTICS INFRA + TESTER FIXES SHIPPED (dev→main, live 948052a; CI green on the
   matching SHA, 95 tests). Context: Mike wants best-practice infrastructure but NO ads / no SEO push
   this year — growth is organic sharing into invert communities. (a) LINK PREVIEWS were the actual
