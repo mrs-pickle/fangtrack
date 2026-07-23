@@ -1,3 +1,4 @@
+{% from "_sex.html" import sex_badge %}
 {% extends "base.html" %}{% block title %}{{ display or species_key }} — FangTrack Pro{% endblock %}
 {% block content %}
 {% set tier = [stats.rarity_tier or '', stats.rarity_class or ''] %}
@@ -182,8 +183,11 @@
     {% set buy = l.product_url or l.vendor_homepage %}
     <tr {% if buy %}onclick="window.open('{{ buy }}','_blank')" style="cursor:pointer;"{% endif %}>
       <td style="font-size:12px;">{% if l.is_private %}<span title="Private seller" style="color:#a855f7;">👤</span> {% endif %}{% if buy %}<a href="{{ buy }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;" onclick="event.stopPropagation()">{{ l.vendor_key }}</a>{% else %}{{ l.vendor_key }}{% endif %}</td>
-      <td style="color:var(--muted);">{{ l.size_text or '?' }}{% if l.size_text %}"{% endif %}</td>
-      <td>{% if l.sex=='F'%}<span style="color:#f9a8d4;">♀</span>{% elif l.sex=='M'%}<span style="color:#93c5fd;">♂</span>{% else %}?{% endif %}</td>
+      {# Only append an inch mark when the size is a bare MEASUREMENT that lacks
+         one. Appending unconditionally produced 2-3"" (the scraper already kept
+         the vendor's own ") and Adult" (not a measurement at all). #}
+      <td style="color:var(--muted);">{{ l.size_text or '?' }}{% if l.size_text and '"' not in l.size_text and l.size_text[0] is number %}"{% endif %}</td>
+      <td>{{ sex_badge(l.sex) }}</td>
       <td style="font-size:11px; font-weight:700;">
         {% set p = l.source_provenance %}
         {% set tip = 'Stated on this listing' if p=='stated'

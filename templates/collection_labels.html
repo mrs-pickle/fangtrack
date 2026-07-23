@@ -70,7 +70,7 @@
       <div class="label">
         <div class="sci">{{ it.species_display }}</div>
         {% if it.common %}<div class="com">{{ it.common }}</div>{% endif %}
-        <div class="meta">{% if it.sex=='F' %}♀{% elif it.sex=='M' %}♂{% else %}U{% endif %}{% if it.quantity and it.quantity>1 %} ×{{ it.quantity }}{% endif %}{% if it.size_notes %} · {{ it.size_notes }}{% endif %}</div>
+        <div class="meta">{% if it.sex=='F' %}♀{% elif it.sex=='MM' %}♂ⁿ{% elif it.sex=='M' %}♂{% elif it.sex in ('U','PF') %}U{% else %}?{% endif %}{% if it.quantity and it.quantity>1 %} ×{{ it.quantity }}{% endif %}{% if it.size_notes %} · {{ it.size_notes }}{% endif %}</div>
         {% if it.source or it.acquired_date %}<div class="meta">{{ it.source or '' }}{% if it.acquired_date %} · {{ it.acquired_date }}{% endif %}</div>{% endif %}
         <div class="brand">FangTrack Pro</div>
       </div>

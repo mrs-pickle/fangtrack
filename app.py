@@ -1235,26 +1235,13 @@ def _apply_key_aliases(db_path=DB_PATH) -> int:
     tools/migrate_key_aliases.py which is raw sqlite3). canonicalize_key already
     runs on each NEW row via db.record; this fixes accumulated HISTORICAL rows so
     the search dropdown shows ONE entry per species (e.g. the 3 'Dominican Purple'
-    fragments collapse to one). Run after every crawl."""
-    from normalize.key_aliases import canonicalize_key
-    conn = get_connection(db_path)
-    changed = 0
-    try:
-        keys = [r["scientific_name_key"] for r in conn.execute(
-            "SELECT DISTINCT scientific_name_key FROM price_history "
-            "WHERE scientific_name_key IS NOT NULL AND scientific_name_key<>''")]
-        for k in keys:
-            ck = canonicalize_key(k)
-            if ck != k:
-                conn.execute("UPDATE price_history SET scientific_name_key=? "
-                             "WHERE scientific_name_key=?", (ck, k))
-                changed += 1
-        conn.commit()
-    except Exception as e:
-        logger.warning(f"_apply_key_aliases failed: {e}")
-    finally:
-        conn.close()
-    return changed
+    fragments collapse to one). Run after every crawl.
+
+    Thin wrapper: the ONE implementation lives in pipeline.py, where every crawl
+    path converges. Keeping a second copy here is exactly what let this run on
+    the admin crawl but never once on the prod cron."""
+    from pipeline import apply_key_aliases
+    return apply_key_aliases(db_path)
 
 
 def run_crawl_thread(vendor_keys: list[str]):

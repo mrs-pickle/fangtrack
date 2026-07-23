@@ -1,0 +1,37 @@
+{# Sex badge — ONE definition, used everywhere a listing's sex is shown.
+
+   Usage:
+     {% from "_sex.html" import sex_badge %}
+     {{ sex_badge(l.sex) }}
+
+   Why this exists: the codes are set in normalize/sex.py (F / M / MM / U /
+   Unknown) but each template re-implemented the rendering, and most of them
+   only knew F and M — so a MATURE MALE and an animal the seller deliberately
+   sold as UNSEXED both rendered as "?", i.e. the site claimed not to know
+   something the vendor had actually told us. A beta tester caught it on an
+   A. moderatum mature male (2026-07-23).
+
+   "?" now means ONLY "no sex stated anywhere", which is the honest use of it. #}
+
+{% macro sex_badge(sex) -%}
+  {%- if sex == 'F' -%}
+    <span style="color:#f9a8d4; font-weight:700;" title="Female">&#9792;</span>
+  {%- elif sex == 'MM' -%}
+    {# Mature male: a real, price-relevant distinction — MMs are near the end of
+       their life, so they trade well below an immature male of the same size. #}
+    <span style="color:#93c5fd; font-weight:700;" title="Mature male">&#9794;&#8319;</span>
+  {%- elif sex == 'M' -%}
+    <span style="color:#93c5fd; font-weight:700;" title="Male">&#9794;</span>
+  {%- elif sex in ('U', 'PF') -%}
+    {# Seller stated unsexed (PF is the retired 'probable female' code, which we
+       treat as unsexed rather than present an unverified guess as fact). #}
+    <span style="color:var(--text-dim);" title="Seller states unsexed">U</span>
+  {%- else -%}
+    <span style="color:var(--text-dimmest);" title="No sex stated">?</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{# Numeric sort key so a sex column sorts F, PF, M, MM, unsexed, unknown. #}
+{% macro sex_sort(sex) -%}
+{{ {'F': 0, 'PF': 1, 'M': 2, 'MM': 3, 'U': 4}.get(sex, 5) }}
+{%- endmacro %}

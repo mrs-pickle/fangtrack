@@ -171,6 +171,34 @@ _GUARD_MIN_BASELINE = 10
 _GUARD_DROP_FLOOR = 0.2
 
 
+def apply_key_aliases(db_path=None) -> int:
+    """Collapse fragmented/misspelled species keys onto their canonical form.
+
+    PORTABLE — goes through the pg adapter, unlike tools/migrate_key_aliases.py
+    (raw sqlite3), so it works on prod Postgres. Returns how many keys moved.
+    """
+    from normalize.key_aliases import canonicalize_key
+    from database.db import get_connection, DB_PATH as _DEFAULT
+    conn = get_connection(db_path or _DEFAULT)
+    changed = 0
+    try:
+        keys = [r["scientific_name_key"] for r in conn.execute(
+            "SELECT DISTINCT scientific_name_key FROM price_history "
+            "WHERE scientific_name_key IS NOT NULL AND scientific_name_key<>''")]
+        for k in keys:
+            ck = canonicalize_key(k)
+            if ck != k:
+                conn.execute("UPDATE price_history SET scientific_name_key=? "
+                             "WHERE scientific_name_key=?", (ck, k))
+                changed += 1
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"apply_key_aliases failed: {e}")
+    finally:
+        conn.close()
+    return changed
+
+
 def run_multi_vendor_pipeline(
     vendor_results:  list[tuple[str, str, list]],
     db_path:         str | Path = DB_PATH,
@@ -255,6 +283,23 @@ def run_multi_vendor_pipeline(
                       finished_at=scrape_finished, truncated=truncated)
         logger.info(f"[{vendor_key}] {saved} listings saved (run_id={run_id})"
                     + (" [TRUNCATED — snapshot keeps last good run]" if truncated else ""))
+
+    # Collapse fragmented / misspelled species keys onto their canonical form.
+    # canonicalize_key already runs on each NEW row (db.record); this heals the
+    # HISTORICAL rows so the catalog shows ONE card per species.
+    #
+    # This lives HERE, not in a caller, because every crawl path converges on
+    # this function — the prod cron (scheduled_crawl.py) and the in-process admin
+    # crawl both call it. It used to be wired into the admin path only, so it
+    # never once ran on production: a beta tester found Aphonopelma
+    # seemanni/seemani still showing as two cards (2026-07-23) even though the
+    # alias had shipped days earlier.
+    try:
+        n = apply_key_aliases(db_path)
+        if n:
+            logger.info(f"key-alias pass: collapsed {n} fragmented species keys")
+    except Exception as e:
+        logger.warning(f"key-alias pass skipped: {e}")
 
     # Score combined snapshot against all history
     history_lows = db.historical_lows()

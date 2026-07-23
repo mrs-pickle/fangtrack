@@ -1,3 +1,4 @@
+{% from "_sex.html" import sex_badge %}
 {% extends "base.html" %}
 {% block title %}Deals — FangTrack Pro{% endblock %}
 {% set og_description = "The best-value invert listings right now, graded against market price across 29 vendor sites — with shipping, rarity and price history." %}
@@ -159,10 +160,8 @@
     <!-- Life stage -->
     <td style="color:var(--text-dimmer); font-size:11px;">{{ l.size_bucket_label or l.size_text or '?' }}</td>
     <!-- Sex -->
-    <td data-sort="{{ {'F':0,'PF':1,'M':2,'MM':3}.get(l.sex, 4) }}" style="text-align:center;">
-      {% if l.sex=='F' %}<span style="color:#f9a8d4; font-weight:700;">♀</span>
-      {% elif l.sex=='M' %}<span style="color:#93c5fd; font-weight:700;">♂</span>
-      {% else %}<span style="color:var(--text-dimmest);">?</span>{% endif %}
+    <td data-sort="{{ {'F':0,'PF':1,'M':2,'MM':3,'U':4}.get(l.sex, 5) }}" style="text-align:center;">
+      {{ sex_badge(l.sex) }}
     </td>
     <!-- Ask (this listing's asking price) -->
     <td data-sort="{{ l.price_usd }}" style="font-weight:800; color:#2563eb; font-size:15px;">${{ "%.0f"|format(l.price_usd) }}</td>

@@ -1,3 +1,4 @@
+{% from "_sex.html" import sex_badge %}
 {% extends "base.html" %}{% block title %}Collection — FangTrack Pro{% endblock %}
 {% block content %}
 <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 20px; flex-wrap:wrap; gap:10px;">
@@ -43,7 +44,7 @@
         <tr data-item="{{ item.id }}">
           <td><a href="/species/{{ item.species_key|urlencode }}" class="species-name" style="text-decoration:none;">{{ item.species_display }} →</a></td>
           <td style="color:var(--muted); font-size:12px;">{{ item.common or '—' }}</td>
-          <td>{% if item.sex == 'F' %}<span style="color:#f9a8d4;">♀</span>{% elif item.sex == 'M' %}<span style="color:#93c5fd;">♂</span>{% else %}?{% endif %}</td>
+          <td>{{ sex_badge(item.sex) }}</td>
           <td style="text-align:center; color:var(--muted);">{{ item.quantity }}</td>
           <td style="color:var(--muted); font-size:12px;">{% if item.price_paid %}${{ "%.0f"|format(item.price_paid) }}{% else %}—{% endif %}</td>
           <td style="color:var(--muted); font-size:12px;" title="{% if item.value_basis %}Valued from: {{ item.value_basis }}{% endif %}">{% if item.market_price %}${{ "%.0f"|format(item.market_price) }}{% if item.value_basis %}<span style="color:var(--text-dimmer); font-size:9px; display:block;">{{ item.value_basis }}</span>{% endif %}{% else %}—{% endif %}</td>
@@ -63,7 +64,7 @@
           <td colspan="12" style="padding:14px 16px;">
             <form action="/collection/edit/{{ item.id }}" method="post" style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
               <div><label style="font-size:9px;color:#2563eb;display:block;">SEX</label>
-                <select name="sex" style="width:100px;"><option value="" {% if not item.sex %}selected{% endif %}>Unknown</option><option value="F" {% if item.sex=='F' %}selected{% endif %}>♀ Female</option><option value="M" {% if item.sex=='M' %}selected{% endif %}>♂ Male</option></select></div>
+                <select name="sex" style="width:100px;"><option value="" {% if not item.sex %}selected{% endif %}>Unknown</option><option value="F" {% if item.sex=='F' %}selected{% endif %}>♀ Female</option><option value="M" {% if item.sex=='M' %}selected{% endif %}>♂ Male</option><option value="MM" {% if item.sex=='MM' %}selected{% endif %}>♂ⁿ Mature Male</option><option value="U" {% if item.sex=='U' %}selected{% endif %}>Unsexed</option></select></div>
               <div><label style="font-size:9px;color:#2563eb;display:block;">QTY</label><input name="quantity" type="number" min="1" value="{{ item.quantity or 1 }}" style="width:70px;"></div>
               <div><label style="font-size:9px;color:#2563eb;display:block;">PRICE PAID $</label><input name="price_paid" type="number" step="0.01" value="{{ item.price_paid or '' }}" placeholder="e.g. 45" style="width:100px;"></div>
               <div><label style="font-size:9px;color:#2563eb;display:block;">ACQUIRED</label><input name="acquired_date" type="date" value="{{ item.acquired_date or '' }}" style="width:150px;"></div>
