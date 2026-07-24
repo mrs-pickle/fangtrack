@@ -129,6 +129,30 @@ def test_sitemap_never_advertises_a_url_that_would_404():
         assert canonicalize_key(key) == key, f"non-canonical key in sitemap: {key}"
 
 
+def test_sitemap_genus_pages_are_real_aggregations_not_thin_duplicates():
+    """/family/<genus> is worth listing only when it aggregates 2+ species.
+
+    A single-species genus page just restates that species page; filling a
+    sitemap with near-duplicate thin pages is a liability, not coverage.
+    """
+    from urllib.parse import unquote
+    client = app.test_client()
+    root = ET.fromstring(client.get("/sitemap.xml").get_data(as_text=True))
+    ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+    fam = [e.text for e in root.iter(f"{ns}loc") if "/family/" in e.text]
+    if not fam:
+        return                             # empty catalog in this test DB
+    import app as fangtrack
+    counts = {}
+    for t in (fangtrack.get_species_browse() or []):
+        g = (t.get("genus") or "").strip().lower()
+        if g:
+            counts[g] = counts.get(g, 0) + 1
+    for loc in fam:
+        genus = unquote(loc.split("/family/", 1)[1])
+        assert counts.get(genus, 0) >= 2, f"thin genus page in sitemap: {genus}"
+
+
 def test_sitemap_lastmod_is_a_real_date_and_not_in_the_future():
     """lastmod has to be TRUE to be worth anything.
 

@@ -1801,6 +1801,26 @@ def sitemap_xml():
     except Exception as e:
         logger.warning(f"sitemap: species catalog unavailable ({e})")
 
+    # Genus landing pages (/family/<genus>) — real aggregate content (every
+    # species in the genus + a family price index), previously undiscoverable.
+    # ONLY genera holding 2+ species: a single-species genus page just restates
+    # that species page, and filling a sitemap with near-duplicate thin pages is
+    # a liability rather than coverage.
+    try:
+        counts = {}
+        for t in (get_species_browse() or []):
+            g = (t.get("genus") or "").strip().lower()
+            if g:
+                counts[g] = counts.get(g, 0) + 1
+        multi = sorted(g for g, n in counts.items() if n >= 2)
+        for g in multi:
+            urls.append((url_for("family", genus=g, _external=True),
+                         "weekly", "0.6", today))
+        logger.info(f"sitemap: {len(multi)} genus pages "
+                    f"({len(counts) - len(multi)} single-species genera skipped)")
+    except Exception as e:
+        logger.warning(f"sitemap: genus pages unavailable ({e})")
+
     body = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for loc, freq, pri, mod in urls:
