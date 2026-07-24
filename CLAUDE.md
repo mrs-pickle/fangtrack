@@ -483,6 +483,27 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
   mike@fangtrack.com DONE (Mike did it manually in Render — move_collection.py now dead code);
   IPRoyal proxy pw ROTATED (done). Still-open Render nicety (deferred, not urgent): remove the
   stray FANGTRACK_PROXY_URL from the WEB service env (web doesn't crawl; leave it on the cron).
+- PARKED (2026-07-24) — ON-PAGE COPY / CONTENT (Mike: "park these ideas and let's discuss later.
+  No decision as of now."). Question was whether to add copy (species summaries, explanations of
+  deal grades) and whether it would help search. ANALYSIS TO PICK UP FROM: the deciding split is
+  UNIQUE vs BOILERPLATE. (a) A "what is a deal grade / how market price works" block is the SAME
+  text on 1,222 pages — repeated boilerplate adds no unique content, so it does NOTHING for
+  rankings, but it does close the trust gap beta tester 1 kept probing ("are these numbers
+  right?"). Do it for USERS, expect no search benefit; pairs with the parked freshness-stamp item.
+  (b) Hand-written per-species descriptions: RECOMMENDED AGAINST — 1,222 of them is either a huge
+  manual project or AI mass-generation, which is exactly Google's "scaled content abuse" spam
+  pattern and hard to undo once indexed; it also competes with Tarantula Collective/forums on
+  husbandry authority instead of on market data, which is FangTrack's actual unique claim.
+  (c) THE SWEET SPOT, if we do anything: a trait-derived sentence per species, composed from the
+  EXISTING `normalize/traits.py` badges (verified 400/400 sampled species have full data —
+  hemisphere/habitat/size/temperament/experience/climate). e.g. "An Old World arboreal tarantula
+  from tropical Asia. Large, defensive and fast — for experienced keepers. No urticating hairs,
+  but potent venom." Unique per species, TRUE (derived from our own structured data, not invented),
+  useful to a buyer, and sidesteps scaled-content risk because it is a spec sheet in prose.
+  ~1 day, mostly composition rules. ALSO DECIDED: ignore Semrush's "low text-to-HTML ratio" and
+  "low word count" as goals in themselves — Google has no word-count ranking factor and
+  thin-content penalties target pages with NO unique value; a page with 26 live listings, price
+  history and rarity is not thin. Padding to satisfy that warning would make the product worse.
 - PARKED (2026-07-22) — COMPETITOR-DERIVED FEATURES (Keepa / StockX / TCGplayer research;
   Mike: "park these and let's discuss in the future"). Context: FangTrack ALREADY matches the
   core of all three — price history (Keepa), Market Price as a trimmed median of recent sales
