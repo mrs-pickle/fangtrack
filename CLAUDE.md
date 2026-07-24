@@ -496,7 +496,8 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
        updates hourly and says so; a market price without a timestamp isn't trusted.
     c. **One-click "Alert me under $X"** on the species card. The pieces exist (watchlist target,
        saved-search max_price) but Keepa's whole loop is threshold→notify in ONE action.
-    d. Mobile pass on the new light mode (testers open on a phone first).
+    d. Mobile pass on the light mode (SHIPPED 07-22, so this is now live-relevant — testers
+       open on a phone first).
   FUTURE IDEAS (ranked):
     1. **BROWSER EXTENSION** — Keepa's actual moat (4M+ users) is overlaying price history on the
        retailer's page while you shop. A FangTrack overlay showing market price + deal grade +
@@ -508,17 +509,25 @@ Local dev = SQLite + Windows/Python 3.14. Prod = Render (Postgres) at fangtrack.
     5. Have/Want/Trade lists + community layer (TCG social) — keepers trade slings constantly.
     6. Surface vendor reliability from the Vendor QA data we already collect.
     7. Longer term: PWA/mobile app, public API.
-- PARKED (2026-07-21, Mike's list):
-  - **LIGHT MODE** — first pass (toggle + 535 hex→var conversion + GA) is on branch `feature/
-    light-mode` (commit 134e409), NOT shipped. Mike's feedback: tiles still black-bg, white too
-    bright, logo must swap. APPROVED BASIS (2026-07-21): the branded **watchlist email** is the
-    look to copy for the site light mode (soft off-white card, NOT pure #fff; dark text; thin light
-    borders) — translate base_email.html's T.* token values into the site `[data-theme="light"]`
-    block. LOGO: Mike provides the light-mode logo asset at the START of next session (wait for it).
-    Deep-research light-mode best practices, rebuild palette tile-by-tile, DON'T ship till Mike oks.
-    GA + emails were split OUT of this branch and shipped separately.
-  - **Cloudflare edge cache still DYNAMIC** — rule is correct (OR expr, eligible, 1-day edge TTL,
-    no Page Rules) and a disable/enable redeploy did NOT fix it → CONTRACT/OPEN A CF SUPPORT
-    TICKET (zone-side). Low impact (assets are immutable+1yr, cached in-browser anyway).
-  - **GA Tag Manager + web-service expansion** — maybe this weekend: move from raw gtag to GTM
-    container, evaluate other web services (Search Console, etc.).
+- PARKED (2026-07-21, Mike's list — pruned 2026-07-23):
+  - ~~LIGHT MODE~~ **DONE** — shipped 2026-07-22 (theme toggle + swapped logo + muted slate palette,
+    live). Only remnant is the mobile pass, tracked as beta must-have (d) above.
+  - ~~GA Tag Manager + web-service expansion~~ **RESOLVED**: Search Console DONE (property verified,
+    sitemap submitted), Bing Webmaster DONE, GA4↔GSC link DONE, GA4 hygiene DONE (14-month
+    retention + internal-traffic filter). **GTM: DECIDED AGAINST** — its value is letting non-devs
+    add tags without a deploy; we have ONE tag and a deploy takes minutes, so it would buy ~100KB of
+    script, CSP complexity, a second consent surface and debug indirection for zero gain. Revisit
+    only if ad pixels or a marketing contractor arrive.
+  - **Cloudflare edge cache still DYNAMIC** (STILL OPEN) — rule is correct (OR expr, eligible,
+    1-day edge TTL, no Page Rules) and a disable/enable redeploy did NOT fix it → open a CF support
+    ticket (zone-side). Low impact: assets are immutable+1yr and cached in-browser regardless.
+  - **Discount-code scanner rework** (STILL OPEN) — codes are suppressed in code
+    (`DISCOUNT_CODES_ENABLED = False`) since 2026-07-22; the column + filter remain. Needs a better
+    way to scan/verify codes before re-enabling.
+  - **Stray `FANGTRACK_PROXY_URL` on the WEB service env** (STILL OPEN, minor) — the web doesn't
+    crawl; leave it on the cron, remove from web when convenient.
+  - SEARCH/GOOGLE — remaining, small: `/family/<genus>` pages are real content but are NOT in the
+    sitemap (add when next in there). EXPECTED-NOT-A-BUG: robots.txt `Disallow: /*?` blocks every
+    query-string URL (incl. `/species?page=2` and all facets), so GSC will report them as "Blocked
+    by robots.txt" — deliberate, it curbs the bot load that caused the 07-20 health-check flaps;
+    species detail pages are path-based and fully crawlable.

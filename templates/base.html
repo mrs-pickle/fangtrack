@@ -44,6 +44,29 @@
 <meta name="twitter:description" content="{{ _og_desc }}">
 <meta name="twitter:image" content="{{ _og_image }}">
 <link rel="canonical" href="{{ request.base_url }}">
+
+{# ── Structured data (schema.org / JSON-LD) ──────────────────────────────────
+   Tells a search engine WHAT this page is, so a species page can surface as a
+   price range across sellers rather than a plain link. Pages pass a `jsonld`
+   dict; species pages use Product + AggregateOffer, never Offer — FangTrack is
+   not the seller. `tojson` escapes the values, so no untrusted text can break
+   out of the script block. #}
+{%- if jsonld %}
+<script type="application/ld+json">{{ jsonld | tojson }}</script>
+{%- endif %}
+<script type="application/ld+json">{{ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "FangTrack",
+  "url": url_for('dashboard', _external=True),
+  "description": "Price tracking and market intelligence for tarantulas and other invertebrates, across 29 vendor sites.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {"@type": "EntryPoint",
+               "urlTemplate": url_for('species_search', _external=True) ~ "?q={search_term_string}"},
+    "query-input": "required name=search_term_string"
+  }
+} | tojson }}</script>
 {%- if google_site_verification %}
 <meta name="google-site-verification" content="{{ google_site_verification }}">
 {%- endif %}

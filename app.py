@@ -3515,7 +3515,58 @@ def species_detail(species_key):
                            og_type="article",
                            og_title=_species_og_title(species_key, common),
                            og_description=_species_og_description(stats, len(current or [])),
+                           jsonld=_species_jsonld(species_key, common, stats, current),
                            owned=(species_key in _req_owned()))
+
+
+def _species_jsonld(species_key: str, common: str, stats: dict, current: list) -> dict | None:
+    """Schema.org markup for a species page, or None when we have nothing real.
+
+    HONESTY CONSTRAINTS, deliberate:
+      * The type is Product + **AggregateOffer**, never Offer — FangTrack does NOT
+        sell these animals. AggregateOffer is the correct aggregator shape: it
+        describes a price range across OTHER people's listings.
+      * Every number is one we actually hold. No offers block unless there are
+        real live listings with real prices. Inventing structured data is worse
+        than having none — Google penalises markup that misrepresents a page,
+        and a keeper who clicks a "$61" result that doesn't exist loses trust.
+    """
+    prices = [float(l["price_usd"]) for l in (current or [])
+              if l.get("price_usd") is not None]
+    display = _display_from_key(species_key)
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": f"{display} ({common})" if common else display,
+        "url": url_for("species_detail", species_key=species_key, _external=True),
+        "category": "Live invertebrate",
+        "additionalProperty": [{
+            "@type": "PropertyValue", "name": "Scientific name", "value": display,
+        }],
+    }
+    if common:
+        data["alternateName"] = common
+    if prices:
+        # AggregateOffer's real vocabulary is lowPrice/highPrice/offerCount/
+        # priceCurrency. Vendor count is genuinely useful to a buyer but there is
+        # no schema property for it, so it goes in additionalProperty rather than
+        # being invented on the offer (invalid properties just get dropped, or
+        # flagged, and make the whole block look untrustworthy).
+        data["offers"] = {
+            "@type": "AggregateOffer",
+            "priceCurrency": "USD",
+            "lowPrice": round(min(prices), 2),
+            "highPrice": round(max(prices), 2),
+            "offerCount": len(prices),
+            "availability": "https://schema.org/InStock",
+        }
+        vendors = len({l.get("vendor_key") for l in current if l.get("vendor_key")})
+        if vendors:
+            data["additionalProperty"].append({
+                "@type": "PropertyValue", "name": "Sellers with stock", "value": vendors})
+    elif not (stats or {}).get("market_price"):
+        return None                       # nothing verifiable to say about this page
+    return data
 
 
 def _species_og_title(species_key: str, common: str) -> str:

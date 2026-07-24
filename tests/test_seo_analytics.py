@@ -8,6 +8,7 @@ fail SILENTLY (the page still renders 200). These tests are the alarm.
 Run:  python -m pytest tests/test_seo_analytics.py
 """
 import os
+import re
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -41,6 +42,70 @@ def test_sitemap_is_well_formed_and_lists_pages():
     locs = [e.text for e in root.iter(f"{ns}loc")]
     assert locs, "sitemap has no <loc> entries"
     assert all(u.startswith("http") for u in locs), "sitemap needs ABSOLUTE urls"
+
+
+# ── structured data must describe the page HONESTLY ────────────────────────
+def test_species_jsonld_uses_aggregateoffer_not_offer():
+    """FangTrack does not sell these animals — it aggregates other people's
+    listings. Claiming Offer would misrepresent the page to Google."""
+    import app as fangtrack
+    with app.test_request_context("/"):
+        d = fangtrack._species_jsonld(
+            "poecilotheria metallica", "Gooty Sapphire",
+            {"market_price": 150.0},
+            [{"price_usd": 88.0, "vendor_key": "a"},
+             {"price_usd": 670.0, "vendor_key": "b"}])
+    assert d["@type"] == "Product"
+    assert d["offers"]["@type"] == "AggregateOffer"
+    assert d["offers"]["lowPrice"] == 88.0
+    assert d["offers"]["highPrice"] == 670.0
+    assert d["offers"]["offerCount"] == 2
+    assert d["offers"]["priceCurrency"] == "USD"
+
+
+def test_species_jsonld_never_invents_a_price():
+    """No live listings -> no offers block. A structured price that does not
+    exist sends a buyer to a dead result and is worse than no markup at all."""
+    import app as fangtrack
+    with app.test_request_context("/"):
+        d = fangtrack._species_jsonld("brachypelma hamorii", "", {"market_price": 60.0}, [])
+        assert "offers" not in d
+        # nothing verifiable at all -> emit nothing
+        assert fangtrack._species_jsonld("nothing known", "", {}, []) is None
+
+
+def test_species_jsonld_emits_only_valid_aggregateoffer_properties():
+    """sellerCount is not schema.org vocabulary; invalid properties make the
+    whole block look untrustworthy. Vendor count belongs in additionalProperty."""
+    import app as fangtrack
+    with app.test_request_context("/"):
+        d = fangtrack._species_jsonld("x y", "", {}, [{"price_usd": 5.0, "vendor_key": "v"}])
+    assert set(d["offers"]).issubset(
+        {"@type", "priceCurrency", "lowPrice", "highPrice", "offerCount", "availability"})
+    assert any(p.get("name") == "Sellers with stock" for p in d["additionalProperty"])
+
+
+def test_rendered_jsonld_is_parseable_json():
+    """A broken block is invisible to a crawler — and to us.
+
+    Renders the template directly rather than fetching a species page: the
+    suite's modules share one temp DB, so which species exist is not something
+    this test should depend on. What matters is that whatever we hand the
+    template comes back out as valid JSON — including values with quotes and
+    angle brackets, which is exactly how a script block gets broken.
+    """
+    import json
+    tpl = app.jinja_env.from_string(
+        '<script type="application/ld+json">{{ jsonld | tojson }}</script>')
+    hostile = {"@type": "Product",
+               "name": 'Brachypelma "hammy" hamorii </script><b>x</b>',
+               "description": "quotes ' and \\ backslash"}
+    out = tpl.render(jsonld=hostile)
+    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', out, re.S)
+    assert blocks, "structured-data block did not render"
+    parsed = json.loads(blocks[0])        # raises on malformed JSON
+    assert parsed["name"] == hostile["name"]
+    assert "</script>" not in blocks[0], "unescaped </script> would break out of the block"
 
 
 def test_sitemap_never_advertises_a_url_that_would_404():
