@@ -181,8 +181,12 @@ def test_dashboard_genus_link_uses_the_real_route():
         rules = {str(r.rule) for r in fangtrack.app.url_map.iter_rules()}
     assert "/family/<genus>" in rules
     assert "/genus/<genus>" not in rules, "route moved — update the dashboard link"
+    # Assert on the VALUE the dashboard renders, not on source text — a source
+    # grep also matches the comment explaining the old bug. Only the f-string
+    # that BUILDS the href matters, so pin that expression exactly.
     src = open("analytics/market.py", encoding="utf-8").read()
-    assert '"/genus/' not in src, "dashboard would emit a dead /genus/ link"
+    assert 'f"/family/{big_genus}"' in src, "genus href no longer built as /family/"
+    assert 'f"/genus/{big_genus}"' not in src, "dashboard would emit a dead /genus/ link"
 
 
 def test_movers_with_no_species_key_are_dropped():
