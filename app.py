@@ -2055,6 +2055,28 @@ def _filter_banned_movers(movers: dict) -> dict:
     return out
 
 
+def _heal_intel_links(intel):
+    """Repair hrefs baked into a STALE cron-built intel blob.
+
+    The genus tile's href is computed when the blob is built, so fixing the code
+    does not fix the blob — after the /genus/ -> /family/ correction shipped, the
+    homepage kept serving the dead /genus/ link from the cached value until the
+    next crawl. Same shape as _filter_banned_movers: heal at RENDER time so a
+    stale blob can never surface a broken link.
+    """
+    if not isinstance(intel, dict):
+        return intel
+    cov = intel.get("coverage")
+    if isinstance(cov, dict):
+        href = cov.get("biggest_genus_href") or ""
+        if href.startswith("/genus/"):
+            cov = dict(cov)
+            cov["biggest_genus_href"] = "/family/" + href[len("/genus/"):]
+            intel = dict(intel)
+            intel["coverage"] = cov
+    return intel
+
+
 @app.route("/")
 def dashboard():
     # The dashboard is the market overview — site crawls only. Private-seller lists
@@ -2080,7 +2102,7 @@ def dashboard():
     # ── Market movers + intelligence (only change on a crawl → cached) ───────
     movers = _filter_banned_movers(_cached_movers(snap))
     stats = get_market_stats()
-    intel = _cached_intel(snap)
+    intel = _heal_intel_links(_cached_intel(snap))
 
     # ── Header meta + crawl-history depth (drives the mover empty-state counters) ─
     head = _dashboard_header_meta()

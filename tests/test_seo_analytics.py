@@ -210,6 +210,21 @@ def test_movers_with_no_species_key_are_dropped():
     assert len(out["drops"]) == 1
 
 
+def test_stale_intel_blob_cannot_serve_the_dead_genus_link():
+    """The genus href is baked into the cron-built intel blob, so fixing the
+    code did NOT fix prod — the homepage kept serving /genus/ from cache. Heal
+    at render time, like the movers filter."""
+    import app as fangtrack
+    stale = {"coverage": {"biggest_genus_href": "/genus/scolopendra"}}
+    healed = fangtrack._heal_intel_links(stale)
+    assert healed["coverage"]["biggest_genus_href"] == "/family/scolopendra"
+    # correct values untouched; malformed input must not raise
+    ok = {"coverage": {"biggest_genus_href": "/family/x"}}
+    assert fangtrack._heal_intel_links(ok)["coverage"]["biggest_genus_href"] == "/family/x"
+    assert fangtrack._heal_intel_links(None) is None
+    assert fangtrack._heal_intel_links({}) == {}
+
+
 # ── the event queue survives a redirect, and drains exactly once ────────────
 def test_track_event_queues_and_drains_once():
     import app as fangtrack
