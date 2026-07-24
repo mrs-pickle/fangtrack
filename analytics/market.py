@@ -794,7 +794,9 @@ def market_intelligence(db_path: Path, snapshot: list, owned_keys=None) -> dict:
         "species": n_species, "genera": n_genera,
         "listings": total_live, "vendors": vendors_live,
         "biggest_genus": big_genus.capitalize(), "biggest_genus_n": len(big_set),
-        "biggest_genus_href": f"/genus/{big_genus}",
+        # The genus landing route is /family/<genus>; "/genus/..." was a dead
+        # link on the dashboard (found by a Semrush crawl, 2026-07-24).
+        "biggest_genus_href": f"/family/{big_genus}",
         "most_listed": abbrev(disp(most_listed_k)),
         "most_listed_common": best_common(most_listed_k) or "",
         "most_listed_n": ml.get("listings_live_now"),

@@ -2024,16 +2024,34 @@ def _filter_banned_movers(movers: dict) -> dict:
     """Belt-and-suspenders: strip BANNED_MOVER_VENDORS (Urban) from the movers at
     RENDER time. market_movers already excludes them when building, but the movers
     are served from a cron-built blob that can be stale (built before the ban, or
-    not yet rebuilt) — this makes the ban hold no matter what blob is loaded."""
+    not yet rebuilt) — this makes the ban hold no matter what blob is loaded.
+
+    Also drops movers with no scientific_name_key. Every mover tile links to
+    /species/<key>, so a key-less entry renders `href="/species/"` — a dead link
+    on the busiest page of the site (a Semrush crawl found exactly that on
+    2026-07-24, from a stale blob entry). Same reasoning as the vendor ban:
+    filtering at RENDER time means a bad blob can never surface it."""
     from analytics.market import BANNED_MOVER_VENDORS
     if not isinstance(movers, dict):
         return movers
+    dropped = 0
     out = dict(movers)
     for col in ("fire", "drops", "back_in_stock"):
         v = out.get(col)
         if isinstance(v, list):
-            out[col] = [m for m in v
-                        if not (isinstance(m, dict) and m.get("vendor_key") in BANNED_MOVER_VENDORS)]
+            keep = []
+            for m in v:
+                if not isinstance(m, dict):
+                    continue
+                if m.get("vendor_key") in BANNED_MOVER_VENDORS:
+                    continue
+                if not str(m.get("scientific_name_key") or "").strip():
+                    dropped += 1          # would render a dead /species/ link
+                    continue
+                keep.append(m)
+            out[col] = keep
+    if dropped:
+        logger.info(f"movers: dropped {dropped} entry/entries with no species key")
     return out
 
 
@@ -3636,8 +3654,17 @@ def family(genus):
         "cheapest": round(min(lows), 0) if lows else None,
         "origin": tiles[0]["origin"] if tiles else "",
     }
+    # Per-genus description: a unique, factual summary beats the site default
+    # (13 pages shared one description before this — Semrush, 2026-07-24).
+    _n = len(tiles)
+    _desc = (f"All {_n} {g.capitalize()} species tracked on FangTrack — "
+             f"market price, price history, rarity and who has one in stock."
+             if _n else
+             f"{g.capitalize()} species tracked on FangTrack — market price, "
+             f"price history and rarity.")
     return render_template("family.html", genus=g.capitalize(),
-                           tiles=tiles, index=index)
+                           tiles=tiles, index=index,
+                           og_description=_desc)
 
 
 def _fmt_eastern(iso_utc: str) -> str:

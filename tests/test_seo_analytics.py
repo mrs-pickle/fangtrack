@@ -172,6 +172,40 @@ def test_sitemap_lastmod_is_a_real_date_and_not_in_the_future():
         assert d <= today, f"lastmod in the future: {m}"
 
 
+# ── dead internal links (found by a Semrush crawl, 2026-07-24) ─────────────
+def test_dashboard_genus_link_uses_the_real_route():
+    """The genus landing route is /family/<genus>. The dashboard's "biggest
+    genus" tile linked to /genus/<genus>, which 404s."""
+    import app as fangtrack
+    with app.test_request_context("/"):
+        rules = {str(r.rule) for r in fangtrack.app.url_map.iter_rules()}
+    assert "/family/<genus>" in rules
+    assert "/genus/<genus>" not in rules, "route moved — update the dashboard link"
+    src = open("analytics/market.py", encoding="utf-8").read()
+    assert '"/genus/' not in src, "dashboard would emit a dead /genus/ link"
+
+
+def test_movers_with_no_species_key_are_dropped():
+    """Every mover tile links to /species/<key>; a key-less entry renders
+    href="/species/" — a dead link on the busiest page of the site. The movers
+    come from a cron-built blob that can be stale, so this is filtered at
+    RENDER time (same reasoning as the banned-vendor filter)."""
+    import app as fangtrack
+    blob = {
+        "fire": [{"scientific_name_key": "real species", "vendor_key": "v"}],
+        "drops": [{"scientific_name_key": "", "vendor_key": "v"},
+                  {"scientific_name_key": None, "vendor_key": "v"},
+                  {"scientific_name_key": "another real", "vendor_key": "v"}],
+        "back_in_stock": [],
+    }
+    out = fangtrack._filter_banned_movers(blob)
+    for col in ("fire", "drops", "back_in_stock"):
+        for m in out[col]:
+            assert str(m.get("scientific_name_key") or "").strip(), \
+                "a key-less mover would render a dead /species/ link"
+    assert len(out["drops"]) == 1
+
+
 # ── the event queue survives a redirect, and drains exactly once ────────────
 def test_track_event_queues_and_drains_once():
     import app as fangtrack
